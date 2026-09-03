@@ -8,28 +8,27 @@
 - **Phase 3**: Application Shell / Navigation
 - **Phase 4**: Local Music Library (Database, Scanning, Migrations)
 - **Phase 5**: Player Engine (Coordinator, State Machine, Media3 Adapter, Dependency Injection)
+- **Phase 6**: Queue and Now Playing UI
 
-## Phase 5 Details (Player Engine Correction)
+## Phase 6 Details (Queue and Now Playing Experience)
 
-The Phase 5 implementation successfully created the canonical `PlayerCoordinator` and `Media3PlayerAdapter`. During an audit, three critical architectural defects were found and resolved:
+Phase 6 implements the complete UI for the Queue and Now Playing screens, strictly adhering to the Liquid Glass design system and existing `PlayerCoordinator` architecture.
 
-1. **TrackResolver**: Replaced the placeholder implementation with `AuroraTrackResolver`, which securely queries the `LocalLibraryDao` to resolve domain string IDs into playback `Content URIs`.
-2. **Player Ownership**: Refactored `PlayerViewModel` to act purely as a UI adapter. It no longer instantiates or owns the `Media3PlayerAdapter` or `PlayerCoordinator`.
-3. **Application Scope (DI)**: Implemented `AppContainer` (a manual dependency injection container) initialized in `AuroraApp`. This container is now the single source of truth and owner for the application-scoped player engine and database. `AuroraMediaSessionService` was also updated to pull the player engine from `AppContainer` instead of relying on static companion-object properties.
-
-### Containment of Scope Breach
-Phase 6 UI components (e.g., `MiniPlayer`, `PlayerScrubber`, `NowPlayingScreen`, `QueueSheet`) were prematurely created during early Phase 5 attempts. They remain in the codebase but are isolated from the application shell and not wired into the production navigation graph, preserving Phase 5 architectural purity.
+Key actions included:
+1. **Refactoring UI**: Completely replaced standard Material 3 usages in `MiniPlayer`, `PlayerScrubber`, `NowPlayingScreen`, and `QueueSheet` with AURORA's custom tokens (`GlassSurface`, `ArtworkSurface`, `GlassIconButton`).
+2. **Motion and Haptics**: Implemented robust spring animations and integrated the `HapticEngine` across interactive elements to fulfill the haptic requirements of the app.
+3. **Architecture Preservation**: Retained the clean separation of concerns, ensuring UI components solely observe and dispatch intents to the canonical `PlayerCoordinator` via `LocalPlayerCoordinator`.
 
 ## Current State
 
 The Android project is fully compiling.
 All unit tests and instrumented tests are passing.
 Linting passes with no critical warnings.
-Phase 5 is verified and closed.
+Phase 6 UI is verified and closed.
 
 ## Next Phase
 
-**Phase 6: Queue and Now Playing UI**
-- Wiring the isolated UI components to the application shell.
-- Integrating `PlayerCoordinator` states into the UI cleanly.
-- Implementing gesture-driven navigation (e.g., drag down to minimize, swipe to skip).
+**Phase 7: YouTube Integration**
+- Implementing YouTube data extraction and discovery APIs.
+- Creating the YouTube provider module and integrating it into the `MusicProvider` abstraction.
+- Verifying the playback of YouTube streams natively or via visible IFrame.

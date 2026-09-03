@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Column
 @Composable
 fun AuroraNavigation(
     navController: NavHostController,
+    container: dev.aurora.player.app.AppContainer,
     modifier: Modifier = Modifier,
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -60,7 +61,18 @@ fun AuroraNavigation(
             composable(AuroraDestination.Home.route) { HomeScreen() }
             composable(AuroraDestination.Search.route) { SearchScreen() }
             composable(AuroraDestination.Library.route) { LibraryScreen() }
-            composable(AuroraDestination.Ai.route) { AiScreen() }
+            composable(AuroraDestination.Ai.route) { 
+                val aiViewModel = androidx.compose.runtime.remember {
+                    dev.aurora.player.ui.screens.AiViewModel(
+                        container.aiProvider,
+                        container.aiToolExecutor
+                    )
+                }
+                AiScreen(
+                    viewModel = aiViewModel,
+                    playerCoordinator = container.playerCoordinator
+                ) 
+            }
             composable(AuroraDestination.Settings.route) { SettingsScreen() }
         }
     }

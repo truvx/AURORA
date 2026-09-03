@@ -22,6 +22,10 @@ interface AppContainer {
     val media3PlayerAdapter: PlayerAdapter
     val playerAdapter: PlayerAdapter
     val playerCoordinator: PlayerCoordinator
+    val localLibraryProvider: dev.aurora.player.data.providers.LocalLibraryProvider
+    val aiProvider: dev.aurora.player.domain.ai.AiProvider
+    val recommendationEngine: dev.aurora.player.domain.recommendations.RecommendationEngine
+    val aiToolExecutor: AiToolExecutor
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
@@ -72,5 +76,39 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val playerCoordinator: PlayerCoordinator by lazy {
         PlayerCoordinator(playerAdapter, trackResolver, applicationScope)
+    }
+
+    override val localLibraryProvider: dev.aurora.player.data.providers.LocalLibraryProvider by lazy {
+        dev.aurora.player.data.providers.LocalLibraryProvider(
+            localLibraryDao, 
+            dev.aurora.player.data.scanner.LocalMusicScanner(context)
+        )
+    }
+
+    override val aiProvider: dev.aurora.player.domain.ai.AiProvider by lazy {
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        val contentType = okhttp3.MediaType.get("application/json")
+        // Use 10.0.2.2 for Android emulator -> localhost
+        val retrofit = retrofit2.Retrofit.Builder()
+            .baseUrl("http://10.0.2.2:3000/")
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            
+        val api = retrofit.create(dev.aurora.player.data.api.AiGatewayApi::class.java)
+        dev.aurora.player.data.providers.NetworkAiProvider(api)
+    }
+
+    override val recommendationEngine: dev.aurora.player.domain.recommendations.RecommendationEngine by lazy {
+        dev.aurora.player.domain.recommendations.RecommendationEngine(
+            providers = listOf(localLibraryProvider, youtubeMusicProvider)
+        )
+    }
+
+    override val aiToolExecutor: AiToolExecutor by lazy {
+        AiToolExecutor(
+            playerCoordinator = playerCoordinator,
+            recommendationEngine = recommendationEngine,
+            providers = listOf(localLibraryProvider, youtubeMusicProvider)
+        )
     }
 }

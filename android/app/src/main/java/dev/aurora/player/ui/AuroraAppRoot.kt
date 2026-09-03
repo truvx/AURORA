@@ -27,7 +27,10 @@ fun AuroraAppRoot() {
     ) {
         AuroraTheme {
             val navController = rememberNavController()
-            AuroraNavigation(navController = navController)
+            AuroraNavigation(
+                navController = navController,
+                container = container
+            )
         }
     }
 }

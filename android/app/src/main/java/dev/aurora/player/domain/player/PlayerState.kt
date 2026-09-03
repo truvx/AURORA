@@ -23,5 +23,7 @@ data class PlayerState(
     val queue: QueueState = QueueState(),
     val volume: Float = 1.0f,
     val audioFocus: AudioFocusState = AudioFocusState.Unknown,
-    val lastError: Throwable? = null
+    val lastError: Throwable? = null,
+    val loudnessPreference: dev.aurora.player.domain.audio.LoudnessPreference = dev.aurora.player.domain.audio.LoudnessPreference.Normal,
+    val appliedNormalization: dev.aurora.player.domain.audio.AppliedNormalization? = null
 )

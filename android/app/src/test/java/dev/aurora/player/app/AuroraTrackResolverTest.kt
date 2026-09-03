@@ -25,8 +25,7 @@ class AuroraTrackResolverTest {
             }
         }
         
-        // Stubs for the rest of the interface...
-        override suspend fun upsertLocalTrack(item: dev.aurora.player.data.db.MediaItemEntity, file: dev.aurora.player.data.db.LocalFileEntity, metadata: dev.aurora.player.data.db.TrackTechnicalMetadataEntity?, album: dev.aurora.player.data.db.AlbumEntity?, artists: List<dev.aurora.player.data.db.ArtistEntity>, artwork: dev.aurora.player.data.db.ArtworkEntity?) {}
+        override suspend fun upsertLocalTrack(item: dev.aurora.player.data.db.MediaItemEntity, file: dev.aurora.player.data.db.LocalFileEntity, metadata: dev.aurora.player.data.db.TrackTechnicalMetadataEntity?, album: dev.aurora.player.data.db.AlbumEntity?, artists: List<dev.aurora.player.data.db.ArtistEntity>, artwork: dev.aurora.player.data.db.ArtworkEntity?, loudness: dev.aurora.player.data.db.TrackLoudnessEntity?) {}
         override suspend fun getAllLocalFileUris(): List<String> = emptyList()
         override suspend fun deleteStaleLocalFiles(uris: List<String>) {}
         override fun observeLocalItems(): kotlinx.coroutines.flow.Flow<List<dev.aurora.player.data.db.MediaItemWithDetails>> = kotlinx.coroutines.flow.flowOf(emptyList())
@@ -35,6 +34,8 @@ class AuroraTrackResolverTest {
         override suspend fun insertMediaItem(item: dev.aurora.player.data.db.MediaItemEntity) {}
         override suspend fun insertLocalFile(file: dev.aurora.player.data.db.LocalFileEntity) {}
         override suspend fun insertTrackMetadata(metadata: dev.aurora.player.data.db.TrackTechnicalMetadataEntity) {}
+        override suspend fun insertTrackLoudness(loudness: dev.aurora.player.data.db.TrackLoudnessEntity) {}
+        override suspend fun getTrackLoudness(mediaId: String): dev.aurora.player.domain.audio.TrackLoudnessData? = null
         override suspend fun insertAlbum(album: dev.aurora.player.data.db.AlbumEntity) {}
         override suspend fun insertArtist(artist: dev.aurora.player.data.db.ArtistEntity) {}
         override suspend fun insertMediaItemArtistCrossRef(crossRef: dev.aurora.player.data.db.MediaItemArtistCrossRef) {}

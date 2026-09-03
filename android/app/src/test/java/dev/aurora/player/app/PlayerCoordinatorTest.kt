@@ -53,6 +53,7 @@ class PlayerCoordinatorTest {
             events.tryEmit(EngineEvent.SeekCompleted)
         }
         override fun setVolume(volume: Float) {}
+        override fun setAudioGain(linearGain: Float) {}
         override fun release() {}
     }
 
@@ -60,6 +61,7 @@ class PlayerCoordinatorTest {
         override suspend fun resolveUri(trackId: String): String? {
             return if (trackId == "notfound") null else "content://test/$trackId"
         }
+        override suspend fun resolveLoudness(trackId: String): dev.aurora.player.domain.audio.TrackLoudnessData? = null
     }
 
     @Before

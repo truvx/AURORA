@@ -15,4 +15,11 @@ class AuroraTrackResolver(
         val fileEntity = localDao.getLocalFileForMedia(trackId)
         fileEntity?.uri
     }
+
+    override suspend fun resolveLoudness(trackId: String): dev.aurora.player.domain.audio.TrackLoudnessData? = withContext(Dispatchers.IO) {
+        if (trackId.startsWith("youtube:")) {
+            return@withContext null
+        }
+        localDao.getTrackLoudness(trackId)
+    }
 }

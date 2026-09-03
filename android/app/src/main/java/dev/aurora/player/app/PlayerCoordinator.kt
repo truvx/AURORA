@@ -42,6 +42,7 @@ class PlayerCoordinator(
             is PlayerCommand.MoveInQueue -> moveInQueue(command.from, command.to)
             is PlayerCommand.ClearQueue -> clearQueue()
             is PlayerCommand.SetVolume -> setVolume(command.volume)
+            is PlayerCommand.SetLoudnessPreference -> setLoudnessPreference(command.preference)
             is PlayerCommand.Reload -> reload()
             is PlayerCommand.Stop -> stop()
         }
@@ -52,7 +53,27 @@ class PlayerCoordinator(
         _state.update { it.copy(status = PlaybackStatus.Loading, currentTrack = track) }
         scope.launch {
             val uri = resolver.resolveUri(track.id)
+            val loudnessData = resolver.resolveLoudness(track.id)
+            
             if (uri != null) {
+                val capability = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) {
+                    dev.aurora.player.domain.audio.LoudnessCapability.ProviderManaged
+                } else {
+                    dev.aurora.player.domain.audio.LoudnessCapability.Supported
+                }
+                
+                val normalization = dev.aurora.player.domain.audio.LoudnessResolver.resolveGain(
+                    preference = _state.value.loudnessPreference,
+                    trackData = loudnessData,
+                    capability = capability,
+                    isAlbumContext = false
+                )
+                
+                val linearGain = dev.aurora.player.domain.audio.LoudnessResolver.toLinearGain(normalization.actualGainDb)
+                
+                _state.update { it.copy(appliedNormalization = normalization) }
+                adapter.setAudioGain(linearGain)
+                
                 adapter.load(track, uri)
             } else {
                 _state.update { it.copy(status = PlaybackStatus.Error, lastError = Exception("URI not found")) }
@@ -274,6 +295,11 @@ class PlayerCoordinator(
     private fun setVolume(volume: Float) {
         _state.update { it.copy(volume = volume) }
         adapter.setVolume(volume)
+    }
+
+    private fun setLoudnessPreference(preference: dev.aurora.player.domain.audio.LoudnessPreference) {
+        _state.update { it.copy(loudnessPreference = preference) }
+        reload()
     }
 
     private fun reload() {

@@ -16,13 +16,33 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
+import androidx.media3.common.audio.AudioProcessor
 
 class Media3PlayerAdapter(
     context: Context,
     private val scope: CoroutineScope
 ) : PlayerAdapter {
 
-    val exoPlayer: ExoPlayer = ExoPlayer.Builder(context)
+    val normalizationProcessor = NormalizationAudioProcessor()
+
+    val renderersFactory = object : DefaultRenderersFactory(context) {
+        override fun buildAudioSink(
+            context: Context,
+            enableFloatOutput: Boolean,
+            enableAudioTrackPlaybackParams: Boolean
+        ): AudioSink {
+            return DefaultAudioSink.Builder(context)
+                .setEnableFloatOutput(enableFloatOutput)
+                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                .setAudioProcessors(arrayOf<AudioProcessor>(normalizationProcessor))
+                .build()
+        }
+    }
+
+    val exoPlayer: ExoPlayer = ExoPlayer.Builder(context, renderersFactory)
         .setAudioAttributes(
             androidx.media3.common.AudioAttributes.Builder()
                 .setUsage(androidx.media3.common.C.USAGE_MEDIA)
@@ -124,6 +144,10 @@ class Media3PlayerAdapter(
 
     override fun setVolume(volume: Float) {
         exoPlayer.volume = volume
+    }
+
+    override fun setAudioGain(linearGain: Float) {
+        normalizationProcessor.setLinearGain(linearGain)
     }
 
     override fun release() {

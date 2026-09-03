@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
+import dev.aurora.player.domain.audio.TrackLoudnessData
 
 @Dao
 interface LocalLibraryDao {
@@ -30,6 +31,9 @@ interface LocalLibraryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertArtwork(artwork: ArtworkEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTrackLoudness(loudness: TrackLoudnessEntity)
+
     @Transaction
     suspend fun upsertLocalTrack(
         item: MediaItemEntity,
@@ -37,7 +41,8 @@ interface LocalLibraryDao {
         metadata: TrackTechnicalMetadataEntity?,
         album: AlbumEntity?,
         artists: List<ArtistEntity>,
-        artwork: ArtworkEntity?
+        artwork: ArtworkEntity?,
+        loudness: TrackLoudnessEntity?
     ) {
         if (artwork != null) insertArtwork(artwork)
         if (album != null) insertAlbum(album)
@@ -52,6 +57,9 @@ interface LocalLibraryDao {
         insertLocalFile(file)
         if (metadata != null) {
             insertTrackMetadata(metadata)
+        }
+        if (loudness != null) {
+            insertTrackLoudness(loudness)
         }
     }
 
@@ -68,6 +76,9 @@ interface LocalLibraryDao {
 
     @Query("SELECT * FROM track_metadata WHERE mediaId = :mediaId LIMIT 1")
     suspend fun getMetadataForMedia(mediaId: String): TrackTechnicalMetadataEntity?
+
+    @Query("SELECT lufsIntegrated, truePeak, albumLufs, albumPeak FROM track_loudness WHERE mediaId = :mediaId")
+    suspend fun getTrackLoudness(mediaId: String): TrackLoudnessData?
 
     @Query("SELECT * FROM albums WHERE id = :albumId LIMIT 1")
     suspend fun getAlbum(albumId: String): AlbumEntity?

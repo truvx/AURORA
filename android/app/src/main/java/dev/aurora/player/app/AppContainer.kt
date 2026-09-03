@@ -36,7 +36,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             context,
             AuroraDatabase::class.java,
             "aurora-database"
-        ).addMigrations(AuroraDatabase.MIGRATION_1_2)
+        ).addMigrations(AuroraDatabase.MIGRATION_1_2, AuroraDatabase.MIGRATION_2_3)
          .build()
     }
 

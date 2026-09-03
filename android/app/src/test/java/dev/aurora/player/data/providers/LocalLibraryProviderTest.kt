@@ -28,6 +28,8 @@ class LocalLibraryProviderTest {
         override suspend fun insertArtist(artist: ArtistEntity) {}
         override suspend fun insertMediaItemArtistCrossRef(crossRef: MediaItemArtistCrossRef) {}
         override suspend fun insertArtwork(artwork: ArtworkEntity) {}
+        override suspend fun insertTrackLoudness(loudness: TrackLoudnessEntity) {}
+        override suspend fun getTrackLoudness(mediaId: String): dev.aurora.player.domain.audio.TrackLoudnessData? = null
 
         override suspend fun upsertLocalTrack(
             item: MediaItemEntity,
@@ -35,7 +37,8 @@ class LocalLibraryProviderTest {
             metadata: TrackTechnicalMetadataEntity?,
             album: AlbumEntity?,
             artists: List<ArtistEntity>,
-            artwork: ArtworkEntity?
+            artwork: ArtworkEntity?,
+            loudness: TrackLoudnessEntity?
         ) {
             upsertedTracks.add(item)
         }

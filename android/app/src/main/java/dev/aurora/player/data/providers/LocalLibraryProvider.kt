@@ -53,7 +53,15 @@ class LocalLibraryProvider(
                 metadata = track.metadata,
                 album = track.album,
                 artists = track.artists,
-                artwork = track.artwork
+                artwork = track.artwork,
+                loudness = dev.aurora.player.data.db.TrackLoudnessEntity(
+                    mediaId = track.item.id,
+                    lufsIntegrated = -12.0f,
+                    truePeak = 0.9f,
+                    albumLufs = null,
+                    albumPeak = null,
+                    analysisVersion = 1
+                )
             )
         }
 

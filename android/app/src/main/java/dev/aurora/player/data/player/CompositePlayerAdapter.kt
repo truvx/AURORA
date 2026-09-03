@@ -48,6 +48,11 @@ class CompositePlayerAdapter(
         youtubeAdapter.setVolume(volume)
     }
 
+    override fun setAudioGain(linearGain: Float) {
+        localAdapter.setAudioGain(linearGain)
+        youtubeAdapter.setAudioGain(linearGain)
+    }
+
     override fun release() {
         localAdapter.release()
         youtubeAdapter.release()

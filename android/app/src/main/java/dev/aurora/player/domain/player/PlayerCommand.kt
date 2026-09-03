@@ -17,6 +17,7 @@ sealed class PlayerCommand {
     data class MoveInQueue(val from: Int, val to: Int) : PlayerCommand()
     object ClearQueue : PlayerCommand()
     data class SetVolume(val volume: Float) : PlayerCommand()
+    data class SetLoudnessPreference(val preference: dev.aurora.player.domain.audio.LoudnessPreference) : PlayerCommand()
     object Reload : PlayerCommand()
     object Stop : PlayerCommand()
 }

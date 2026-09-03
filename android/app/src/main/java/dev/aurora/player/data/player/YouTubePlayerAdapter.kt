@@ -196,6 +196,10 @@ class YouTubePlayerAdapter : PlayerAdapter {
         _webView?.evaluateJavascript("setVolume($volume);", null)
     }
 
+    override fun setAudioGain(linearGain: Float) {
+        // No-op: YouTube handles its own loudness normalization.
+    }
+
     override fun release() {
         _state.value = YouTubeState()
         _webView?.let {

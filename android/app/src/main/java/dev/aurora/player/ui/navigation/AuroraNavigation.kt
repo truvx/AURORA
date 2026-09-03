@@ -73,7 +73,9 @@ fun AuroraNavigation(
                     playerCoordinator = container.playerCoordinator
                 ) 
             }
-            composable(AuroraDestination.Settings.route) { SettingsScreen() }
+            composable(AuroraDestination.Settings.route) { 
+                SettingsScreen(playerCoordinator = container.playerCoordinator) 
+            }
         }
     }
 }

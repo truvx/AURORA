@@ -23,5 +23,6 @@ interface PlayerAdapter {
     fun pause()
     fun seekTo(positionMs: Long)
     fun setVolume(volume: Float)
+    fun setAudioGain(linearGain: Float)
     fun release()
 }

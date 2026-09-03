@@ -1,0 +1,134 @@
+/*
+ * AURORA Global Styles
+ *
+ * Resets, font loading, and base application styles.
+ * All components use semantic tokens from tokens.css.
+ */
+
+@import url('./tokens.css');
+
+/* ──────────────── Reset ──────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ──────────────── Base ──────────────── */
+
+html {
+  font-family: var(--aurora-font-family);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  color: var(--aurora-text-primary);
+  background-color: var(--aurora-bg-primary);
+}
+
+body {
+  min-height: 100dvh;
+  color: var(--aurora-text-primary);
+  background-color: var(--aurora-bg-primary);
+}
+
+/* ──────────────── Typography Utilities ──────────────── */
+
+.aurora-display {
+  font-size: var(--aurora-type-display-size);
+  line-height: var(--aurora-type-display-line);
+  font-weight: var(--aurora-type-display-weight);
+  letter-spacing: 0;
+}
+
+.aurora-headline {
+  font-size: var(--aurora-type-headline-size);
+  line-height: var(--aurora-type-headline-line);
+  font-weight: var(--aurora-type-headline-weight);
+  letter-spacing: 0;
+}
+
+.aurora-title {
+  font-size: var(--aurora-type-title-size);
+  line-height: var(--aurora-type-title-line);
+  font-weight: var(--aurora-type-title-weight);
+  letter-spacing: 0;
+}
+
+.aurora-body {
+  font-size: var(--aurora-type-body-size);
+  line-height: var(--aurora-type-body-line);
+  font-weight: var(--aurora-type-body-weight);
+  letter-spacing: 0;
+}
+
+.aurora-label {
+  font-size: var(--aurora-type-label-size);
+  line-height: var(--aurora-type-label-line);
+  font-weight: var(--aurora-type-label-weight);
+  letter-spacing: 0;
+}
+
+.aurora-caption {
+  font-size: var(--aurora-type-caption-size);
+  line-height: var(--aurora-type-caption-line);
+  font-weight: var(--aurora-type-caption-weight);
+  letter-spacing: 0;
+}
+
+/* ──────────────── Focus ──────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--aurora-focus-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ──────────────── Reduced Motion ──────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ──────────────── Reduced Transparency ──────────────── */
+
+@media (prefers-reduced-transparency: reduce) {
+  .aurora-glass {
+    background-color: var(--aurora-surface-opaque-fallback) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* ──────────────── Selection ──────────────── */
+
+::selection {
+  background-color: var(--aurora-accent-primary);
+  color: var(--aurora-control-on-primary);
+}
+
+/* ──────────────── Scrollbar (minimal) ──────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--aurora-divider-subtle);
+  border-radius: 3px;
+}

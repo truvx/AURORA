@@ -1,0 +1,43 @@
+{
+  "$schema": "https://aurora.dev/schemas/design-tokens/colors.json",
+  "version": "1.0.0",
+  "description": "AURORA canonical color tokens. Reference contract for cross-platform parity.",
+  "light": {
+    "neutral": {
+      "0": "#FFFFFF",
+      "10": "#F7F8FA",
+      "20": "#ECEEF2",
+      "40": "#D2D6DE",
+      "70": "#606875",
+      "90": "#252A33"
+    },
+    "accent": {
+      "cyan": "#087E9B",
+      "violet": "#6C51C9"
+    },
+    "semantic": {
+      "success": "#197A4A",
+      "warning": "#8B5A00",
+      "error": "#B3261E"
+    }
+  },
+  "dark": {
+    "neutral": {
+      "0": "#000000",
+      "10": "#111318",
+      "20": "#1B1E25",
+      "40": "#363B46",
+      "70": "#A7AFBD",
+      "90": "#F0F2F6"
+    },
+    "accent": {
+      "cyan": "#66D9F2",
+      "violet": "#BBA8FF"
+    },
+    "semantic": {
+      "success": "#67D49A",
+      "warning": "#F2C66D",
+      "error": "#FF9F99"
+    }
+  }
+}

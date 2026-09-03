@@ -1,0 +1,36 @@
+# Local secrets and machine-specific configuration
+.env
+.env.*
+!.env.example
+
+# Build and IDE output
+.gradle/
+build/
+**/build/
+.idea/
+*.iml
+
+# Web/Node output
+node_modules/
+.next/
+out/
+dist/
+coverage/
+
+# Local media, exports, and caches
+*.mp3
+*.m4a
+*.flac
+*.wav
+*.ogg
+*.opus
+*.aac
+*.alac
+.local/
+.tmp/
+
+# OS/editor files
+.DS_Store
+*.swp
+local.properties
+*.log

@@ -1,0 +1,163 @@
+/*
+ * AURORA Design Tokens — CSS Custom Properties
+ *
+ * Source: docs/DESIGN_TOKENS.md, docs/TYPOGRAPHY_FINAL.md,
+ *         docs/AURORA_MOTION_SPEC.md, docs/AURORA_MASTER_DESIGN_SYSTEM.md
+ *
+ * Components consume semantic tokens via var(--aurora-*).
+ * Never use raw primitive values directly.
+ */
+
+:root {
+  /* ──────────────── Color Primitives (Light) ──────────────── */
+  --aurora-neutral-0: #ffffff;
+  --aurora-neutral-10: #f7f8fa;
+  --aurora-neutral-20: #eceef2;
+  --aurora-neutral-40: #d2d6de;
+  --aurora-neutral-70: #606875;
+  --aurora-neutral-90: #252a33;
+  --aurora-accent-cyan: #087e9b;
+  --aurora-accent-violet: #6c51c9;
+  --aurora-semantic-success: #197a4a;
+  --aurora-semantic-warning: #8b5a00;
+  --aurora-semantic-error: #b3261e;
+
+  /* ──────────────── Semantic Colors (Light) ──────────────── */
+  --aurora-bg-primary: var(--aurora-neutral-0);
+  --aurora-bg-secondary: var(--aurora-neutral-10);
+  --aurora-surface-glass-primary: rgba(255, 255, 255, 0.72);
+  --aurora-surface-glass-secondary: rgba(247, 248, 250, 0.64);
+  --aurora-surface-glass-elevated: rgba(255, 255, 255, 0.84);
+  --aurora-surface-opaque-fallback: var(--aurora-neutral-10);
+  --aurora-text-primary: var(--aurora-neutral-90);
+  --aurora-text-secondary: var(--aurora-neutral-70);
+  --aurora-text-tertiary: rgba(96, 104, 117, 0.72);
+  --aurora-text-inverse: var(--aurora-neutral-0);
+  --aurora-accent-primary: var(--aurora-accent-cyan);
+  --aurora-accent-secondary: var(--aurora-accent-violet);
+  --aurora-control-primary: var(--aurora-accent-cyan);
+  --aurora-control-on-primary: var(--aurora-neutral-0);
+  --aurora-focus-ring: rgba(8, 126, 155, 0.56);
+  --aurora-divider-subtle: rgba(210, 214, 222, 0.24);
+  --aurora-player-bg: var(--aurora-neutral-10);
+  --aurora-player-control: var(--aurora-neutral-90);
+  --aurora-player-progress: var(--aurora-accent-cyan);
+  --aurora-status-success: var(--aurora-semantic-success);
+  --aurora-status-warning: var(--aurora-semantic-warning);
+  --aurora-status-error: var(--aurora-semantic-error);
+
+  /* Glass recipe opacity tokens */
+  --aurora-glass-tint: rgba(255, 255, 255, 0.12);
+  --aurora-glass-highlight: rgba(255, 255, 255, 0.36);
+  --aurora-glass-scrim: rgba(37, 42, 51, 0.20);
+  --aurora-disabled-opacity: 0.48;
+
+  /* ──────────────── Typography ──────────────── */
+  --aurora-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --aurora-type-display-size: 2.5rem;     /* 40px */
+  --aurora-type-display-line: 2.875rem;   /* 46px */
+  --aurora-type-display-weight: 700;
+
+  --aurora-type-headline-size: 1.875rem;  /* 30px */
+  --aurora-type-headline-line: 2.25rem;   /* 36px */
+  --aurora-type-headline-weight: 700;
+
+  --aurora-type-title-size: 1.375rem;     /* 22px */
+  --aurora-type-title-line: 1.75rem;      /* 28px */
+  --aurora-type-title-weight: 600;
+
+  --aurora-type-body-size: 1rem;          /* 16px */
+  --aurora-type-body-line: 1.5rem;        /* 24px */
+  --aurora-type-body-weight: 400;
+
+  --aurora-type-label-size: 0.875rem;     /* 14px */
+  --aurora-type-label-line: 1.25rem;      /* 20px */
+  --aurora-type-label-weight: 600;
+
+  --aurora-type-caption-size: 0.75rem;    /* 12px */
+  --aurora-type-caption-line: 1rem;       /* 16px */
+  --aurora-type-caption-weight: 400;
+
+  /* ──────────────── Spacing (4-unit rhythm) ──────────────── */
+  --aurora-space-1: 4px;
+  --aurora-space-2: 8px;
+  --aurora-space-3: 12px;
+  --aurora-space-4: 16px;
+  --aurora-space-5: 20px;
+  --aurora-space-6: 24px;
+  --aurora-space-8: 32px;
+  --aurora-space-10: 40px;
+  --aurora-space-12: 48px;
+  --aurora-space-16: 64px;
+
+  /* ──────────────── Shape ──────────────── */
+  --aurora-radius-control: 12px;
+  --aurora-radius-card: 20px;
+  --aurora-radius-sheet: 28px;
+  --aurora-radius-dialog: 24px;
+  --aurora-radius-artwork: 16px;
+
+  /* ──────────────── Depth / Glass ──────────────── */
+  --aurora-blur-none: 0px;
+  --aurora-blur-subtle: 8px;
+  --aurora-blur-surface: 16px;
+  --aurora-blur-floating: 24px;
+
+  /* ──────────────── Motion ──────────────── */
+  --aurora-duration-instant: 80ms;
+  --aurora-duration-quick: 140ms;
+  --aurora-duration-standard: 220ms;
+  --aurora-duration-emphasis: 360ms;
+  --aurora-duration-ambient: 600ms;
+
+  --aurora-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --aurora-easing-decelerate: cubic-bezier(0, 0, 0, 1);
+  --aurora-easing-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --aurora-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ──────────────── Touch Targets ──────────────── */
+  --aurora-target-min: 44px; /* WCAG 2.5.8 Web minimum */
+}
+
+/* ──────────────── Dark Theme ──────────────── */
+[data-theme="dark"] {
+  --aurora-neutral-0: #000000;
+  --aurora-neutral-10: #111318;
+  --aurora-neutral-20: #1b1e25;
+  --aurora-neutral-40: #363b46;
+  --aurora-neutral-70: #a7afbd;
+  --aurora-neutral-90: #f0f2f6;
+  --aurora-accent-cyan: #66d9f2;
+  --aurora-accent-violet: #bba8ff;
+  --aurora-semantic-success: #67d49a;
+  --aurora-semantic-warning: #f2c66d;
+  --aurora-semantic-error: #ff9f99;
+
+  --aurora-bg-primary: var(--aurora-neutral-0);
+  --aurora-bg-secondary: var(--aurora-neutral-10);
+  --aurora-surface-glass-primary: rgba(27, 30, 37, 0.72);
+  --aurora-surface-glass-secondary: rgba(27, 30, 37, 0.56);
+  --aurora-surface-glass-elevated: rgba(27, 30, 37, 0.84);
+  --aurora-surface-opaque-fallback: var(--aurora-neutral-20);
+  --aurora-text-primary: var(--aurora-neutral-90);
+  --aurora-text-secondary: var(--aurora-neutral-70);
+  --aurora-text-tertiary: rgba(167, 175, 189, 0.72);
+  --aurora-text-inverse: var(--aurora-neutral-0);
+  --aurora-accent-primary: var(--aurora-accent-cyan);
+  --aurora-accent-secondary: var(--aurora-accent-violet);
+  --aurora-control-primary: var(--aurora-accent-cyan);
+  --aurora-control-on-primary: var(--aurora-neutral-0);
+  --aurora-focus-ring: rgba(102, 217, 242, 0.56);
+  --aurora-divider-subtle: rgba(54, 59, 70, 0.24);
+  --aurora-player-bg: var(--aurora-neutral-10);
+  --aurora-player-control: var(--aurora-neutral-90);
+  --aurora-player-progress: var(--aurora-accent-cyan);
+  --aurora-status-success: var(--aurora-semantic-success);
+  --aurora-status-warning: var(--aurora-semantic-warning);
+  --aurora-status-error: var(--aurora-semantic-error);
+
+  --aurora-glass-tint: rgba(27, 30, 37, 0.16);
+  --aurora-glass-highlight: rgba(54, 59, 70, 0.20);
+  --aurora-glass-scrim: rgba(0, 0, 0, 0.40);
+}

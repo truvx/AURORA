@@ -1,0 +1,17 @@
+{
+  "$schema": "https://aurora.dev/schemas/design-tokens/typography.json",
+  "version": "1.0.0",
+  "description": "AURORA canonical typography tokens. Reference contract for cross-platform parity.",
+  "family": "Inter",
+  "fallback": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  "scale": {
+    "display":      { "size": 40, "lineHeight": 46, "weight": "700-800", "letterSpacing": 0 },
+    "headline":     { "size": 30, "lineHeight": 36, "weight": "700",     "letterSpacing": 0 },
+    "title":        { "size": 22, "lineHeight": 28, "weight": "600-700", "letterSpacing": 0 },
+    "body":         { "size": 16, "lineHeight": 24, "weight": "400-500", "letterSpacing": 0 },
+    "label":        { "size": 14, "lineHeight": 20, "weight": "600",     "letterSpacing": 0 },
+    "caption":      { "size": 12, "lineHeight": 16, "weight": "400-500", "letterSpacing": 0 },
+    "numeric":      { "size": 14, "lineHeight": 20, "weight": "500-600", "letterSpacing": 0 },
+    "playerNumeric": { "size": 32, "lineHeight": 36, "weight": "500-600", "letterSpacing": 0 }
+  }
+}

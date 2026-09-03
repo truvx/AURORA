@@ -1,0 +1,120 @@
+/*
+ * Glass component styles — Web implementation of AURORA Liquid Glass
+ */
+
+/* ──────── Surface ──────── */
+
+.surface {
+  border-radius: var(--aurora-radius-card);
+  backdrop-filter: blur(var(--aurora-blur-surface));
+  -webkit-backdrop-filter: blur(var(--aurora-blur-surface));
+}
+
+.glass_primary {
+  background-color: var(--aurora-surface-glass-primary);
+}
+
+.glass_secondary {
+  background-color: var(--aurora-surface-glass-secondary);
+}
+
+.glass_elevated {
+  background-color: var(--aurora-surface-glass-elevated);
+}
+
+.opaque {
+  background-color: var(--aurora-surface-opaque-fallback) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ──────── Card ──────── */
+
+.card {
+  border-radius: var(--aurora-radius-card);
+  padding: var(--aurora-space-4);
+  backdrop-filter: blur(var(--aurora-blur-surface));
+  -webkit-backdrop-filter: blur(var(--aurora-blur-surface));
+}
+
+/* ──────── Button ──────── */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--aurora-space-2);
+  min-height: var(--aurora-target-min);
+  padding: var(--aurora-space-3) var(--aurora-space-6);
+  border-radius: var(--aurora-radius-control);
+  border: none;
+  cursor: pointer;
+  font-family: var(--aurora-font-family);
+  font-size: var(--aurora-type-label-size);
+  font-weight: var(--aurora-type-label-weight);
+  line-height: var(--aurora-type-label-line);
+  letter-spacing: 0;
+  transition:
+    background-color var(--aurora-duration-quick) var(--aurora-easing-standard),
+    opacity var(--aurora-duration-quick) var(--aurora-easing-standard);
+}
+
+.button:disabled {
+  opacity: var(--aurora-disabled-opacity);
+  cursor: not-allowed;
+}
+
+.button_primary {
+  background-color: var(--aurora-control-primary);
+  color: var(--aurora-control-on-primary);
+}
+
+.button_secondary {
+  background-color: var(--aurora-surface-glass-secondary);
+  color: var(--aurora-text-primary);
+}
+
+.button_quiet {
+  background-color: transparent;
+  color: var(--aurora-accent-primary);
+}
+
+/* ──────── Icon Button ──────── */
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--aurora-target-min);
+  height: var(--aurora-target-min);
+  border: none;
+  border-radius: var(--aurora-radius-control);
+  background: transparent;
+  color: var(--aurora-control-primary);
+  cursor: pointer;
+  transition: color var(--aurora-duration-quick) var(--aurora-easing-standard);
+}
+
+.iconButton:hover {
+  color: var(--aurora-text-primary);
+}
+
+.iconButton:disabled {
+  opacity: var(--aurora-disabled-opacity);
+  cursor: not-allowed;
+}
+
+.iconButton_selected {
+  color: var(--aurora-accent-primary);
+}
+
+/* ──────── Reduced transparency ──────── */
+
+@media (prefers-reduced-transparency: reduce) {
+  .surface,
+  .card {
+    background-color: var(--aurora-surface-opaque-fallback) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}

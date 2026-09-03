@@ -1,0 +1,98 @@
+/*
+ * AppShell — layout and navigation styles
+ */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.main {
+  flex: 1;
+  padding: var(--aurora-space-6) var(--aurora-space-4);
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ──────── Bottom Navigation ──────── */
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: var(--aurora-space-2) 0;
+  background-color: var(--aurora-surface-glass-elevated);
+  backdrop-filter: blur(var(--aurora-blur-surface));
+  -webkit-backdrop-filter: blur(var(--aurora-blur-surface));
+  border-top: 1px solid var(--aurora-divider-subtle);
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
+}
+
+.navLink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--aurora-space-1);
+  padding: var(--aurora-space-2) var(--aurora-space-3);
+  min-width: var(--aurora-target-min);
+  min-height: var(--aurora-target-min);
+  justify-content: center;
+  text-decoration: none;
+  color: var(--aurora-text-secondary);
+  border-radius: var(--aurora-radius-control);
+  transition: color var(--aurora-duration-quick) var(--aurora-easing-standard);
+}
+
+.navLink:hover {
+  color: var(--aurora-text-primary);
+}
+
+.navLink.active {
+  color: var(--aurora-accent-primary);
+}
+
+.navLabel {
+  font-size: var(--aurora-type-caption-size);
+  line-height: var(--aurora-type-caption-line);
+  font-weight: var(--aurora-type-caption-weight);
+}
+
+/* ──────── Desktop: sidebar navigation ──────── */
+
+@media (min-width: 768px) {
+  .shell {
+    flex-direction: row;
+  }
+
+  .nav {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--aurora-space-1);
+    padding: var(--aurora-space-6) var(--aurora-space-3);
+    border-top: none;
+    border-right: 1px solid var(--aurora-divider-subtle);
+    position: sticky;
+    top: 0;
+    bottom: auto;
+    height: 100dvh;
+    width: 80px;
+  }
+
+  .main {
+    padding: var(--aurora-space-8) var(--aurora-space-6);
+  }
+}
+
+/* ──────── Reduced transparency fallback ──────── */
+
+@media (prefers-reduced-transparency: reduce) {
+  .nav {
+    background-color: var(--aurora-surface-opaque-fallback);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

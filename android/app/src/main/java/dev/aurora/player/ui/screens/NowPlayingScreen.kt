@@ -74,7 +74,11 @@ fun NowPlayingScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Aurora.spacing.space4)
-        )
+        ) {
+            if (currentTrack?.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) {
+                YouTubePlayerSurface(modifier = Modifier.fillMaxSize())
+            }
+        }
 
         Spacer(modifier = Modifier.height(Aurora.spacing.space10))
 

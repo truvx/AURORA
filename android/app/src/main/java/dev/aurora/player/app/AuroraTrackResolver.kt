@@ -8,8 +8,10 @@ class AuroraTrackResolver(
     private val localDao: LocalLibraryDao
 ) : TrackResolver {
     override suspend fun resolveUri(trackId: String): String? = withContext(Dispatchers.IO) {
+        if (trackId.startsWith("youtube:")) {
+            return@withContext trackId.removePrefix("youtube:")
+        }
         // Find the actual playable source URI for the given track ID.
-        // For Phase 5, we only support local files.
         val fileEntity = localDao.getLocalFileForMedia(trackId)
         fileEntity?.uri
     }

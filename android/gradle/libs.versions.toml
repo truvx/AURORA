@@ -15,6 +15,8 @@ room = "2.8.4"
 coroutines = "1.8.1"
 ksp = "2.3.10"
 media3 = "1.11.0"
+retrofit = "2.11.0"
+kotlinxSerialization = "1.8.1"
 
 [libraries]
 # Compose BOM
@@ -58,9 +60,15 @@ media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", versi
 media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
 media3-common = { group = "androidx.media3", name = "media3-common", version.ref = "media3" }
 
+# Network
+retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-kotlinx-serialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

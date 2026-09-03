@@ -9,3 +9,7 @@ import dev.aurora.player.app.PlayerCoordinator
 val LocalPlayerCoordinator = staticCompositionLocalOf<PlayerCoordinator> {
     error("No PlayerCoordinator provided")
 }
+
+val LocalYouTubePlayerAdapter = staticCompositionLocalOf<dev.aurora.player.data.player.YouTubePlayerAdapter> {
+    error("No YouTubePlayerAdapter provided")
+}

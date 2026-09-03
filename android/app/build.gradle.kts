@@ -3,6 +3,17 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+    alias(libs.plugins.kotlin.serialization)
+}
+
+import java.util.Properties
+import java.io.FileInputStream
+
+// Load local.properties for API keys
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
 }
 
 android {
@@ -17,6 +28,9 @@ android {
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        val youtubeApiKey = localProperties.getProperty("YOUTUBE_API_KEY") ?: ""
+        buildConfigField("String", "YOUTUBE_API_KEY", "\"$youtubeApiKey\"")
     }
 
 
@@ -39,6 +53,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     sourceSets {
@@ -78,6 +93,12 @@ dependencies {
     // Coroutines
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
+
+    // Network
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.kotlinx.serialization)
+    implementation(libs.kotlinx.serialization.json)
+
 
     // Unit testing
     testImplementation(libs.junit)

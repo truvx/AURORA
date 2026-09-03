@@ -68,7 +68,11 @@ fun MiniPlayer(
                     ArtworkSurface(
                         altText = "${currentTrack.title} artwork",
                         modifier = Modifier.size(48.dp)
-                    )
+                    ) {
+                        if (currentTrack.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) {
+                            YouTubePlayerSurface(modifier = Modifier.fillMaxSize())
+                        }
+                    }
 
                     Spacer(modifier = Modifier.width(Aurora.spacing.space4))
 

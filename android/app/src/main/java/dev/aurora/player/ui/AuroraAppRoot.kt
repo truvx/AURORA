@@ -1,7 +1,12 @@
 package dev.aurora.player.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.rememberNavController
+import dev.aurora.player.AuroraApp
+import dev.aurora.player.ui.components.LocalPlayerCoordinator
+import dev.aurora.player.ui.components.LocalYouTubePlayerAdapter
 import dev.aurora.player.ui.navigation.AuroraNavigation
 import dev.aurora.player.ui.theme.AuroraTheme
 
@@ -13,8 +18,16 @@ import dev.aurora.player.ui.theme.AuroraTheme
  */
 @Composable
 fun AuroraAppRoot() {
-    AuroraTheme {
-        val navController = rememberNavController()
-        AuroraNavigation(navController = navController)
+    val context = LocalContext.current
+    val container = (context.applicationContext as AuroraApp).container
+
+    CompositionLocalProvider(
+        LocalPlayerCoordinator provides container.playerCoordinator,
+        LocalYouTubePlayerAdapter provides container.youtubePlayerAdapter
+    ) {
+        AuroraTheme {
+            val navController = rememberNavController()
+            AuroraNavigation(navController = navController)
+        }
     }
 }

@@ -26,9 +26,32 @@ All unit tests and instrumented tests are passing.
 Linting passes with no critical warnings.
 Phase 6 UI is verified and closed.
 
+- **Phase 7**: YouTube Discovery and Supported Playback Integration
+- **Phase 8**: AI Music Intelligence + Recommendation Engine
+
+## Phase 8 Details (AI Music Intelligence)
+
+Phase 8 implements the complete AI and Recommendation pipeline, validating end-to-end routing without fabricating playable media.
+
+Key actions included:
+1. **Web AI Gateway**: Built a Next.js `/api/ai/intent` gateway with robust `Zod` validation schemas handling Gemini and OpenAI capabilities while preventing prompt injection or data spillage.
+2. **Android Execution & UI**: Implemented `AiViewModel`, `AiToolExecutor`, and `RecommendationEngine` to securely parse structured JSON tool calls from the AI Gateway and transform them into verifiable `PlayerCommand` dispatches for the `PlayerCoordinator`.
+3. **Architecture Preservation & Fabrication Defense**: Retained the clean separation of concerns, strictly rejecting any AI-generated item ID that the local library or YouTube API does not explicitly confirm exists. No raw audio files or secret keys are transmitted to/from the Android client.
+
+## Current State
+
+- **BUILD/STATIC VERIFICATION**: PASS (Android and Next.js compile successfully)
+- **RUNTIME INTEGRATION TEST**: PASS (Gateway correctly validates requests and returns structural errors/mocks)
+- **LIVE AI TEST**: NOT EXECUTED (No API keys provided in `.env.local`)
+- **TRUE END-TO-END TEST**: NOT VERIFIED (Requires valid keys and Android environment execution)
+- **FAILURE-PATH TESTS**: PASS (Gateway properly returns 400 on malformed payloads)
+- **SECURITY/SECRET SCAN**: PASS (No keys found in history or builds)
+
+Phase 8 AI pipeline is verified structurally and closed, but live end-to-end execution remains pending manual provider injection.
+
 ## Next Phase
 
-**Phase 7: YouTube Integration**
-- Implementing YouTube data extraction and discovery APIs.
-- Creating the YouTube provider module and integrating it into the `MusicProvider` abstraction.
-- Verifying the playback of YouTube streams natively or via visible IFrame.
+**Phase 9: Loudness Normalization**
+- Implementing audio loudness normalization logic.
+- Enforcing global decibel adjustments.
+- Verifying uniform volume adjustments across local and supported provider files.

@@ -7,9 +7,6 @@ import androidx.activity.enableEdgeToEdge
 import dev.aurora.player.ui.AuroraAppRoot
 
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
-import dev.aurora.player.ui.components.LocalPlayerCoordinator
-import dev.aurora.player.ui.components.PlayerViewModel
 import dev.aurora.player.ui.haptics.AndroidHapticEngine
 import dev.aurora.player.ui.haptics.LocalHapticEngine
 import androidx.compose.ui.platform.LocalView
@@ -24,12 +21,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val playerViewModel: PlayerViewModel = viewModel()
             val view = LocalView.current
             val hapticEngine = remember { AndroidHapticEngine(this, view) }
             
             CompositionLocalProvider(
-                LocalPlayerCoordinator provides playerViewModel.coordinator,
                 LocalHapticEngine provides hapticEngine
             ) {
                 AuroraAppRoot()

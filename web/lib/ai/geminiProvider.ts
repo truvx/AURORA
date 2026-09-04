@@ -14,7 +14,7 @@ ${JSON.stringify(context)}
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-flash-latest",
       contents: [{ role: "user", parts: [{ text: query }] }],
       config: {
         systemInstruction,

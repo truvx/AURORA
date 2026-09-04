@@ -126,3 +126,12 @@ configurations.all {
         force("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.8.1")
     }
 }
+
+tasks.withType<Test> {
+    testLogging {
+        events("passed", "skipped", "failed", "standardOut", "standardError")
+        showStandardStreams = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+}
+

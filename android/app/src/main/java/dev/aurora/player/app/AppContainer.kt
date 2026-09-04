@@ -88,9 +88,17 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     override val aiProvider: dev.aurora.player.domain.ai.AiProvider by lazy {
         val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
         val contentType = okhttp3.MediaType.get("application/json")
+        // AI gateway calls go through Gemini which can take 10-30s;
+        // default OkHttp timeout is 10s, so use 60s for AI requests.
+        val aiClient = okhttp3.OkHttpClient.Builder()
+            .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
         // Use 10.0.2.2 for Android emulator -> localhost
         val retrofit = retrofit2.Retrofit.Builder()
             .baseUrl("http://10.0.2.2:3000/")
+            .client(aiClient)
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
             

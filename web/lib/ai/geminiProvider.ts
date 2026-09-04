@@ -14,7 +14,7 @@ ${JSON.stringify(context)}
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       contents: [{ role: "user", parts: [{ text: query }] }],
       config: {
         systemInstruction,
@@ -30,12 +30,12 @@ ${JSON.stringify(context)}
           name: call.name,
           args: call.args
         })),
-        text: response.text
+        text: response.text || ""
       };
     }
 
     return {
-      text: response.text,
+      text: response.text || "",
       toolCalls: []
     };
   } catch (error) {

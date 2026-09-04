@@ -96,7 +96,7 @@ class AiE2ETest {
 
         // 6. Test Live YouTube Search Execution
         println("Testing YouTube Data API Search Execution...")
-        println("YOUTUBE API KEY is: ${dev.aurora.player.BuildConfig.YOUTUBE_API_KEY}")
+        println("YouTube API key present: ${dev.aurora.player.BuildConfig.YOUTUBE_API_KEY.isNotEmpty()}")
         val candidates = executor.executeTool(searchCall!!)
         assertTrue("Should find candidates from YouTube", candidates.isNotEmpty())
         

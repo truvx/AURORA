@@ -42,12 +42,13 @@ Key actions included:
 
 - **BUILD/STATIC VERIFICATION**: PASS (Android and Next.js compile successfully)
 - **RUNTIME INTEGRATION TEST**: PASS (Gateway correctly validates requests and returns structural errors/mocks)
-- **LIVE AI TEST**: NOT EXECUTED (No API keys provided in `.env.local`)
-- **TRUE END-TO-END TEST**: NOT VERIFIED (Requires valid keys and Android environment execution)
-- **FAILURE-PATH TESTS**: PASS (Gateway properly returns 400 on malformed payloads)
+- **LIVE AI TEST**: PASS (Gemini `gemini-flash-latest` resolved intents, YouTube Data API v3 returned real results)
+- **TRUE END-TO-END TEST**: PASS (Android → Next.js gateway → Gemini → YouTube search → AiToolExecutor → PlayerCoordinator)
+- **FAILURE-PATH TESTS**: PASS (Gateway properly returns 400 on malformed payloads; deterministic fallback on network failure)
+- **INVALID TRACK REJECTION**: PASS (Fabricated track IDs cannot reach PlayerCoordinator)
 - **SECURITY/SECRET SCAN**: PASS (No keys found in history or builds)
 
-Phase 8 AI pipeline is verified structurally and closed, but live end-to-end execution remains pending manual provider injection.
+Phase 8 AI pipeline is fully verified with live provider credentials and closed.
 
 ## Next Phase
 

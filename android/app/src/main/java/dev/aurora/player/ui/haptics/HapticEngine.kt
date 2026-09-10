@@ -17,6 +17,7 @@ enum class HapticCapabilityTier {
 interface HapticEngine {
     val capabilityTier: HapticCapabilityTier
     val isEnabled: Boolean
+    fun setEnabled(enabled: Boolean)
     fun fire(event: HapticEvent)
 }
 

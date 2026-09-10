@@ -35,4 +35,14 @@ sealed interface HapticEvent {
     data object Warning : HapticEvent
     /** Actionable error */
     data object Error : HapticEvent
+    /** Forward skip — accelerating pulse */
+    data object SkipNext : HapticEvent
+    /** Backward skip — decelerating pulse (mirror of SkipNext) */
+    data object SkipPrevious : HapticEvent
+    /** Playback starting — swells into the landing beat */
+    data object Resume : HapticEvent
+    /** Playback stopping — lands first, then releases */
+    data object Pause : HapticEvent
+    /** Element expanding to fill screen (e.g. mini player → now playing) */
+    data object Expand : HapticEvent
 }

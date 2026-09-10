@@ -12,34 +12,46 @@ Context:
 ${JSON.stringify(context)}
 `;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
-      contents: [{ role: "user", parts: [{ text: query }] }],
-      config: {
-        systemInstruction,
-        tools: [{ functionDeclarations: TOOLS as any }],
-        temperature: 0.2,
-      },
-    });
+  let attempts = 0;
+  while (attempts < 3) {
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-flash-latest",
+        contents: [{ role: "user", parts: [{ text: query }] }],
+        config: {
+          systemInstruction,
+          tools: [{ functionDeclarations: TOOLS as any }],
+          temperature: 0.2,
+        },
+      });
 
-    const calls = response.functionCalls;
-    if (calls && calls.length > 0) {
+      const calls = response.functionCalls;
+      if (calls && calls.length > 0) {
+        return {
+          toolCalls: calls.map(call => ({
+            name: call.name,
+            args: call.args
+          })),
+          text: response.text || ""
+        };
+      }
+
       return {
-        toolCalls: calls.map(call => ({
-          name: call.name,
-          args: call.args
-        })),
-        text: response.text || ""
+        text: response.text || "",
+        toolCalls: []
       };
+    } catch (error: any) {
+      console.error("Gemini API Error (Attempt " + (attempts + 1) + "):", error);
+      if (error?.status === 503 || error?.status === 429 || error?.message?.includes("503") || error?.message?.includes("429") || error?.message?.includes("overloaded") || error?.message?.includes("Quota")) {
+        attempts++;
+        if (attempts < 3) {
+          console.log("Retrying in 12 seconds due to rate limit/overload...");
+          await new Promise(res => setTimeout(res, 12000));
+          continue;
+        }
+      }
+      throw new Error("Provider unavailable or failed.");
     }
-
-    return {
-      text: response.text || "",
-      toolCalls: []
-    };
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    throw new Error("Provider unavailable or failed.");
   }
+  throw new Error("Provider unavailable or failed.");
 }

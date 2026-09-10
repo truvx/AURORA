@@ -16,7 +16,7 @@ class CompositePlayerAdapter(
 
     private var activeAdapter: PlayerAdapter? = null
 
-    override fun load(track: MediaItem, uri: String) {
+    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
         val nextAdapter = if (track.provider == ProviderKind.YOUTUBE) {
             youtubeAdapter
         } else {
@@ -28,7 +28,7 @@ class CompositePlayerAdapter(
             activeAdapter = nextAdapter
         }
         
-        activeAdapter?.load(track, uri)
+        activeAdapter?.load(track, uri, playWhenReady, crossfadeDurationMs)
     }
 
     override fun play() {

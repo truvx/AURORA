@@ -18,7 +18,7 @@ sealed class EngineEvent {
 interface PlayerAdapter {
     val events: Flow<EngineEvent>
     
-    fun load(track: MediaItem, uri: String)
+    fun load(track: MediaItem, uri: String, playWhenReady: Boolean = true, crossfadeDurationMs: Long = 0L)
     fun play()
     fun pause()
     fun seekTo(positionMs: Long)

@@ -10,6 +10,12 @@ import dev.aurora.player.ui.components.LocalYouTubePlayerAdapter
 import dev.aurora.player.ui.navigation.AuroraNavigation
 import dev.aurora.player.ui.theme.AuroraTheme
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Modifier
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import dev.aurora.player.ui.theme.LocalAuroraBackdrop
+
 /**
  * Root composable for the AURORA application.
  *
@@ -27,10 +33,19 @@ fun AuroraAppRoot() {
     ) {
         AuroraTheme {
             val navController = rememberNavController()
-            AuroraNavigation(
-                navController = navController,
-                container = container
-            )
+            val backdrop = rememberLayerBackdrop()
+            CompositionLocalProvider(
+                LocalAuroraBackdrop provides backdrop
+            ) {
+                dev.aurora.player.ui.components.AmbientArtworkLayer {
+                    Box(modifier = Modifier.layerBackdrop(backdrop)) {
+                        AuroraNavigation(
+                            navController = navController,
+                            container = container
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -13,9 +13,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.LibraryMusic
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,9 +27,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.ui.components.GlassButton
+import dev.aurora.player.ui.components.GlassCard
 import dev.aurora.player.ui.components.GlassLevel
 import dev.aurora.player.ui.components.GlassSurface
 import dev.aurora.player.ui.theme.Aurora
@@ -34,7 +39,8 @@ import dev.aurora.player.ui.theme.Aurora
 @Composable
 fun LibraryScreen(
     items: List<MediaItem> = emptyList(),
-    onScanRequested: () -> Unit = {}
+    onScanRequested: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     var hasPermission by remember { mutableStateOf(false) }
 
@@ -52,31 +58,49 @@ fun LibraryScreen(
     val colors = Aurora.colors
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
-            .background(colors.backgroundPrimary)
-            .padding(spacing.space4)
+            .padding(
+                horizontal = spacing.space4, 
+                vertical = spacing.space6 + 48.dp // Padding for Top/Bottom bars
+            )
     ) {
         if (!hasPermission) {
+            Text(
+                text = "Library",
+                style = typography.display,
+                color = colors.textPrimary,
+                modifier = Modifier.padding(bottom = spacing.space6)
+            )
+
             Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = spacing.space8),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Icon(
+                    imageVector = Icons.Outlined.LibraryMusic,
+                    contentDescription = null,
+                    tint = colors.accentPrimary.copy(alpha = 0.8f),
+                    modifier = Modifier.padding(bottom = spacing.space4)
+                )
                 Text(
-                    text = "Local Library Access",
-                    style = typography.headline,
+                    text = "Your library is waiting",
+                    style = typography.title,
                     color = colors.textPrimary,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier.padding(bottom = spacing.space2)
                 )
                 Text(
-                    text = "Permission is required to scan for local music files.",
+                    text = "Allow AURORA to scan your device for local music files.",
                     style = typography.body,
                     color = colors.textSecondary,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier.padding(bottom = spacing.space6)
                 )
                 GlassButton(
-                    text = "Grant Permission",
+                    text = "Allow Access",
                     onClick = {
                         val perm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             Manifest.permission.READ_MEDIA_AUDIO
@@ -89,13 +113,13 @@ fun LibraryScreen(
             }
         } else {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(bottom = spacing.space4),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Library",
-                    style = typography.headline,
+                    style = typography.display,
                     color = colors.textPrimary
                 )
                 GlassButton(
@@ -105,24 +129,31 @@ fun LibraryScreen(
                 )
             }
             
-            Spacer(modifier = Modifier.height(spacing.space4))
-            
             if (items.isEmpty()) {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = spacing.space8),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "Library Empty",
-                        style = typography.headline,
-                        color = colors.textPrimary,
-                        modifier = Modifier.padding(bottom = spacing.space2)
+                    Icon(
+                        imageVector = Icons.Outlined.Search,
+                        contentDescription = null,
+                        tint = colors.textSecondary,
+                        modifier = Modifier.padding(bottom = spacing.space4)
                     )
                     Text(
-                        text = "No local music found or scan pending.",
+                        text = "No music found",
+                        style = typography.title,
+                        color = colors.textPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(spacing.space2))
+                    Text(
+                        text = "Add audio files to your device or initiate a rescan.",
                         style = typography.body,
-                        color = colors.textSecondary
+                        color = colors.textSecondary,
+                        textAlign = TextAlign.Center
                     )
                 }
             } else {
@@ -133,23 +164,33 @@ fun LibraryScreen(
                     items(items, key = { it.id }) { item ->
                         GlassSurface(
                             modifier = Modifier.fillMaxWidth(),
-                            level = GlassLevel.Primary
+                            level = GlassLevel.Secondary
                         ) {
-                            Column(
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(spacing.space3)
+                                    .padding(spacing.space3),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = item.title,
-                                    style = typography.title,
-                                    color = if (item.isAvailable) colors.textPrimary else colors.textSecondary
+                                // Placeholder for Artwork in Track Row
+                                dev.aurora.player.ui.components.ArtworkSurface(
+                                    altText = "Album art",
+                                    modifier = Modifier.height(48.dp)
                                 )
-                                Text(
-                                    text = item.artist ?: "Unknown Artist",
-                                    style = typography.label,
-                                    color = colors.textSecondary
-                                )
+                                Column(
+                                    modifier = Modifier.padding(start = spacing.space3).weight(1f)
+                                ) {
+                                    Text(
+                                        text = item.title,
+                                        style = typography.title,
+                                        color = if (item.isAvailable) colors.textPrimary else colors.textSecondary
+                                    )
+                                    Text(
+                                        text = item.artist ?: "Unknown Artist",
+                                        style = typography.label,
+                                        color = colors.textSecondary
+                                    )
+                                }
                             }
                         }
                     }

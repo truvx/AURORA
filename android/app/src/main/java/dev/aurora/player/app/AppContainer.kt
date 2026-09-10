@@ -60,7 +60,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val media3PlayerAdapter: PlayerAdapter by lazy {
-        Media3PlayerAdapter(context, applicationScope)
+        dev.aurora.player.data.player.CrossfadeMedia3Adapter(context, applicationScope)
     }
 
     override val youtubePlayerAdapter: YouTubePlayerAdapter by lazy {

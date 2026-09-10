@@ -35,7 +35,7 @@ class PlayerCoordinatorTest {
         var isPlaying = false
         var seekPosition = -1L
 
-        override fun load(track: MediaItem, uri: String) {
+        override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
             loadedTrack = track
             events.tryEmit(EngineEvent.Prepared)
         }
@@ -125,5 +125,21 @@ class PlayerCoordinatorTest {
         testScheduler.advanceUntilIdle()
         assertEquals("track2", coordinator.state.value.currentTrack?.id)
         assertEquals(1, coordinator.state.value.queue.currentIndex)
+    }
+    @Test
+    fun testCapabilitiesAndCrossfade() = runTest(UnconfinedTestDispatcher()) {
+        coordinator = PlayerCoordinator(fakeAdapter, fakeResolver, backgroundScope)
+        
+        // Dispatch set crossfade
+        coordinator.dispatch(PlayerCommand.SetCrossfade(2000L))
+        testScheduler.advanceUntilIdle()
+        
+        // Load local track
+        coordinator.dispatch(PlayerCommand.Load(fakeTrack))
+        testScheduler.advanceUntilIdle()
+        
+        val state = coordinator.state.value
+        assertEquals(2000L, state.crossfadeDurationMs)
+        assertEquals(dev.aurora.player.domain.audio.CapabilityState.SUPPORTED, state.providerCapabilities?.crossfade)
     }
 }

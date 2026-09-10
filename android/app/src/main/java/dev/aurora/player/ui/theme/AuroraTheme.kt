@@ -18,7 +18,7 @@ import androidx.compose.runtime.ReadOnlyComposable
  */
 @Composable
 fun AuroraTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true, // AURORA is primarily a dark/premium visual experience by default
     content: @Composable () -> Unit,
 ) {
     val auroraColors = if (darkTheme) AuroraDarkColors else AuroraLightColors

@@ -22,6 +22,15 @@ Presentation never imports provider SDKs, Media3, database drivers, or AI client
 
 `MusicProvider`, `PlayerEngine`, `AIProvider`, `SettingsStore`, `LibraryStore`, `HistoryStore`, and `SecureTokenStore` are narrow interfaces. Capability sets and typed result/error models prevent provider assumptions from spreading. Repositories are domain-facing; implementations remain in data.
 
+## Major Subsystems (AURORA 2.0)
+
+1. **HapticEngine**: A first-class subsystem distinct from motion. It intercepts events (Playback, Interaction, Navigation, Queue) and maps them to capabilities with strict rate limiting and battery protection. Raw audio is never directly mapped to vibration.
+2. **Motion**: Strictly separated from Haptics. Responsible for transitions, spring/gesture physics, and artwork sheet behaviors. Typography weight does not change based on playback intensity.
+3. **Liquid Glass**: The visual foundation relying on `GlassSurface`, `AmbientArtworkLayer`, and `AdaptivePalette`. It handles blur, translucency, and noise with mandatory contrast protection and opaque fallbacks.
+4. **Provider Architecture**: Extensible capability-driven architecture for local and remote sources (e.g., YouTube), tracking capabilities for Audio, Metadata, Lyrics, and Search without inventing URLs.
+5. **DSP Pipeline**: An abstracted audio chain (`Decode -> Normalization -> Crossfade -> EQ -> Limiter -> Output`). Deferred from native C++ until benchmarks justify it. Each stage declares capabilities and bypass toggles.
+6. **Data & Sync**: Local database utilizes stable IDs, timestamps, and deterministic conflict metadata, ensuring it is sync-ready for future features without implementing full CRDT yet.
+
 ## State and flow
 
 Use unidirectional data flow: UI event → application/ViewModel state holder → domain use case → repository/engine → canonical immutable state/effect. A state value has one owner. Screen state is derived from canonical sources rather than copied into multiple screens. One-shot effects are not durable state.

@@ -7,5 +7,6 @@ package dev.aurora.player.ui.haptics
 class NoOpHapticEngine : HapticEngine {
     override val capabilityTier: HapticCapabilityTier = HapticCapabilityTier.None
     override val isEnabled: Boolean = false
+    override fun setEnabled(enabled: Boolean) { /* intentional no-op */ }
     override fun fire(event: HapticEvent) { /* intentional no-op */ }
 }

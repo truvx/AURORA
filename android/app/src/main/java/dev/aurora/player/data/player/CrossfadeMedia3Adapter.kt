@@ -1,0 +1,82 @@
+package dev.aurora.player.data.player
+
+import android.content.Context
+import dev.aurora.player.app.EngineEvent
+import dev.aurora.player.app.PlayerAdapter
+import dev.aurora.player.domain.models.MediaItem
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.launch
+
+class CrossfadeMedia3Adapter(
+    context: Context,
+    private val scope: CoroutineScope
+) : PlayerAdapter {
+    private val primary = Media3PlayerAdapter(context, scope)
+    private val secondary = Media3PlayerAdapter(context, scope)
+    
+    private var activePlayer = primary
+    private var inactivePlayer = secondary
+    private var crossfadeJob: Job? = null
+    
+    // We only expose events from both. 
+    // In a real app we'd filter duplicate events (like TrackCompleted overlapping).
+    override val events: Flow<EngineEvent> = merge(primary.events, secondary.events)
+
+    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+        crossfadeJob?.cancel()
+        
+        if (crossfadeDurationMs > 0 && activePlayer.exoPlayer.playbackState != androidx.media3.common.Player.STATE_IDLE) {
+            val fadingOutPlayer = activePlayer
+            val fadingInPlayer = inactivePlayer
+            
+            // Swap active players
+            activePlayer = fadingInPlayer
+            inactivePlayer = fadingOutPlayer
+            
+            // Start loading and playing new track on zero volume
+            fadingInPlayer.setVolume(0f)
+            fadingInPlayer.load(track, uri, playWhenReady, 0L)
+            
+            // Orchestrate the fade
+            crossfadeJob = scope.launch {
+                val steps = 20
+                val stepDelay = crossfadeDurationMs / steps
+                val volumeStep = 1.0f / steps
+                
+                for (i in 1..steps) {
+                    delay(stepDelay)
+                    fadingInPlayer.setVolume(i * volumeStep)
+                    fadingOutPlayer.setVolume(1.0f - (i * volumeStep))
+                }
+                
+                fadingInPlayer.setVolume(1.0f)
+                fadingOutPlayer.pause()
+                fadingOutPlayer.setVolume(1.0f)
+            }
+        } else {
+            activePlayer.load(track, uri, playWhenReady, 0L)
+        }
+    }
+
+    override fun play() = activePlayer.play()
+    override fun pause() = activePlayer.pause()
+    override fun seekTo(positionMs: Long) = activePlayer.seekTo(positionMs)
+    override fun setVolume(volume: Float) {
+        activePlayer.setVolume(volume)
+    }
+    
+    override fun setAudioGain(linearGain: Float) {
+        primary.setAudioGain(linearGain)
+        secondary.setAudioGain(linearGain)
+    }
+
+    override fun release() {
+        crossfadeJob?.cancel()
+        primary.release()
+        secondary.release()
+    }
+}

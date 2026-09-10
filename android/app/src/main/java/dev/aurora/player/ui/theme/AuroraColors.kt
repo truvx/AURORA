@@ -120,9 +120,9 @@ val AuroraLightColors = AuroraColors(
 val AuroraDarkColors = AuroraColors(
     backgroundPrimary = DarkPrimitives.neutral0,
     backgroundSecondary = DarkPrimitives.neutral10,
-    surfaceGlassPrimary = DarkPrimitives.neutral20.copy(alpha = 0.72f),
-    surfaceGlassSecondary = DarkPrimitives.neutral20.copy(alpha = 0.56f),
-    surfaceGlassElevated = DarkPrimitives.neutral20.copy(alpha = 0.84f),
+    surfaceGlassPrimary = DarkPrimitives.neutral20.copy(alpha = 0.20f),
+    surfaceGlassSecondary = DarkPrimitives.neutral20.copy(alpha = 0.12f),
+    surfaceGlassElevated = DarkPrimitives.neutral20.copy(alpha = 0.35f),
     surfaceOpaqueFallback = DarkPrimitives.neutral20,
     textPrimary = DarkPrimitives.neutral90,
     textSecondary = DarkPrimitives.neutral70,
@@ -140,9 +140,9 @@ val AuroraDarkColors = AuroraColors(
     statusSuccess = DarkPrimitives.success,
     statusWarning = DarkPrimitives.warning,
     statusError = DarkPrimitives.error,
-    glassTint = DarkPrimitives.neutral20.copy(alpha = 0.16f),
-    glassHighlight = DarkPrimitives.neutral40.copy(alpha = 0.20f),
-    glassScrim = DarkPrimitives.neutral0.copy(alpha = 0.40f),
+    glassTint = DarkPrimitives.neutral20.copy(alpha = 0.10f),
+    glassHighlight = LightPrimitives.neutral0.copy(alpha = 0.15f), // White edge highlight
+    glassScrim = DarkPrimitives.neutral0.copy(alpha = 0.30f),
 )
 
 val LocalAuroraColors = staticCompositionLocalOf { AuroraLightColors }

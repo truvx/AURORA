@@ -20,4 +20,6 @@ sealed class PlayerCommand {
     data class SetLoudnessPreference(val preference: dev.aurora.player.domain.audio.LoudnessPreference) : PlayerCommand()
     object Reload : PlayerCommand()
     object Stop : PlayerCommand()
+    data class SetCrossfade(val durationMs: Long) : PlayerCommand()
+    data class SetEqEnabled(val enabled: Boolean) : PlayerCommand()
 }

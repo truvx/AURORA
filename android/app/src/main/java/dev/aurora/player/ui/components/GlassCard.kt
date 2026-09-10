@@ -20,28 +20,19 @@ import dev.aurora.player.ui.theme.Aurora
 fun GlassCard(
     modifier: Modifier = Modifier,
     level: GlassLevel = GlassLevel.Primary,
-    useOpaqueFallback: Boolean = false,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val colors = Aurora.colors
     val shapes = Aurora.shapes
     val spacing = Aurora.spacing
 
-    val backgroundColor = if (useOpaqueFallback) {
-        colors.surfaceOpaqueFallback
-    } else {
-        when (level) {
-            GlassLevel.Primary -> colors.surfaceGlassPrimary
-            GlassLevel.Secondary -> colors.surfaceGlassSecondary
-            GlassLevel.Elevated -> colors.surfaceGlassElevated
-        }
+    GlassSurface(
+        modifier = modifier,
+        level = level,
+    ) {
+        Box(
+            modifier = Modifier.padding(spacing.space4),
+            content = content,
+        )
     }
-
-    Box(
-        modifier = modifier
-            .clip(shapes.card)
-            .background(backgroundColor)
-            .padding(spacing.space4),
-        content = content,
-    )
 }

@@ -34,13 +34,20 @@ class AndroidHapticEngine(
             HapticCapabilityTier.None
         }
 
+    private var _isEnabled = true
     override val isEnabled: Boolean
-        get() = vibrator?.hasVibrator() == true
+        get() = _isEnabled && vibrator?.hasVibrator() == true
+
+    override fun setEnabled(enabled: Boolean) {
+        _isEnabled = enabled
+    }
 
     private var lastScrubTickTime = 0L
 
     override fun fire(event: HapticEvent) {
         if (!isEnabled) return
+
+        android.util.Log.d("HapticEngine", "fire: event=${event}, isEnabled=$isEnabled")
 
         when (event) {
             is HapticEvent.Tap -> performViewFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
@@ -90,11 +97,46 @@ class AndroidHapticEngine(
                     vibratePredefined(VibrationEffect.EFFECT_TICK)
                 }
             }
+            is HapticEvent.SkipNext -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    performViewFeedback(HapticFeedbackConstants.GESTURE_END)
+                } else {
+                    vibratePredefined(VibrationEffect.EFFECT_DOUBLE_CLICK)
+                }
+            }
+            is HapticEvent.SkipPrevious -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    performViewFeedback(HapticFeedbackConstants.GESTURE_START)
+                } else {
+                    vibratePredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
+                }
+            }
+            is HapticEvent.Resume -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    performViewFeedback(HapticFeedbackConstants.CONFIRM)
+                } else {
+                    vibratePredefined(VibrationEffect.EFFECT_TICK)
+                }
+            }
+            is HapticEvent.Pause -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    performViewFeedback(HapticFeedbackConstants.REJECT)
+                } else {
+                    vibratePredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
+                }
+            }
+            is HapticEvent.Expand -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    performViewFeedback(HapticFeedbackConstants.DRAG_START)
+                } else {
+                    performViewFeedback(HapticFeedbackConstants.LONG_PRESS)
+                }
+            }
         }
     }
 
     private fun performViewFeedback(constant: Int) {
-        view?.performHapticFeedback(constant, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+        view?.performHapticFeedback(constant)
             ?: vibratePredefined(VibrationEffect.EFFECT_TICK)
     }
 

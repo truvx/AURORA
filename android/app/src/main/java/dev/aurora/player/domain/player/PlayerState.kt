@@ -25,5 +25,8 @@ data class PlayerState(
     val audioFocus: AudioFocusState = AudioFocusState.Unknown,
     val lastError: Throwable? = null,
     val loudnessPreference: dev.aurora.player.domain.audio.LoudnessPreference = dev.aurora.player.domain.audio.LoudnessPreference.Normal,
-    val appliedNormalization: dev.aurora.player.domain.audio.AppliedNormalization? = null
+    val appliedNormalization: dev.aurora.player.domain.audio.AppliedNormalization? = null,
+    val providerCapabilities: dev.aurora.player.domain.audio.ProviderAudioCapabilities? = null,
+    val crossfadeDurationMs: Long = 0L,
+    val isEqEnabled: Boolean = false
 )

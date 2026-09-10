@@ -295,3 +295,31 @@ Status: final ordered plan, 2026-09-03. This plan is documentation only; no phas
 - Acceptance criteria: CI is green from a clean checkout; no secrets appear in logs/artifacts; release behavior respects YouTube/AI/privacy boundaries; rollback artifact and feature flags exist.
 - Risks: Credential/signing exposure, provider policy changes, unreproducible dependency resolution, release-only regressions.
 - Rollback/failure considerations: Stop release promotion; revoke exposed credentials; roll back to last verified artifacts; disable provider/AI flags without disabling local playback.
+
+## Phase 22 - Audio Foundation
+- Purpose: DSP pipeline abstraction, capability checks, crossfade, and EQ scaffolding.
+- Acceptance Criteria: Pipeline processes local and remote audio correctly; stages can be bypassed; normalization and true-peak limiters remain active; benchmark confirms whether C++ is required.
+
+## Phase 23 - AURORA Experience Engine
+- Purpose: Liquid Glass, Motion, and the first-class `HapticEngine`.
+- Acceptance Criteria: UI uses noise/blur correctly with opaque fallbacks; HapticEngine throttles events and respects battery/accessibility; no text-weight distortion occurs; transitions are fluid and interruptible.
+
+## Phase 24 - Lyrics
+- Purpose: Synced lyrics, provider fallbacks, translation, caching.
+- Acceptance Criteria: Word-level sync works where provided; AI cinematic generation is entirely optional and separate; local caching minimizes network calls.
+
+## Phase 25 - Library & Integrations
+- Purpose: Sync-ready database schema (stable IDs, timestamps), third-party sync APIs, Last.fm, Discord RPC.
+- Acceptance Criteria: Database supports version fields; integrations gracefully handle absent network/auth; no CRDT logic is active.
+
+## Phase 26 - AI Music Intelligence
+- Purpose: AI DJ, Smart Queue, Semantic Search.
+- Acceptance Criteria: AI uses only allowlisted tools and canonical IDs; no fabricated URLs; AI queue injection does not destroy the underlying deterministic algorithmic flow.
+
+## Phase 27 - Recognition & Advanced Discovery
+- Purpose: Environmental audio fingerprinting and metadata cleanup.
+- Acceptance Criteria: Raw audio is never sent to untrusted third parties; metadata updates are reversible and require confirmation.
+
+## Phase 28 - Hardening & Performance
+- Purpose: Profiling Liquid Glass render times, DSP battery impact, and AI latency.
+- Acceptance Criteria: Strict adherence to the 16.7ms frame budget; DSP battery drain is quantified and minimized; memory leaks are patched.

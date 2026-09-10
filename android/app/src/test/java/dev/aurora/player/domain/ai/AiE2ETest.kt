@@ -25,7 +25,13 @@ import okhttp3.MediaType
 
 class DummyPlayerAdapter : PlayerAdapter {
     override val events = MutableSharedFlow<EngineEvent>()
-    override fun load(track: MediaItem, uri: String) {}
+    var lastLoadedUri: String? = null
+    var lastLoadedTrack: MediaItem? = null
+
+    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+        lastLoadedUri = uri
+        lastLoadedTrack = track
+    }
     override fun play() {}
     override fun pause() {}
     override fun seekTo(positionMs: Long) {}
@@ -126,10 +132,13 @@ class AiE2ETest {
         val ytProvider = YouTubeMusicProvider(Retrofit.Builder().baseUrl("https://www.googleapis.com/youtube/v3/").addConverterFactory(kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.asConverterFactory(MediaType.get("application/json"))).build().create(YouTubeDataApi::class.java))
         val engine = RecommendationEngine(listOf(ytProvider))
         val scope = CoroutineScope(Dispatchers.Unconfined)
-        var loadedTrack: String? = null
+        var loadedTrack: MediaItem? = null
         val testAdapter = object : PlayerAdapter {
             override val events = MutableSharedFlow<EngineEvent>()
-            override fun load(track: MediaItem, uri: String) { loadedTrack = track.id }
+            override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+                loadedTrack = track
+                events.tryEmit(EngineEvent.Prepared)
+            }
             override fun play() {}
             override fun pause() {}
             override fun seekTo(positionMs: Long) {}

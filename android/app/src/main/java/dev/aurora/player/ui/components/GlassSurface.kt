@@ -9,6 +9,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import dev.aurora.player.ui.theme.Aurora
 
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.vibrancy
+
 /**
  * Base AURORA glass material surface.
  *
@@ -28,11 +32,11 @@ enum class GlassLevel { Primary, Secondary, Elevated }
 fun GlassSurface(
     modifier: Modifier = Modifier,
     level: GlassLevel = GlassLevel.Primary,
-    useOpaqueFallback: Boolean = false,
+    useOpaqueFallback: Boolean = true,
+    shape: androidx.compose.ui.graphics.Shape = Aurora.shapes.card,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val colors = Aurora.colors
-    val shapes = Aurora.shapes
 
     val backgroundColor: Color = if (useOpaqueFallback) {
         colors.surfaceOpaqueFallback
@@ -44,10 +48,28 @@ fun GlassSurface(
         }
     }
 
+    val backdrop = dev.aurora.player.ui.theme.LocalAuroraBackdrop.current
+    
     Box(
         modifier = modifier
-            .clip(shapes.card)
-            .background(backgroundColor),
+            .clip(shape)
+            .then(
+                if (backdrop != null && !useOpaqueFallback) {
+                    Modifier.drawBackdrop(
+                        backdrop = backdrop,
+                        shape = { shape },
+                        effects = {
+                            vibrancy()
+                            blur(64f)
+                        },
+                        onDrawSurface = {
+                            drawRect(color = backgroundColor)
+                        }
+                    )
+                } else {
+                    Modifier.background(backgroundColor)
+                }
+            ),
         content = content,
     )
 }

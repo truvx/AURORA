@@ -1,5 +1,7 @@
 package dev.aurora.player.app
 
+import android.util.Log
+
 import dev.aurora.player.domain.player.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +29,7 @@ class PlayerCoordinator(
     }
 
     fun dispatch(command: PlayerCommand) {
+        Log.d(TAG, "dispatch: $command")
         when (command) {
             is PlayerCommand.Load -> loadTrack(command.track, playWhenReady = false)
             is PlayerCommand.Play -> play()
@@ -45,15 +48,19 @@ class PlayerCoordinator(
             is PlayerCommand.SetLoudnessPreference -> setLoudnessPreference(command.preference)
             is PlayerCommand.Reload -> reload()
             is PlayerCommand.Stop -> stop()
+            is PlayerCommand.SetCrossfade -> setCrossfade(command.durationMs)
+            is PlayerCommand.SetEqEnabled -> setEqEnabled(command.enabled)
         }
     }
 
     private fun loadTrack(track: dev.aurora.player.domain.models.MediaItem, playWhenReady: Boolean) {
+        Log.d(TAG, "loadTrack: id=${track.id}, title=${track.title}, provider=${track.provider}, playWhenReady=$playWhenReady")
         targetPlayIntent = playWhenReady
         _state.update { it.copy(status = PlaybackStatus.Loading, currentTrack = track) }
         scope.launch {
             val uri = resolver.resolveUri(track.id)
             val loudnessData = resolver.resolveLoudness(track.id)
+            Log.d(TAG, "loadTrack: resolved uri=${uri != null}, loudness=${loudnessData != null}")
             
             if (uri != null) {
                 val capability = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) {
@@ -71,11 +78,30 @@ class PlayerCoordinator(
                 
                 val linearGain = dev.aurora.player.domain.audio.LoudnessResolver.toLinearGain(normalization.actualGainDb)
                 
-                _state.update { it.copy(appliedNormalization = normalization) }
+                val capabilities = dev.aurora.player.domain.audio.ProviderAudioCapabilities(
+                    provider = track.provider,
+                    normalization = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED,
+                    crossfade = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED,
+                    eq = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED,
+                    limiter = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED
+                )
+                
+                _state.update { 
+                    it.copy(
+                        appliedNormalization = normalization,
+                        providerCapabilities = capabilities
+                    ) 
+                }
                 adapter.setAudioGain(linearGain)
                 
-                adapter.load(track, uri)
+                val crossfadeDuration = if (capabilities.crossfade == dev.aurora.player.domain.audio.CapabilityState.SUPPORTED) {
+                    _state.value.crossfadeDurationMs
+                } else 0L
+
+                Log.d(TAG, "loadTrack: calling adapter.load(), crossfade=$crossfadeDuration")
+                adapter.load(track, uri, playWhenReady, crossfadeDuration)
             } else {
+                Log.e(TAG, "loadTrack: URI resolution failed for ${track.id}")
                 _state.update { it.copy(status = PlaybackStatus.Error, lastError = Exception("URI not found")) }
             }
         }
@@ -315,9 +341,19 @@ class PlayerCoordinator(
         _state.update { it.copy(status = PlaybackStatus.Idle, currentTrack = null) }
     }
 
+    private fun setCrossfade(durationMs: Long) {
+        _state.update { it.copy(crossfadeDurationMs = durationMs) }
+    }
+
+    private fun setEqEnabled(enabled: Boolean) {
+        _state.update { it.copy(isEqEnabled = enabled) }
+    }
+
     private fun handleEngineEvent(event: EngineEvent) {
+        Log.d(TAG, "handleEngineEvent: $event")
         when (event) {
             is EngineEvent.Prepared -> {
+                Log.d(TAG, "Engine PREPARED, targetPlayIntent=$targetPlayIntent")
                 if (targetPlayIntent) {
                     adapter.play()
                 } else {
@@ -325,12 +361,15 @@ class PlayerCoordinator(
                 }
             }
             is EngineEvent.Started -> {
+                Log.d(TAG, "Engine STARTED -> PlaybackStatus.Playing")
                 _state.update { it.copy(status = PlaybackStatus.Playing) }
             }
             is EngineEvent.Paused -> {
+                Log.d(TAG, "Engine PAUSED -> PlaybackStatus.Paused")
                 _state.update { it.copy(status = PlaybackStatus.Paused) }
             }
             is EngineEvent.BufferingChanged -> {
+                Log.d(TAG, "Engine BufferingChanged: isBuffering=${event.isBuffering}")
                 if (event.isBuffering) {
                     _state.update { it.copy(status = PlaybackStatus.Buffering) }
                 } else {
@@ -339,6 +378,7 @@ class PlayerCoordinator(
                 }
             }
             is EngineEvent.PositionChanged -> {
+                Log.v(TAG, "Position: elapsed=${event.elapsed}ms, duration=${event.duration}ms")
                 _state.update {
                     it.copy(
                         position = PlaybackPosition(
@@ -347,6 +387,26 @@ class PlayerCoordinator(
                             buffered = event.buffered
                         )
                     )
+                }
+                
+                // Proactive crossfade check
+                if (targetPlayIntent && event.duration != null && event.duration > 0) {
+                    val crossfadeMs = _state.value.crossfadeDurationMs
+                    val remaining = event.duration - event.elapsed
+                    
+                    // Trigger skipNext slightly before the track ends (at crossfadeMs + 100ms threshold to ensure we catch it)
+                    // We only want to do this once per track, so we check if we are very close to the threshold.
+                    // This is a naive polling approach. In a real app we'd use a Handler/Timer scheduled precisely,
+                    // but since PositionChanged emits every 200ms, this is acceptable for Phase 22 scaffold.
+                    if (crossfadeMs > 0 && remaining <= crossfadeMs && remaining > crossfadeMs - 300) {
+                        Log.d(TAG, "Triggering proactive crossfade. Remaining: $remaining, Crossfade: $crossfadeMs")
+                        val q = _state.value.queue
+                        if (q.repeatMode == RepeatMode.One) {
+                            replay()
+                        } else {
+                            skipNext()
+                        }
+                    }
                 }
             }
             is EngineEvent.SeekStarted -> {
@@ -357,6 +417,7 @@ class PlayerCoordinator(
                 _state.update { it.copy(status = status) }
             }
             is EngineEvent.TrackCompleted -> {
+                Log.d(TAG, "Engine TrackCompleted")
                 val q = _state.value.queue
                 if (q.repeatMode == RepeatMode.One) {
                     replay()
@@ -365,8 +426,13 @@ class PlayerCoordinator(
                 }
             }
             is EngineEvent.Error -> {
+                Log.e(TAG, "Engine ERROR: ${event.error}")
                 _state.update { it.copy(status = PlaybackStatus.Error, lastError = event.error) }
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "PlayerCoordinator"
     }
 }

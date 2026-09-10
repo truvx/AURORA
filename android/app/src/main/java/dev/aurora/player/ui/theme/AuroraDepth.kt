@@ -46,3 +46,5 @@ data class AuroraDepth(
 val AuroraDepthTokens = AuroraDepth()
 
 val LocalAuroraDepth = staticCompositionLocalOf { AuroraDepthTokens }
+
+val LocalAuroraBackdrop = staticCompositionLocalOf<com.kyant.backdrop.backdrops.LayerBackdrop?> { null }

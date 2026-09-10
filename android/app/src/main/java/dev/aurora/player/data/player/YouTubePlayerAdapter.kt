@@ -167,13 +167,18 @@ class YouTubePlayerAdapter : PlayerAdapter {
         }
     }
 
-    override fun load(track: MediaItem, uri: String) {
+    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+        // IFrame adapter doesn't support crossfade natively right now
+        // It should just load and play based on playWhenReady
         _state.value = _state.value.copy(
             videoId = uri,
-            shouldPlay = false,
+            shouldPlay = playWhenReady,
             seekToMs = 0L
         )
         _webView?.evaluateJavascript("loadVideo('$uri');", null)
+        if (playWhenReady) {
+            _webView?.evaluateJavascript("playVideo();", null)
+        }
     }
 
     override fun play() {

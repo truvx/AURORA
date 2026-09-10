@@ -27,6 +27,8 @@ class Media3PlayerAdapter(
 ) : PlayerAdapter {
 
     val normalizationProcessor = NormalizationAudioProcessor()
+    val eqProcessor = EqAudioProcessor()
+    val limiterProcessor = LimiterAudioProcessor()
 
     val renderersFactory = object : DefaultRenderersFactory(context) {
         override fun buildAudioSink(
@@ -37,7 +39,7 @@ class Media3PlayerAdapter(
             return DefaultAudioSink.Builder(context)
                 .setEnableFloatOutput(enableFloatOutput)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                .setAudioProcessors(arrayOf<AudioProcessor>(normalizationProcessor))
+                .setAudioProcessors(arrayOf<AudioProcessor>(normalizationProcessor, eqProcessor, limiterProcessor))
                 .build()
         }
     }
@@ -111,7 +113,7 @@ class Media3PlayerAdapter(
         }
     }
 
-    override fun load(track: MediaItem, uri: String) {
+    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
         val media3Item = Media3Item.Builder()
             .setMediaId(track.id)
             .setUri(Uri.parse(uri))
@@ -126,6 +128,7 @@ class Media3PlayerAdapter(
             .build()
 
         exoPlayer.setMediaItem(media3Item)
+        exoPlayer.playWhenReady = playWhenReady
         exoPlayer.prepare()
     }
 

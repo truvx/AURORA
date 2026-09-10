@@ -135,7 +135,7 @@ fun NowPlayingScreen(
             // Previous
             GlassIconButton(
                 onClick = {
-                    haptics.fire(HapticEvent.Tap)
+                    haptics.fire(HapticEvent.SkipPrevious)
                     coordinator.dispatch(PlayerCommand.SkipPrevious)
                 },
                 icon = Icons.Rounded.SkipPrevious,
@@ -147,10 +147,11 @@ fun NowPlayingScreen(
             val isPlaying = state.status == PlaybackStatus.Playing || state.status == PlaybackStatus.Buffering
             GlassIconButton(
                 onClick = {
-                    haptics.fire(HapticEvent.Toggle)
                     if (isPlaying) {
+                        haptics.fire(HapticEvent.Pause)
                         coordinator.dispatch(PlayerCommand.Pause)
                     } else {
+                        haptics.fire(HapticEvent.Resume)
                         coordinator.dispatch(PlayerCommand.Play)
                     }
                 },
@@ -163,7 +164,7 @@ fun NowPlayingScreen(
             // Next
             GlassIconButton(
                 onClick = {
-                    haptics.fire(HapticEvent.Tap)
+                    haptics.fire(HapticEvent.SkipNext)
                     coordinator.dispatch(PlayerCommand.SkipNext)
                 },
                 icon = Icons.Rounded.SkipNext,

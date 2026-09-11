@@ -30,9 +30,10 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # compileSdk 37 is newer than the runner image ships with.
+      # compileSdk 37 is newer than the runner image ships with. Android 17 uses the
+      # versioned API scheme, so the package is android-37.0 rather than android-37.
       - name: Install required SDK packages
-        run: sdkmanager --install "platforms;android-37" "build-tools;36.0.0"
+        run: sdkmanager --install "platforms;android-37.0" "build-tools;36.0.0"
 
       - name: Assemble
         run: ./gradlew :app:assembleDebug --no-daemon

@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.LibraryMusic
+import androidx.compose.material.icons.outlined.PlaylistAdd
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -35,6 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.aurora.player.domain.library.Playlist
+import dev.aurora.player.domain.library.PlaylistTrack
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.ui.components.GlassButton
 import dev.aurora.player.ui.components.GlassCard
@@ -46,14 +50,29 @@ import dev.aurora.player.ui.haptics.LocalHapticEngine
 import dev.aurora.player.ui.theme.Aurora
 
 @Composable
+// No default arguments: this screen was shipped twice with unwired callbacks that silently
+// did nothing, because a missing argument fell back to a no-op lambda. Requiring every
+// parameter turns that mistake into a compile error.
 fun LibraryScreen(
-    items: List<MediaItem> = emptyList(),
-    favoriteIds: Set<String> = emptySet(),
-    onScanRequested: () -> Unit = {},
-    onToggleFavorite: (mediaId: String, isFavorite: Boolean) -> Unit = { _, _ -> },
+    items: List<MediaItem>,
+    favoriteIds: Set<String>,
+    playlists: List<Playlist>,
+    openPlaylistId: String?,
+    openPlaylistTracks: List<PlaylistTrack>,
+    onScanRequested: () -> Unit,
+    onToggleFavorite: (mediaId: String, isFavorite: Boolean) -> Unit,
+    onPlayTrack: (MediaItem) -> Unit,
+    onOpenPlaylist: (String?) -> Unit,
+    onCreatePlaylist: (String) -> Unit,
+    onDeletePlaylist: (String) -> Unit,
+    onAddToPlaylist: (playlistId: String, mediaId: String) -> Unit,
+    onRemoveEntry: (playlistId: String, entryId: String) -> Unit,
+    onMoveEntry: (playlistId: String, from: Int, to: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val haptics = LocalHapticEngine.current
+    var showPlaylists by remember { mutableStateOf(false) }
+    var pendingAddTrackId by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val audioPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_AUDIO
@@ -152,7 +171,63 @@ fun LibraryScreen(
                     style = dev.aurora.player.ui.components.GlassButtonStyle.Secondary
                 )
             }
-            
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = spacing.space4),
+                horizontalArrangement = Arrangement.spacedBy(spacing.space2)
+            ) {
+                GlassButton(
+                    text = "Tracks",
+                    onClick = {
+                        if (showPlaylists) haptics.fire(HapticEvent.Selection)
+                        showPlaylists = false
+                    },
+                    style = if (showPlaylists) {
+                        dev.aurora.player.ui.components.GlassButtonStyle.Secondary
+                    } else {
+                        dev.aurora.player.ui.components.GlassButtonStyle.Primary
+                    }
+                )
+                GlassButton(
+                    text = "Playlists",
+                    onClick = {
+                        if (!showPlaylists) haptics.fire(HapticEvent.Selection)
+                        showPlaylists = true
+                    },
+                    style = if (showPlaylists) {
+                        dev.aurora.player.ui.components.GlassButtonStyle.Primary
+                    } else {
+                        dev.aurora.player.ui.components.GlassButtonStyle.Secondary
+                    }
+                )
+            }
+
+            if (showPlaylists) {
+                PlaylistsSection(
+                    playlists = playlists,
+                    openPlaylist = playlists.firstOrNull { it.id == openPlaylistId },
+                    openPlaylistTracks = openPlaylistTracks,
+                    onOpenPlaylist = onOpenPlaylist,
+                    onCreatePlaylist = onCreatePlaylist,
+                    onDeletePlaylist = onDeletePlaylist,
+                    onRemoveEntry = onRemoveEntry,
+                    onMoveEntry = onMoveEntry
+                )
+                return@Column
+            }
+
+            pendingAddTrackId?.let { trackId ->
+                AddToPlaylistRow(
+                    playlists = playlists,
+                    onPick = { playlistId ->
+                        onAddToPlaylist(playlistId, trackId)
+                        pendingAddTrackId = null
+                    },
+                    onDismiss = { pendingAddTrackId = null },
+                    modifier = Modifier.padding(bottom = spacing.space3)
+                )
+            }
+
             if (items.isEmpty()) {
                 Column(
                     modifier = Modifier
@@ -193,6 +268,10 @@ fun LibraryScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .clickable(enabled = item.isAvailable) {
+                                        haptics.fire(HapticEvent.Tap)
+                                        onPlayTrack(item)
+                                    }
                                     .padding(spacing.space3),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -215,6 +294,15 @@ fun LibraryScreen(
                                         color = colors.textSecondary
                                     )
                                 }
+
+                                GlassIconButton(
+                                    icon = Icons.Outlined.PlaylistAdd,
+                                    contentDesc = "Add ${item.title} to a playlist",
+                                    onClick = {
+                                        haptics.fire(HapticEvent.Selection)
+                                        pendingAddTrackId = item.id
+                                    }
+                                )
 
                                 val isFavorite = favoriteIds.contains(item.id)
                                 GlassIconButton(

@@ -12,6 +12,7 @@ import dev.aurora.player.data.providers.YouTubeMusicProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 interface AppContainer {
     val database: AuroraDatabase
@@ -24,6 +25,12 @@ interface AppContainer {
     val playerCoordinator: PlayerCoordinator
     val localLibraryProvider: dev.aurora.player.data.providers.LocalLibraryProvider
     val libraryOrganizationRepository: dev.aurora.player.domain.library.LibraryOrganizationRepository
+
+    /**
+     * Starts observing playback to record history, resume positions, and queue snapshots,
+     * and restores the previous queue. Safe to call once from Application.onCreate.
+     */
+    fun startPlaybackPersistence()
     val aiProvider: dev.aurora.player.domain.ai.AiProvider
     val recommendationEngine: dev.aurora.player.domain.recommendations.RecommendationEngine
     val aiToolExecutor: AiToolExecutor
@@ -131,5 +138,29 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             recommendationEngine = recommendationEngine,
             providers = listOf(localLibraryProvider, youtubeMusicProvider)
         )
+    }
+
+    private var persistenceStarted = false
+
+    override fun startPlaybackPersistence() {
+        if (persistenceStarted) return
+        persistenceStarted = true
+
+        applicationScope.launch {
+            // Restore first, so the recorder does not immediately snapshot an empty queue
+            // over the one we are about to put back.
+            runCatching {
+                QueueRestorer(
+                    libraryOrganizationRepository,
+                    listOf(localLibraryProvider, youtubeMusicProvider)
+                ).restore(playerCoordinator)
+            }
+
+            // History must never be able to break playback, so failures here are contained.
+            runCatching {
+                PlaybackHistoryRecorder(libraryOrganizationRepository)
+                    .observe(playerCoordinator.state)
+            }
+        }
     }
 }

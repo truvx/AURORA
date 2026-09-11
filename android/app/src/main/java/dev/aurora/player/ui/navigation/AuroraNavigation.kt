@@ -70,11 +70,31 @@ fun AuroraNavigation(
                 }
                 val items by libraryViewModel.items.collectAsState()
                 val favoriteIds by libraryViewModel.favoriteIds.collectAsState()
+                val playlists by libraryViewModel.playlists.collectAsState()
+                val openPlaylistId by libraryViewModel.openPlaylistId.collectAsState()
+                val openPlaylistTracks by libraryViewModel.openPlaylistTracks.collectAsState()
                 LibraryScreen(
                     items = items,
                     favoriteIds = favoriteIds,
+                    playlists = playlists,
+                    openPlaylistId = openPlaylistId,
+                    openPlaylistTracks = openPlaylistTracks,
                     onScanRequested = libraryViewModel::scan,
-                    onToggleFavorite = libraryViewModel::setFavorite
+                    onToggleFavorite = libraryViewModel::setFavorite,
+                    onPlayTrack = { item ->
+                        container.playerCoordinator.dispatch(
+                            dev.aurora.player.domain.player.PlayerCommand.Load(item)
+                        )
+                        container.playerCoordinator.dispatch(
+                            dev.aurora.player.domain.player.PlayerCommand.Play
+                        )
+                    },
+                    onOpenPlaylist = libraryViewModel::openPlaylist,
+                    onCreatePlaylist = libraryViewModel::createPlaylist,
+                    onDeletePlaylist = libraryViewModel::deletePlaylist,
+                    onAddToPlaylist = libraryViewModel::addToPlaylist,
+                    onRemoveEntry = libraryViewModel::removeFromPlaylist,
+                    onMoveEntry = libraryViewModel::moveEntry
                 )
             }
             composable(AuroraDestination.Ai.route) { 
@@ -90,7 +110,17 @@ fun AuroraNavigation(
                 ) 
             }
             composable(AuroraDestination.Settings.route) { 
-                SettingsScreen(playerCoordinator = container.playerCoordinator) 
+                val navContext = androidx.compose.ui.platform.LocalContext.current
+                val privacyViewModel = androidx.compose.runtime.remember {
+                    dev.aurora.player.ui.screens.PrivacyViewModel(
+                        container.libraryOrganizationRepository,
+                        dev.aurora.player.ui.screens.PrivacyViewModel.exportDirFor(navContext)
+                    )
+                }
+                SettingsScreen(
+                    playerCoordinator = container.playerCoordinator,
+                    privacyViewModel = privacyViewModel
+                )
             }
         }
     }

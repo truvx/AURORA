@@ -48,9 +48,43 @@ Key actions included:
 
 **Status: COMPLETE**
 
-## Next Phase
+- **Phase 9**: Loudness Normalization
 
-**Phase 9: Loudness Normalization**
-- Implementing audio loudness normalization logic.
-- Enforcing global decibel adjustments.
-- Verifying uniform volume adjustments across local and supported provider files.
+## Phase 9 Correction (loudness measurement source)
+
+The first Phase 9 implementation wrote hardcoded loudness values (`lufsIntegrated = -12.0`, `truePeak = 0.9`) for every scanned track. Those values were never measured, which violated the truthful-metadata rule and made normalization a fixed offset rather than normalization.
+
+Corrected:
+
+1. **Real measurement source**: `data/scanner/ReplayGainReader` parses ReplayGain tags from FLAC (Vorbis comments) and ID3v2.3/2.4 (`TXXX` frames). `domain/audio/ReplayGainReference` converts gain to LUFS against the ReplayGain 2.0 `-18 LUFS-I` reference.
+2. **Unknown stays unknown**: a file without usable tags produces no loudness row, so `LoudnessResolver` resolves unity gain and the UI reports `Unknown`. Ogg/Opus and MP4/M4A tag layouts are not parsed yet and are reported as unknown rather than guessed.
+3. **Stale data purged**: schema v4 (`MIGRATION_3_4`) deletes `analysisVersion = 1` rows so previously fabricated values do not survive the upgrade.
+4. **Test coverage**: `LoudnessResolverTest` (24 cases) covers every target, gain/attenuation cap boundary, the `-1.0 dBTP` protection path, album-context fallback, and unknown handling. `ReplayGainReaderTest` (16 cases) covers both tag layouts plus malformed, truncated, and unsupported input. `MigrationTest.migrate3To4` verifies the purge keeps measured rows.
+
+Offline LUFS analysis for untagged files remains unimplemented; untagged files are not normalized and are not described as normalized.
+
+## Phase 10 (Library, Favorites, Playlists) - in progress
+
+Foundation complete and tested; integration and remaining UI outstanding.
+
+Delivered:
+
+1. **Schema v5** (`MIGRATION_4_5`, purely additive): `library_entries`, `playlists`, `playlist_entries`, `listening_events`, `resume_positions`, `queue_snapshots`, `queue_snapshot_items`.
+2. **`LibraryOrganizationDao`**: favorites, playlists with transactional append/remove/reorder, append-only history with retention pruning, resume positions keyed by provider + media, and single-retained queue snapshots.
+3. **`LibraryOrganizationRepository`** (domain) + `RoomLibraryOrganizationRepository` (data), wired through `AppContainer`.
+4. **Favorites UI**: heart control in the library list, verified persisting to `library_entries` and reflecting back through the observed flow.
+
+Ordering guarantees under test: duplicate entries allowed, positions stay contiguous after removal, reorder is deterministic in both directions, out-of-range moves are rejected, and an unavailable track stays in its playlist. Privacy deletion erases history, resume, and queue snapshots while leaving favorites and playlists intact.
+
+Outstanding for Phase 10:
+
+- Playlist UI (create, view, reorder, delete)
+- Recording play/skip/completion events and resume positions from `PlayerCoordinator`
+- Saving and restoring queue snapshots across process death
+- Privacy export/delete controls in Settings
+
+## Next Phases
+
+Phase 17 (Web application) remains limited to the AI gateway and app shell. Phases 18-21 (accessibility hardening, performance, testing, CI/release) are unstarted; there is still no CI workflow, and `AiE2ETest` remains a live-network test inside the unit source set.
+
+Also outstanding: Phase 17 (Web application) is limited to the AI gateway and app shell; Phases 18-21 (accessibility hardening, performance, testing, CI/release) are unstarted. There is no CI workflow, and `AiE2ETest` is a live-network test inside the unit source set, so `testDebugUnitTest` cannot pass without a local gateway on port 3000.

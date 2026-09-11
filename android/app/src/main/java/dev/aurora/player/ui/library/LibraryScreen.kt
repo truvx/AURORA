@@ -1,9 +1,11 @@
 package dev.aurora.player.ui.library
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,33 +18,57 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.ui.components.GlassButton
 import dev.aurora.player.ui.components.GlassCard
 import dev.aurora.player.ui.components.GlassLevel
+import dev.aurora.player.ui.components.GlassIconButton
 import dev.aurora.player.ui.components.GlassSurface
+import dev.aurora.player.ui.haptics.HapticEvent
+import dev.aurora.player.ui.haptics.LocalHapticEngine
 import dev.aurora.player.ui.theme.Aurora
 
 @Composable
 fun LibraryScreen(
     items: List<MediaItem> = emptyList(),
+    favoriteIds: Set<String> = emptySet(),
     onScanRequested: () -> Unit = {},
+    onToggleFavorite: (mediaId: String, isFavorite: Boolean) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
-    var hasPermission by remember { mutableStateOf(false) }
+    val haptics = LocalHapticEngine.current
+    val context = LocalContext.current
+    val audioPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.READ_MEDIA_AUDIO
+    } else {
+        Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+
+    // Read the real permission state; a permission granted in an earlier session must not
+    // leave the user stuck behind the request gate.
+    var hasPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, audioPermission) ==
+                PackageManager.PERMISSION_GRANTED
+        )
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -51,6 +77,11 @@ fun LibraryScreen(
         if (isGranted) {
             onScanRequested()
         }
+    }
+
+    // Pick up files added since the last visit when access is already in place.
+    LaunchedEffect(hasPermission) {
+        if (hasPermission) onScanRequested()
     }
 
     val spacing = Aurora.spacing
@@ -101,14 +132,7 @@ fun LibraryScreen(
                 )
                 GlassButton(
                     text = "Allow Access",
-                    onClick = {
-                        val perm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            Manifest.permission.READ_MEDIA_AUDIO
-                        } else {
-                            Manifest.permission.READ_EXTERNAL_STORAGE
-                        }
-                        permissionLauncher.launch(perm)
-                    }
+                    onClick = { permissionLauncher.launch(audioPermission) }
                 )
             }
         } else {
@@ -191,6 +215,25 @@ fun LibraryScreen(
                                         color = colors.textSecondary
                                     )
                                 }
+
+                                val isFavorite = favoriteIds.contains(item.id)
+                                GlassIconButton(
+                                    icon = if (isFavorite) {
+                                        Icons.Filled.Favorite
+                                    } else {
+                                        Icons.Outlined.FavoriteBorder
+                                    },
+                                    contentDesc = if (isFavorite) {
+                                        "Remove ${item.title} from favorites"
+                                    } else {
+                                        "Add ${item.title} to favorites"
+                                    },
+                                    onClick = {
+                                        haptics.fire(HapticEvent.Favorite)
+                                        onToggleFavorite(item.id, !isFavorite)
+                                    },
+                                    selected = isFavorite
+                                )
                             }
                         }
                     }

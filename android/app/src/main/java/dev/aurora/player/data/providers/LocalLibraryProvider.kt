@@ -54,14 +54,9 @@ class LocalLibraryProvider(
                 album = track.album,
                 artists = track.artists,
                 artwork = track.artwork,
-                loudness = dev.aurora.player.data.db.TrackLoudnessEntity(
-                    mediaId = track.item.id,
-                    lufsIntegrated = -12.0f,
-                    truePeak = 0.9f,
-                    albumLufs = null,
-                    albumPeak = null,
-                    analysisVersion = 1
-                )
+                // Measured loudness only. Null means the file carried no ReplayGain tags,
+                // and normalization must treat it as unknown rather than assume a level.
+                loudness = track.loudness
             )
         }
 

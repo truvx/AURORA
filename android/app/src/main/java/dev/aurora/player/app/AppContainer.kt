@@ -23,6 +23,7 @@ interface AppContainer {
     val playerAdapter: PlayerAdapter
     val playerCoordinator: PlayerCoordinator
     val localLibraryProvider: dev.aurora.player.data.providers.LocalLibraryProvider
+    val libraryOrganizationRepository: dev.aurora.player.domain.library.LibraryOrganizationRepository
     val aiProvider: dev.aurora.player.domain.ai.AiProvider
     val recommendationEngine: dev.aurora.player.domain.recommendations.RecommendationEngine
     val aiToolExecutor: AiToolExecutor
@@ -36,7 +37,12 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             context,
             AuroraDatabase::class.java,
             "aurora-database"
-        ).addMigrations(AuroraDatabase.MIGRATION_1_2, AuroraDatabase.MIGRATION_2_3)
+        ).addMigrations(
+            AuroraDatabase.MIGRATION_1_2,
+            AuroraDatabase.MIGRATION_2_3,
+            AuroraDatabase.MIGRATION_3_4,
+            AuroraDatabase.MIGRATION_4_5
+        )
          .build()
     }
 
@@ -82,6 +88,13 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         dev.aurora.player.data.providers.LocalLibraryProvider(
             localLibraryDao, 
             dev.aurora.player.data.scanner.LocalMusicScanner(context)
+        )
+    }
+
+    override val libraryOrganizationRepository: dev.aurora.player.domain.library.LibraryOrganizationRepository by lazy {
+        dev.aurora.player.data.library.RoomLibraryOrganizationRepository(
+            database.libraryOrganizationDao(),
+            localLibraryDao
         )
     }
 

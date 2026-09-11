@@ -28,11 +28,11 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // Log the detail server-side; return a fixed message. Provider errors can carry
+    // request context, model identifiers, and occasionally fragments of configuration,
+    // none of which belongs in a client response.
     console.error("AI Gateway Route Error:", error);
-    return NextResponse.json(
-      { error: error.message || "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

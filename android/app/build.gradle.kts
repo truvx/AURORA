@@ -141,5 +141,12 @@ tasks.withType<Test> {
         showStandardStreams = true
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
+    // Tests that need a live AI gateway on localhost:3000 are skipped unless explicitly
+    // enabled, so the default suite is runnable offline and in CI.
+    // Enable with: ./gradlew test -PauroraLiveAi=true
+    systemProperty(
+        "aurora.liveAi",
+        providers.gradleProperty("auroraLiveAi").getOrElse("false")
+    )
 }
 

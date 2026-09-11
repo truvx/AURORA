@@ -34,3 +34,6 @@ coverage/
 *.swp
 local.properties
 *.log
+
+# TypeScript incremental build cache
+*.tsbuildinfo

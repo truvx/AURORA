@@ -63,9 +63,7 @@ Corrected:
 
 Offline LUFS analysis for untagged files remains unimplemented; untagged files are not normalized and are not described as normalized.
 
-## Phase 10 (Library, Favorites, Playlists) - in progress
-
-Foundation complete and tested; integration and remaining UI outstanding.
+## Phase 10 (Library, Favorites, Playlists) - COMPLETE
 
 Delivered:
 
@@ -76,12 +74,18 @@ Delivered:
 
 Ordering guarantees under test: duplicate entries allowed, positions stay contiguous after removal, reorder is deterministic in both directions, out-of-range moves are rejected, and an unavailable track stays in its playlist. Privacy deletion erases history, resume, and queue snapshots while leaving favorites and playlists intact.
 
-Outstanding for Phase 10:
+5. **Playlist UI**: Tracks/Playlists switch, create, delete, per-track add, and reorder via explicit up/down controls (reachable by screen reader and keyboard; each press is one transactional move).
+6. **History and resume**: `PlaybackHistoryRecorder` observes the coordinator rather than living inside it, so persistence failures cannot break playback. A track left before 90% is a skip; unknown duration counts as a skip rather than an invented completion. Resume writes are debounced.
+7. **Queue snapshots**: written when the arrangement changes, restored on cold start without auto-playing. Unresolvable tracks are dropped rather than faked.
+8. **Privacy controls**: export writes history to JSON and reports path and count; delete takes two presses and clears history, resume positions, and queue snapshots while leaving favorites and playlists intact.
 
-- Playlist UI (create, view, reorder, delete)
-- Recording play/skip/completion events and resume positions from `PlayerCoordinator`
-- Saving and restoring queue snapshots across process death
-- Privacy export/delete controls in Settings
+Library rows now start playback on tap; previously there was no way to play a local track from the library.
+
+Verified on device: playlist created and persisted, tracks added, reorder swapped positions and kept them contiguous, export wrote valid JSON, and playing a track recorded a PLAY event.
+
+### Known issue found during Phase 10 verification
+
+Playback does not progress: the media prepares and the decoder is created, but position stays at 0 and no `Started` event is emitted. This predates Phase 10 and most likely sits in `CrossfadeMedia3Adapter`, which wraps two `Media3PlayerAdapter` instances - position is probably polled from the inactive one. That class is also the only audio component with no test coverage, since it needs a `Context` and two real ExoPlayer instances. Needs an instrumented test and a fix.
 
 ## Next Phases
 

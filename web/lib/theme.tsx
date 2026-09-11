@@ -18,22 +18,30 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 
+/**
+ * Resolves the starting theme on the client. Stored values come from localStorage,
+ * which is user-writable, so the value is validated rather than cast.
+ */
+function resolveInitialTheme(): Theme {
+  if (typeof window === "undefined") return "light";
+  const stored = localStorage.getItem("aurora-theme");
+  if (stored === "light" || stored === "dark") return stored;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  // Resolved during the first render rather than in an effect: setting state from an
+  // effect renders once with the wrong theme, then again with the right one, which is
+  // both a cascading render and a visible flash of the wrong palette.
+  const [theme, setTheme] = useState<Theme>(resolveInitialTheme);
 
   useEffect(() => {
-    // Respect system preference on mount
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const stored = localStorage.getItem("aurora-theme") as Theme | null;
-    const initial = stored ?? (prefersDark ? "dark" : "light");
-    setTheme(initial);
-    document.documentElement.setAttribute("data-theme", initial);
-  }, []);
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
     setTheme(next);
-    document.documentElement.setAttribute("data-theme", next);
     localStorage.setItem("aurora-theme", next);
   };
 

@@ -46,6 +46,12 @@ jobs:
       - name: Lint
         run: ./gradlew :app:lintDebug --no-daemon
 
+      # R8 strips anything it cannot see referenced, and the failures only appear at
+      # runtime. Building the minified release on every change catches a broken keep rule
+      # here rather than in an installed build.
+      - name: Release build (R8)
+        run: ./gradlew :app:assembleRelease --no-daemon
+
       - name: Upload reports on failure
         if: failure()
         uses: actions/upload-artifact@v4

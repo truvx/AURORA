@@ -11,7 +11,11 @@ import kotlinx.coroutines.flow.merge
 class CompositePlayerAdapter(
     private val localAdapter: PlayerAdapter,
     private val youtubeAdapter: PlayerAdapter
-) : PlayerAdapter {
+) : PlayerAdapter, Media3PlayerOwner {
+
+    /** Only local playback is backed by Media3; YouTube plays in a WebView. */
+    override val sessionPlayer: androidx.media3.exoplayer.ExoPlayer
+        get() = (localAdapter as Media3PlayerOwner).sessionPlayer
 
     // Volatile: load() runs on the caller's thread while the flows are collected elsewhere,
     // and the filters below read this on every emission.

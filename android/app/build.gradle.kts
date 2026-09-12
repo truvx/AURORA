@@ -149,6 +149,7 @@ dependencies {
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
     androidTestImplementation(libs.room.testing)
+    androidTestImplementation("androidx.test:rules:1.6.1")
     debugImplementation(libs.compose.ui.test.manifest)
 }
 

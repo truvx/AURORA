@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 class CrossfadeMedia3Adapter(
     context: Context,
     private val scope: CoroutineScope
-) : PlayerAdapter {
+) : PlayerAdapter, Media3PlayerOwner {
     private val primary = Media3PlayerAdapter(context, scope)
     private val secondary = Media3PlayerAdapter(context, scope)
     
@@ -23,6 +23,14 @@ class CrossfadeMedia3Adapter(
     private var activePlayer = primary
     private var inactivePlayer = secondary
     private var crossfadeJob: Job? = null
+
+    /**
+     * The session attaches to whichever player is active. A crossfade swaps the active
+     * player, and the already-attached session keeps following the one it was given - so
+     * transport controls stay bound to the outgoing track for the length of a fade.
+     */
+    override val sessionPlayer: androidx.media3.exoplayer.ExoPlayer
+        get() = activePlayer.exoPlayer
     
     /**
      * Only the active player's events are exposed.

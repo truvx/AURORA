@@ -29,7 +29,7 @@ import androidx.media3.common.util.UnstableApi
 class Media3PlayerAdapter(
     context: Context,
     private val scope: CoroutineScope
-) : PlayerAdapter {
+) : PlayerAdapter, Media3PlayerOwner {
 
     val normalizationProcessor = NormalizationAudioProcessor()
     val eqProcessor = EqAudioProcessor()
@@ -59,6 +59,8 @@ class Media3PlayerAdapter(
         )
         .setHandleAudioBecomingNoisy(true)
         .build()
+
+    override val sessionPlayer: ExoPlayer get() = exoPlayer
 
     private val _events = MutableSharedFlow<EngineEvent>(extraBufferCapacity = 64)
     override val events: Flow<EngineEvent> = _events

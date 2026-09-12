@@ -87,6 +87,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Test
+        run: npm test
+
       # Builds without provider credentials: keys are read at request time, not build
       # time, and no client bundle may contain them.
       - name: Build

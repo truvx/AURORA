@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ReactNode } from "react";
 import styles from "./AppShell.module.css";
+import { MiniPlayer } from "@/components/player/MiniPlayer";
 
 interface NavItem {
   href: string;
@@ -26,7 +27,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className={styles.shell}>
       <main className={styles.main}>{children}</main>
 
-      {/* Mini-player region will be inserted here in Phase 5+ */}
+      <MiniPlayer />
 
       <nav className={styles.nav} aria-label="Primary navigation">
         {navItems.map((item) => {

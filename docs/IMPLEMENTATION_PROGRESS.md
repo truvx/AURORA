@@ -148,6 +148,39 @@ scrim exists. Dark glass is only 20% opaque, so near-white text over a white alb
 measure **1.35:1** - effectively illegible. `ContrastTest` records this and is written to fail
 the moment artwork rendering lands without a scrim.
 
+## Phase 17 (Web application) - playable core
+
+The web client had no player, queue, persistence, or Media Session; it was an AI gateway,
+a shell, and five pages. It is now a client you can listen with.
+
+- **`PlayerCoordinator`** owns canonical web state, mirroring the Android vocabulary without
+  reusing any Android abstraction. State is published by subscription, not React state:
+  position updates arrive four times a second and would otherwise re-render the whole tree.
+  Components select the slice they need, so the scrubber re-renders and the rest does not.
+- **`HtmlAudioAdapter`** wraps one audio element for the app. Position is polled rather than
+  driven by `timeupdate`, which browsers fire irregularly and throttle in background tabs.
+- **Media Session** publishes to hardware keys and OS media hubs, with every handler routed
+  back through the coordinator. Unsupported browsers report a capability rather than failing.
+- **File System Access** lets the user pick a music folder once; the handle is stored in
+  IndexedDB so the library survives reloads. Audio bytes are never copied - files are
+  re-opened on demand. Unsupported browsers are told so explicitly.
+- **IndexedDB** stores bounded metadata only. A failed scan never overwrites a saved library.
+
+Two lessons from Android were carried over deliberately: a loaded track is placed in the
+queue, and `Completed`/`Error` are terminal so a settling event cannot erase them.
+
+Autoplay refusal is treated as a recoverable browser policy with an explanation, not an error.
+
+Web test coverage went from zero to 16, including the coordinator's queue, terminal-state,
+autoplay, and unknown-duration behaviour.
+
+### Not yet done in Phase 17
+
+Favorites, playlists, history, resume, albums/artists, and the YouTube IFrame surface on web.
+Tag parsing is not implemented, so titles fall back to filenames and artist stays unknown
+rather than being guessed. The folder-picker-to-playback path needs a real user gesture, so
+it has not been verified by automation.
+
 ## Next Phases
 
 Phase 17 (Web application) remains limited to the AI gateway and app shell. Phases 18-21 (accessibility hardening, performance, testing, CI/release) are unstarted; there is still no CI workflow, and `AiE2ETest` remains a live-network test inside the unit source set.

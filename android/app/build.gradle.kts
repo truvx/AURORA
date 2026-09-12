@@ -71,6 +71,17 @@ android {
             applicationIdSuffix = ".debug"
             isMinifyEnabled = false
         }
+        // Release-like but installable: macrobenchmark refuses to measure a debuggable
+        // build, because debuggable drastically changes runtime performance and would make
+        // the numbers meaningless. Signed with the debug key so it can be installed without
+        // the release keystore.
+        create("benchmark") {
+            initWith(buildTypes.getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+            applicationIdSuffix = ".benchmark"
+        }
     }
 
     testOptions {

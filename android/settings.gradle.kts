@@ -23,3 +23,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "aurora-android"
 include(":app")
+include(":benchmark")

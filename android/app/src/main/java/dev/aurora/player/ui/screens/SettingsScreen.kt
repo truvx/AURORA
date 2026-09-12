@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import dev.aurora.player.app.PlayerCoordinator
 import dev.aurora.player.domain.audio.LoudnessPreference
 import dev.aurora.player.domain.player.PlayerCommand
+import dev.aurora.player.ui.components.GlassButton
+import dev.aurora.player.ui.components.GlassButtonStyle
 import dev.aurora.player.ui.components.GlassCard
 import dev.aurora.player.ui.components.GlassLevel
 import dev.aurora.player.ui.haptics.HapticEvent
@@ -49,6 +51,7 @@ import dev.aurora.player.ui.theme.Aurora
 @Composable
 fun SettingsScreen(
     playerCoordinator: PlayerCoordinator? = null,
+    privacyViewModel: PrivacyViewModel? = null,
     modifier: Modifier = Modifier
 ) {
     val spacing = Aurora.spacing
@@ -218,6 +221,101 @@ fun SettingsScreen(
                         }
                     }
                 }
+            }
+        }
+
+        if (privacyViewModel != null) {
+            Spacer(modifier = Modifier.height(spacing.space6))
+            PrivacySection(privacyViewModel, haptics)
+        }
+    }
+}
+
+/**
+ * Export and deletion controls for listening history. Deleting behavioural data leaves
+ * favorites and playlists intact - those are the user's curation, not their history.
+ */
+@Composable
+private fun PrivacySection(
+    viewModel: PrivacyViewModel,
+    haptics: dev.aurora.player.ui.haptics.HapticEngine
+) {
+    val spacing = Aurora.spacing
+    val typography = Aurora.typography
+    val colors = Aurora.colors
+    val action by viewModel.action.collectAsState()
+    var confirmingDelete by remember { mutableStateOf(false) }
+
+    Text(
+        text = "Privacy",
+        style = typography.headline,
+        color = colors.textPrimary,
+        modifier = Modifier.padding(bottom = spacing.space3)
+    )
+
+    GlassCard(modifier = Modifier.fillMaxWidth(), level = GlassLevel.Primary) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Listening history",
+                style = typography.title,
+                color = colors.textPrimary
+            )
+            Text(
+                text = "Stored only on this device. Exporting or deleting it does not " +
+                    "affect your favorites or playlists.",
+                style = typography.body,
+                color = colors.textSecondary,
+                modifier = Modifier.padding(bottom = spacing.space4)
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing.space2)) {
+                GlassButton(
+                    text = "Export",
+                    enabled = action !is PrivacyAction.Working,
+                    style = GlassButtonStyle.Secondary,
+                    onClick = {
+                        haptics.fire(HapticEvent.Tap)
+                        viewModel.exportHistory()
+                    }
+                )
+                GlassButton(
+                    text = if (confirmingDelete) "Confirm delete" else "Delete",
+                    enabled = action !is PrivacyAction.Working,
+                    style = GlassButtonStyle.Secondary,
+                    onClick = {
+                        if (confirmingDelete) {
+                            haptics.fire(HapticEvent.Warning)
+                            viewModel.deleteAllPrivateData()
+                            confirmingDelete = false
+                        } else {
+                            // Deleting history is irreversible, so it takes two presses.
+                            haptics.fire(HapticEvent.Tap)
+                            confirmingDelete = true
+                        }
+                    }
+                )
+            }
+
+            val status: String? = when (val current = action) {
+                is PrivacyAction.Exported ->
+                    "Exported ${current.count} events to ${current.path}"
+                is PrivacyAction.Deleted ->
+                    "Listening history, resume positions, and saved queue deleted."
+                is PrivacyAction.Failed -> current.reason
+                else -> null
+            }
+
+            if (status != null) {
+                Text(
+                    text = status,
+                    style = typography.label,
+                    color = if (action is PrivacyAction.Failed) {
+                        colors.textPrimary
+                    } else {
+                        colors.textSecondary
+                    },
+                    modifier = Modifier.padding(top = spacing.space3)
+                )
             }
         }
     }

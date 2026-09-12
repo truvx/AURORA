@@ -34,3 +34,10 @@ coverage/
 *.swp
 local.properties
 *.log
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Local agent and editor configuration
+.claude/
+.vscode/

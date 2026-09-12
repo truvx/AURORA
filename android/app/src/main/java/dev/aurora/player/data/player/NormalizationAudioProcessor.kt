@@ -3,10 +3,15 @@ package dev.aurora.player.data.player
 import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.BaseAudioProcessor
+import androidx.media3.common.util.UnstableApi
 import java.nio.ByteBuffer
 import kotlin.math.max
 import kotlin.math.min
 
+// Media3's audio-processing and renderer APIs are annotated @UnstableApi. This class is
+// built directly on them, so the opt-in is deliberate and scoped to this file rather than
+// enabled module-wide, which would silently cover future code too.
+@androidx.annotation.OptIn(markerClass = [UnstableApi::class])
 class NormalizationAudioProcessor : BaseAudioProcessor() {
 
     private var linearGain: Float = 1.0f

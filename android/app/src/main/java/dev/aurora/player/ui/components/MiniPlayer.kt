@@ -6,6 +6,10 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
@@ -35,16 +39,35 @@ fun MiniPlayer(
     
     val currentTrack = state.currentTrack
 
+    // Reduced motion removes the travel, not the transition: the player still appears and
+    // disappears, it just fades instead of sliding up from the bottom edge.
+    val reducedMotion =
+        dev.aurora.player.ui.accessibility.LocalAccessibilityPreferences.current.reducedMotion
+
+    // Failures were previously invisible: status went to Error and the UI kept showing a
+    // player that simply never advanced.
+    val hasError = state.status == PlaybackStatus.Error
+    val errorText = state.lastError?.message?.takeIf { it.isNotBlank() }
+        ?: "This track could not be played"
+
     AnimatedVisibility(
         visible = currentTrack != null,
-        enter = slideInVertically(
-            initialOffsetY = { it },
-            animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { it },
-            animationSpec = spring(stiffness = Spring.StiffnessMedium)
-        ),
+        enter = if (reducedMotion) {
+            androidx.compose.animation.fadeIn()
+        } else {
+            slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+            )
+        },
+        exit = if (reducedMotion) {
+            androidx.compose.animation.fadeOut()
+        } else {
+            slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = spring(stiffness = Spring.StiffnessMedium)
+            )
+        },
         modifier = modifier
     ) {
         if (currentTrack != null) {
@@ -56,6 +79,24 @@ fun MiniPlayer(
                     .clickable {
                         haptics.fire(HapticEvent.Tap)
                         onExpand()
+                    }
+                    .semantics(mergeDescendants = true) {
+                        // Merged so the row announces as one control with the track name,
+                        // rather than as loose fragments of text and buttons.
+                        contentDescription = buildString {
+                            if (hasError) {
+                                append("Playback error: ")
+                                append(errorText)
+                                append(". ")
+                            }
+                            append("Now playing: ")
+                            append(currentTrack.title)
+                            currentTrack.artist?.let { append(" by ").append(it) }
+                            append(". Open full player.")
+                        }
+                        // Assertive so a failure interrupts rather than waiting for the
+                        // user to navigate back to this row.
+                        if (hasError) liveRegion = LiveRegionMode.Assertive
                     },
                 level = GlassLevel.Elevated
             ) {
@@ -88,7 +129,10 @@ fun MiniPlayer(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = currentTrack.artist ?: "Unknown Artist",
+                            // Carries an icon and words, never colour alone, so the failure
+                            // is perceivable without colour vision.
+                            text = if (hasError) "⚠  $errorText" else currentTrack.artist
+                                ?: "Unknown Artist",
                             style = Aurora.typography.body,
                             color = Aurora.colors.textSecondary,
                             maxLines = 1,

@@ -8,23 +8,41 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 
 class CrossfadeMedia3Adapter(
     context: Context,
     private val scope: CoroutineScope
-) : PlayerAdapter {
+) : PlayerAdapter, Media3PlayerOwner {
     private val primary = Media3PlayerAdapter(context, scope)
     private val secondary = Media3PlayerAdapter(context, scope)
     
+    @Volatile
     private var activePlayer = primary
     private var inactivePlayer = secondary
     private var crossfadeJob: Job? = null
+
+    /**
+     * The session attaches to whichever player is active. A crossfade swaps the active
+     * player, and the already-attached session keeps following the one it was given - so
+     * transport controls stay bound to the outgoing track for the length of a fade.
+     */
+    override val sessionPlayer: androidx.media3.exoplayer.ExoPlayer
+        get() = activePlayer.exoPlayer
     
-    // We only expose events from both. 
-    // In a real app we'd filter duplicate events (like TrackCompleted overlapping).
-    override val events: Flow<EngineEvent> = merge(primary.events, secondary.events)
+    /**
+     * Only the active player's events are exposed.
+     *
+     * During a crossfade both players are genuinely playing, so forwarding both would let
+     * the outgoing track's position and completion events fight the incoming one. The same
+     * unconditional merge in CompositePlayerAdapter is what froze playback at 0:00.
+     */
+    override val events: Flow<EngineEvent> = merge(
+        primary.events.filter { activePlayer === primary },
+        secondary.events.filter { activePlayer === secondary }
+    )
 
     override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
         crossfadeJob?.cancel()

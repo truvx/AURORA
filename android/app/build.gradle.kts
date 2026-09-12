@@ -34,13 +34,53 @@ android {
     }
 
 
+    signingConfigs {
+        // Release signing is driven by local.properties or CI environment variables so no
+        // keystore or password is ever committed. Without them the release build is
+        // unsigned rather than silently falling back to the debug key, which would produce
+        // an artifact that looks releasable and is not.
+        create("release") {
+            val storePath = localProperties.getProperty("RELEASE_STORE_FILE")
+                ?: System.getenv("RELEASE_STORE_FILE")
+            if (storePath != null && file(storePath).exists()) {
+                storeFile = file(storePath)
+                storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
+                    ?: System.getenv("RELEASE_STORE_PASSWORD")
+                keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS")
+                    ?: System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD")
+                    ?: System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Only attach the signing config when a keystore was actually resolved.
+            signingConfig = signingConfigs.getByName("release").takeIf {
+                it.storeFile?.exists() == true
+            }
+        }
+        debug {
+            applicationIdSuffix = ".debug"
+            isMinifyEnabled = false
+        }
+        // Release-like but installable: macrobenchmark refuses to measure a debuggable
+        // build, because debuggable drastically changes runtime performance and would make
+        // the numbers meaningless. Signed with the debug key so it can be installed without
+        // the release keystore.
+        create("benchmark") {
+            initWith(buildTypes.getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+            applicationIdSuffix = ".benchmark"
         }
     }
 
@@ -120,6 +160,7 @@ dependencies {
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
     androidTestImplementation(libs.room.testing)
+    androidTestImplementation("androidx.test:rules:1.6.1")
     debugImplementation(libs.compose.ui.test.manifest)
 }
 
@@ -141,5 +182,12 @@ tasks.withType<Test> {
         showStandardStreams = true
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
+    // Tests that need a live AI gateway on localhost:3000 are skipped unless explicitly
+    // enabled, so the default suite is runnable offline and in CI.
+    // Enable with: ./gradlew test -PauroraLiveAi=true
+    systemProperty(
+        "aurora.liveAi",
+        providers.gradleProperty("auroraLiveAi").getOrElse("false")
+    )
 }
 

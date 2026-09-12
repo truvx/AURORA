@@ -27,9 +27,13 @@ fun AuroraAppRoot() {
     val context = LocalContext.current
     val container = (context.applicationContext as AuroraApp).container
 
+    // Resolved once at the root so every surface reacts to the same accessibility state.
+    val accessibility = dev.aurora.player.ui.accessibility.rememberAccessibilityPreferences()
+
     CompositionLocalProvider(
         LocalPlayerCoordinator provides container.playerCoordinator,
-        LocalYouTubePlayerAdapter provides container.youtubePlayerAdapter
+        LocalYouTubePlayerAdapter provides container.youtubePlayerAdapter,
+        dev.aurora.player.ui.accessibility.LocalAccessibilityPreferences provides accessibility
     ) {
         AuroraTheme {
             val navController = rememberNavController()

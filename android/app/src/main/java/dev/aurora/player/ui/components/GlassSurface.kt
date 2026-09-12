@@ -38,7 +38,12 @@ fun GlassSurface(
 ) {
     val colors = Aurora.colors
 
-    val backgroundColor: Color = if (useOpaqueFallback) {
+    // Glass is an enhancement, never the only contrast mechanism: a user asking for reduced
+    // transparency gets opaque surfaces regardless of what the caller requested.
+    val reducedTransparency =
+        dev.aurora.player.ui.accessibility.LocalAccessibilityPreferences.current.reducedTransparency
+
+    val backgroundColor: Color = if (useOpaqueFallback || reducedTransparency) {
         colors.surfaceOpaqueFallback
     } else {
         when (level) {
@@ -54,7 +59,7 @@ fun GlassSurface(
         modifier = modifier
             .clip(shape)
             .then(
-                if (backdrop != null && !useOpaqueFallback) {
+                if (backdrop != null && !useOpaqueFallback && !reducedTransparency) {
                     Modifier.drawBackdrop(
                         backdrop = backdrop,
                         shape = { shape },

@@ -16,10 +16,11 @@ class AuroraMediaSessionService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         val app = application as dev.aurora.player.AuroraApp
-        val adapter = app.container.playerAdapter as dev.aurora.player.data.player.Media3PlayerAdapter
+        val adapter = app.container.playerAdapter as? Media3PlayerOwner
+            ?: error("media session requires a Media3-backed adapter")
         val coordinator = app.container.playerCoordinator
         
-        val forwardingPlayer = object : ForwardingPlayer(adapter.exoPlayer) {
+        val forwardingPlayer = object : ForwardingPlayer(adapter.sessionPlayer) {
             override fun getAvailableCommands(): Player.Commands {
                 return super.getAvailableCommands().buildUpon()
                     .add(Player.COMMAND_SEEK_TO_NEXT)

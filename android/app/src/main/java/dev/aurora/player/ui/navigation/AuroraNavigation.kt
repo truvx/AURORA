@@ -3,6 +3,7 @@ package dev.aurora.player.ui.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -60,7 +61,42 @@ fun AuroraNavigation(
         ) {
             composable(AuroraDestination.Home.route) { HomeScreen() }
             composable(AuroraDestination.Search.route) { SearchScreen() }
-            composable(AuroraDestination.Library.route) { LibraryScreen() }
+            composable(AuroraDestination.Library.route) {
+                val libraryViewModel = androidx.compose.runtime.remember {
+                    dev.aurora.player.ui.library.LibraryViewModel(
+                        container.localLibraryProvider,
+                        container.libraryOrganizationRepository
+                    )
+                }
+                val items by libraryViewModel.items.collectAsState()
+                val favoriteIds by libraryViewModel.favoriteIds.collectAsState()
+                val playlists by libraryViewModel.playlists.collectAsState()
+                val openPlaylistId by libraryViewModel.openPlaylistId.collectAsState()
+                val openPlaylistTracks by libraryViewModel.openPlaylistTracks.collectAsState()
+                LibraryScreen(
+                    items = items,
+                    favoriteIds = favoriteIds,
+                    playlists = playlists,
+                    openPlaylistId = openPlaylistId,
+                    openPlaylistTracks = openPlaylistTracks,
+                    onScanRequested = libraryViewModel::scan,
+                    onToggleFavorite = libraryViewModel::setFavorite,
+                    onPlayTrack = { item ->
+                        container.playerCoordinator.dispatch(
+                            dev.aurora.player.domain.player.PlayerCommand.Load(item)
+                        )
+                        container.playerCoordinator.dispatch(
+                            dev.aurora.player.domain.player.PlayerCommand.Play
+                        )
+                    },
+                    onOpenPlaylist = libraryViewModel::openPlaylist,
+                    onCreatePlaylist = libraryViewModel::createPlaylist,
+                    onDeletePlaylist = libraryViewModel::deletePlaylist,
+                    onAddToPlaylist = libraryViewModel::addToPlaylist,
+                    onRemoveEntry = libraryViewModel::removeFromPlaylist,
+                    onMoveEntry = libraryViewModel::moveEntry
+                )
+            }
             composable(AuroraDestination.Ai.route) { 
                 val aiViewModel = androidx.compose.runtime.remember {
                     dev.aurora.player.ui.screens.AiViewModel(
@@ -74,7 +110,17 @@ fun AuroraNavigation(
                 ) 
             }
             composable(AuroraDestination.Settings.route) { 
-                SettingsScreen(playerCoordinator = container.playerCoordinator) 
+                val navContext = androidx.compose.ui.platform.LocalContext.current
+                val privacyViewModel = androidx.compose.runtime.remember {
+                    dev.aurora.player.ui.screens.PrivacyViewModel(
+                        container.libraryOrganizationRepository,
+                        dev.aurora.player.ui.screens.PrivacyViewModel.exportDirFor(navContext)
+                    )
+                }
+                SettingsScreen(
+                    playerCoordinator = container.playerCoordinator,
+                    privacyViewModel = privacyViewModel
+                )
             }
         }
     }

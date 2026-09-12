@@ -142,4 +142,69 @@ class PlayerCoordinatorTest {
         assertEquals(2000L, state.crossfadeDurationMs)
         assertEquals(dev.aurora.player.domain.audio.CapabilityState.SUPPORTED, state.providerCapabilities?.crossfade)
     }
+
+    // --- queue placement -----------------------------------------------------------
+    //
+    // loadTrack set currentTrack without touching the queue, so skipNext() returned at its
+    // `if (q.items.isEmpty())` guard. PlaybackStatus.Completed was never reached, history
+    // never recorded a COMPLETE, and no queue snapshot was ever written.
+
+    private fun trackWithId(id: String) = fakeTrack.copy(id = id, title = "Track $id")
+
+    @Test
+    fun `loading a track puts it in the queue`() = runTest(UnconfinedTestDispatcher()) {
+        coordinator = PlayerCoordinator(fakeAdapter, fakeResolver, backgroundScope)
+        coordinator.dispatch(PlayerCommand.Load(trackWithId("local_1")))
+        testScheduler.advanceUntilIdle()
+
+        val queue = coordinator.state.value.queue
+        assertEquals(listOf("local_1"), queue.items.map { it.id })
+        assertEquals(0, queue.currentIndex)
+    }
+
+    @Test
+    fun `loading a second track replaces the single-track queue rather than growing it`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coordinator = PlayerCoordinator(fakeAdapter, fakeResolver, backgroundScope)
+            coordinator.dispatch(PlayerCommand.Load(trackWithId("local_1")))
+            testScheduler.advanceUntilIdle()
+            coordinator.dispatch(PlayerCommand.Load(trackWithId("local_2")))
+            testScheduler.advanceUntilIdle()
+
+            val queue = coordinator.state.value.queue
+            assertEquals(listOf("local_2"), queue.items.map { it.id })
+            assertEquals(0, queue.currentIndex)
+        }
+
+    @Test
+    fun `loading a track already queued selects it instead of duplicating it`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coordinator = PlayerCoordinator(fakeAdapter, fakeResolver, backgroundScope)
+            coordinator.dispatch(PlayerCommand.AddToQueue(trackWithId("local_1")))
+            coordinator.dispatch(PlayerCommand.AddToQueue(trackWithId("local_2")))
+            coordinator.dispatch(PlayerCommand.Load(trackWithId("local_2")))
+            testScheduler.advanceUntilIdle()
+
+            val queue = coordinator.state.value.queue
+            assertEquals(listOf("local_1", "local_2"), queue.items.map { it.id })
+            assertEquals(1, queue.currentIndex)
+        }
+
+    @Test
+    fun `a finished track stays Completed when buffering settles afterwards`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coordinator = PlayerCoordinator(fakeAdapter, fakeResolver, backgroundScope)
+            coordinator.dispatch(PlayerCommand.Load(trackWithId("local_1")))
+            testScheduler.advanceUntilIdle()
+
+            // Media3 emits TrackCompleted and then BufferingChanged(false) on STATE_ENDED.
+            // The second must not reset a terminal status back to Paused: state is a
+            // conflated flow, so anything observing it would never see the completion.
+            adapterEvents.emit(EngineEvent.TrackCompleted)
+            testScheduler.advanceUntilIdle()
+            adapterEvents.emit(EngineEvent.BufferingChanged(false))
+            testScheduler.advanceUntilIdle()
+
+            assertEquals(PlaybackStatus.Completed, coordinator.state.value.status)
+        }
 }

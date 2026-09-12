@@ -115,8 +115,15 @@ class YouTubePlayerAdapter : PlayerAdapter {
                       function onPlayerReady(event) {
                         AuroraBridge.onReady();
                         setInterval(function() {
-                          if (player && player.getCurrentTime) {
-                            AuroraBridge.onTimeUpdate(player.getCurrentTime(), player.getDuration());
+                          // Only report while actually playing. This timer runs from the
+                          // moment the player is ready, and an unguarded tick reports 0/0
+                          // whenever no video is loaded.
+                          if (player && player.getCurrentTime && player.getPlayerState) {
+                            var state = player.getPlayerState();
+                            var PLAYING = 1, BUFFERING = 3;
+                            if (state === PLAYING || state === BUFFERING) {
+                              AuroraBridge.onTimeUpdate(player.getCurrentTime(), player.getDuration());
+                            }
                           }
                         }, 500);
                       }

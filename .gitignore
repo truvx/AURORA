@@ -37,3 +37,7 @@ local.properties
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# Local agent and editor configuration
+.claude/
+.vscode/

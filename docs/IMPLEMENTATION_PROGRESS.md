@@ -87,6 +87,31 @@ Verified on device: playlist created and persisted, tracks added, reorder swappe
 
 Playback does not progress: the media prepares and the decoder is created, but position stays at 0 and no `Started` event is emitted. This predates Phase 10 and most likely sits in `CrossfadeMedia3Adapter`, which wraps two `Media3PlayerAdapter` instances - position is probably polled from the inactive one. That class is also the only audio component with no test coverage, since it needs a `Context` and two real ExoPlayer instances. Needs an instrumented test and a fix.
 
+## Phase 18 (Accessibility hardening) - in progress
+
+Reduced motion and reduced transparency now change real behaviour; before this they were
+helper functions no code called. Preferences resolve once at the root and flow through a
+CompositionLocal, so glass, motion, and semantics all react to the same state.
+
+Fixed:
+
+- The scrubber announced its raw slider float; it now speaks position as time and states
+  explicitly when duration is unknown.
+- The mini player was an unlabelled clickable row; it announces the track and what tapping
+  does, and carries playback failures as an assertive live region.
+- Playback errors were never surfaced at all - status reached Error and the UI kept showing
+  a player that silently never advanced. Failures now appear as text plus an icon, never
+  colour alone.
+
+Verified on device at 1.5x font scale: text wraps rather than clipping and controls stay
+reachable. Reorder controls measure 48dp on rendered nodes.
+
+Espresso 3.6.1 could not run on Android 17 at all, so no Compose UI test could have passed
+before this phase regardless of the code under test.
+
+Outstanding for Phase 18: web accessibility (Phase 17 has no UI to audit yet), contrast
+validation against live artwork, and a TalkBack pass on a physical device.
+
 ## Next Phases
 
 Phase 17 (Web application) remains limited to the AI gateway and app shell. Phases 18-21 (accessibility hardening, performance, testing, CI/release) are unstarted; there is still no CI workflow, and `AiE2ETest` remains a live-network test inside the unit source set.

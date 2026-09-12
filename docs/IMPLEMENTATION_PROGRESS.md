@@ -112,6 +112,42 @@ before this phase regardless of the code under test.
 Outstanding for Phase 18: web accessibility (Phase 17 has no UI to audit yet), contrast
 validation against live artwork, and a TalkBack pass on a physical device.
 
+## Completion pass (plan: docs/superpowers/plans/2026-09-12-aurora-completion.md)
+
+Three defects found, each of which made an already-implemented feature inert:
+
+1. **Completions were never recorded.** `loadTrack` did not place the track in the queue, so
+   `skipNext` returned at its empty-queue guard and `Completed` was never reached. Separately,
+   Media3's `BufferingChanged(false)` immediately after `TrackCompleted` reset the status about
+   a millisecond after it was set - invisible through a conflated `StateFlow`. Both fixed;
+   verified on device as PLAY then COMPLETE at 2998ms of a 3000ms track, with a queue snapshot.
+2. **The media session had never worked.** `AuroraMediaSessionService` cast the composite
+   adapter to `Media3PlayerAdapter` and threw `ClassCastException` on every bind, so lock
+   screen, notification, Bluetooth, and Android Auto controls were dead. Nothing in the app
+   starts the service, so it produced no in-app symptom. Replaced the downcast with a
+   `Media3PlayerOwner` capability interface.
+3. **Espresso could not run on Android 17** (fixed in the accessibility pass), meaning no
+   Compose UI test could have passed before it regardless of the code under test.
+
+Coverage added: `AuroraMediaSessionService`, `YouTubePlayerAdapter`, `CompositePlayerAdapter`,
+`CrossfadeMedia3Adapter`, a coordinator-plus-recorder integration test, and the web client's
+first tests (Vitest, covering the AI tool allowlist). CI now runs web tests and the R8 release
+build.
+
+### Phase 19 (Performance)
+
+A `:benchmark` macrobenchmark module measures cold startup, with a release-like, non-debuggable
+`benchmark` build type on `:app`. It produces no numbers yet: androidx.benchmark refuses to run
+on an emulator, and that refusal is deliberately not suppressed. **Requires a physical device.**
+
+### Phase 18 contrast finding
+
+Text over the background rendered today measures above 4.5:1. However, `AmbientArtworkLayer` is
+still a placeholder that renders a synthetic gradient rather than album artwork, and no contrast
+scrim exists. Dark glass is only 20% opaque, so near-white text over a white album cover would
+measure **1.35:1** - effectively illegible. `ContrastTest` records this and is written to fail
+the moment artwork rendering lands without a scrim.
+
 ## Next Phases
 
 Phase 17 (Web application) remains limited to the AI gateway and app shell. Phases 18-21 (accessibility hardening, performance, testing, CI/release) are unstarted; there is still no CI workflow, and `AiE2ETest` remains a live-network test inside the unit source set.

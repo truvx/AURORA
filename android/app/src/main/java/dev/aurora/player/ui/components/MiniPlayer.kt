@@ -6,6 +6,8 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
@@ -35,16 +37,29 @@ fun MiniPlayer(
     
     val currentTrack = state.currentTrack
 
+    // Reduced motion removes the travel, not the transition: the player still appears and
+    // disappears, it just fades instead of sliding up from the bottom edge.
+    val reducedMotion =
+        dev.aurora.player.ui.accessibility.LocalAccessibilityPreferences.current.reducedMotion
+
     AnimatedVisibility(
         visible = currentTrack != null,
-        enter = slideInVertically(
-            initialOffsetY = { it },
-            animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { it },
-            animationSpec = spring(stiffness = Spring.StiffnessMedium)
-        ),
+        enter = if (reducedMotion) {
+            androidx.compose.animation.fadeIn()
+        } else {
+            slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+            )
+        },
+        exit = if (reducedMotion) {
+            androidx.compose.animation.fadeOut()
+        } else {
+            slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = spring(stiffness = Spring.StiffnessMedium)
+            )
+        },
         modifier = modifier
     ) {
         if (currentTrack != null) {
@@ -56,6 +71,16 @@ fun MiniPlayer(
                     .clickable {
                         haptics.fire(HapticEvent.Tap)
                         onExpand()
+                    }
+                    .semantics(mergeDescendants = true) {
+                        // Merged so the row announces as one control with the track name,
+                        // rather than as loose fragments of text and buttons.
+                        contentDescription = buildString {
+                            append("Now playing: ")
+                            append(currentTrack.title)
+                            currentTrack.artist?.let { append(" by ").append(it) }
+                            append(". Open full player.")
+                        }
                     },
                 level = GlassLevel.Elevated
             ) {

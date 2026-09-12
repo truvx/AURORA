@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,6 +46,7 @@ fun PlayerScrubber(
                     haptics.fire(HapticEvent.DragStart)
                 }
                 dragPosition = value
+                // HapticEngine rate-limits scrub ticks; the spec forbids a pulse per frame.
                 haptics.fire(HapticEvent.Scrub)
             },
             onValueChangeFinished = {
@@ -52,7 +55,18 @@ fun PlayerScrubber(
                 onSeek(dragPosition.roundToLong())
             },
             enabled = !isUnknownDuration && duration > 0,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    // Without this a screen reader reads the raw float ("0.42"). The spec
+                    // asks for values, and a position is only meaningful as a time.
+                    contentDescription = if (isUnknownDuration) {
+                        "Playback position. Duration unknown."
+                    } else {
+                        "Playback position, ${spokenTime(currentElapsed)} of " +
+                            spokenTime(duration)
+                    }
+                },
             colors = SliderDefaults.colors(
                 thumbColor = Aurora.colors.textPrimary,
                 activeTrackColor = Aurora.colors.textPrimary,
@@ -80,5 +94,24 @@ private fun formatTime(millis: Long): String {
     val totalSeconds = millis / 1000
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
-    return String.format("%02d:%02d", minutes, seconds)
+    // Locale.ROOT: this is a fixed numeric display, not localised prose, and the default
+    // locale would render digits unexpectedly in some locales.
+    return String.format(java.util.Locale.ROOT, "%02d:%02d", minutes, seconds)
+}
+
+/** "2 minutes 5 seconds" reads correctly aloud; "02:05" does not. */
+internal fun spokenTime(millis: Long): String {
+    val totalSeconds = (millis / 1000).coerceAtLeast(0)
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    val minutePart = when (minutes) {
+        0L -> null
+        1L -> "1 minute"
+        else -> "$minutes minutes"
+    }
+    val secondPart = when (seconds) {
+        1L -> "1 second"
+        else -> "$seconds seconds"
+    }
+    return listOfNotNull(minutePart, secondPart).joinToString(" ")
 }

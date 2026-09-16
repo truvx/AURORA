@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { GlassCard } from "@/components/glass/Glass";
 import { PlaylistsSection } from "@/components/library/PlaylistsSection";
+import { TrackGroup, groupByAlbum, groupByArtist } from "@/lib/library/grouping";
 import { StoredTrack } from "@/lib/library/db";
 import {
   isFileSystemAccessSupported,
@@ -31,7 +32,8 @@ export default function LibraryPage() {
   const [scan, setScan] = useState<ScanState>({ kind: "idle" });
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [view, setView] = useState<"tracks" | "playlists">("tracks");
+  const [view, setView] = useState<"tracks" | "albums" | "artists" | "playlists">("tracks");
+  const [openGroup, setOpenGroup] = useState<TrackGroup | undefined>();
   const [addingTrackId, setAddingTrackId] = useState<string | undefined>();
   const [playlistChoices, setPlaylistChoices] = useState<{ id: string; name: string }[]>([]);
 
@@ -187,11 +189,27 @@ export default function LibraryPage() {
       <div className={styles.filters} role="group" aria-label="Library view">
           <button
             type="button"
-            onClick={() => setView("tracks")}
+            onClick={() => { setView("tracks"); setOpenGroup(undefined); }}
             className={styles.secondaryButton}
             aria-pressed={view === "tracks"}
           >
             Tracks
+          </button>
+          <button
+            type="button"
+            onClick={() => { setView("albums"); setOpenGroup(undefined); }}
+            className={styles.secondaryButton}
+            aria-pressed={view === "albums"}
+          >
+            Albums
+          </button>
+          <button
+            type="button"
+            onClick={() => { setView("artists"); setOpenGroup(undefined); }}
+            className={styles.secondaryButton}
+            aria-pressed={view === "artists"}
+          >
+            Artists
           </button>
           <button
             type="button"
@@ -205,6 +223,19 @@ export default function LibraryPage() {
 
       {view === "playlists" && organization && (
         <PlaylistsSection organization={organization} tracks={tracks} />
+      )}
+
+      {(view === "albums" || view === "artists") && (
+        <GroupedView
+          groups={view === "albums" ? groupByAlbum(tracks) : groupByArtist(tracks)}
+          openGroup={openGroup}
+          tracks={tracks}
+          label={view === "albums" ? "album" : "artist"}
+          onOpen={setOpenGroup}
+          onPlay={(track) =>
+            dispatch({ type: "load", track: toMediaItem(track), playWhenReady: true })
+          }
+        />
       )}
 
       {scan.kind === "scanning" && (
@@ -330,5 +361,99 @@ export default function LibraryPage() {
         </GlassCard>
       )}
     </div>
+  );
+}
+
+/**
+ * Albums and artists share one presentation: a list of groups, then the tracks inside one.
+ * Written as a single component because the only difference is the wording.
+ */
+function GroupedView({
+  groups,
+  openGroup,
+  tracks,
+  label,
+  onOpen,
+  onPlay,
+}: {
+  groups: TrackGroup[];
+  openGroup?: TrackGroup;
+  tracks: StoredTrack[];
+  label: string;
+  onOpen: (group: TrackGroup | undefined) => void;
+  onPlay: (track: StoredTrack) => void;
+}) {
+  if (groups.length === 0) {
+    return (
+      <GlassCard>
+        <h2>No {label}s yet</h2>
+        <p>Scan a music folder to see your {label}s here.</p>
+      </GlassCard>
+    );
+  }
+
+  if (openGroup) {
+    // Re-read from the current grouping so the list reflects a rescan rather than the
+    // snapshot captured when the group was opened.
+    const current = groups.find((group) => group.key === openGroup.key) ?? openGroup;
+    const byId = new Map(tracks.map((track) => [track.id, track]));
+
+    return (
+      <div className={styles.page}>
+        <div className={styles.header}>
+          <button
+            type="button"
+            onClick={() => onOpen(undefined)}
+            className={styles.secondaryButton}
+            aria-label={`Back to all ${label}s`}
+          >
+            Back
+          </button>
+          <h2>{current.name}</h2>
+        </div>
+        <ul className={styles.trackList}>
+          {current.trackIds.map((id) => {
+            const track = byId.get(id);
+            if (!track) return null;
+            return (
+              <li key={id}>
+                <button
+                  type="button"
+                  className={styles.trackRow}
+                  onClick={() => onPlay(track)}
+                  aria-label={`Play ${track.title}`}
+                >
+                  <span className={styles.trackTitle}>{track.title}</span>
+                  <span className={styles.trackArtist}>{track.artist ?? "Unknown artist"}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  }
+
+  return (
+    <ul className={styles.trackList}>
+      {groups.map((group) => (
+        <li key={group.key}>
+          <button
+            type="button"
+            className={styles.trackRow}
+            onClick={() => onOpen(group)}
+            aria-label={`Open ${group.name}, ${group.trackIds.length} track${
+              group.trackIds.length === 1 ? "" : "s"
+            }`}
+          >
+            <span className={styles.trackTitle}>{group.name}</span>
+            <span className={styles.trackArtist}>
+              {group.artist ? `${group.artist} · ` : ""}
+              {group.trackIds.length} track{group.trackIds.length === 1 ? "" : "s"}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }

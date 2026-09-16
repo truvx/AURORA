@@ -192,11 +192,32 @@ autoplay, and unknown-duration behaviour.
 - **Now Playing route** with the queue, including position announcements ("track 3 of 12")
   and a ▶ marker so the current track is not identified by colour alone.
 
-### Not yet done in Phase 17
+### Third pass - Phase 17 complete
 
-History, resume, albums/artists, and the YouTube IFrame surface. The
-folder-picker-to-playback path needs a real user gesture, so it has not been verified by
-automation.
+- **History and resume** (schema v3): `PlaybackHistoryRecorder` observes the coordinator
+  rather than living inside it, so a persistence failure can never stop playback. A track
+  left before 90% is a skip; unknown duration counts as a skip rather than an invented
+  completion; resume writes are debounced; privacy delete erases history and resume while
+  leaving favorites and playlists intact.
+- **Albums and artists** derived from tags at read time. An album artist is named only when
+  every track agrees, so a compilation stays unattributed. Untagged tracks collect under an
+  explicit Unknown group, sorted last so it cannot bury real albums.
+- **YouTube IFrame surface**: the official player, visible and with its own controls,
+  branding, and ads untouched. Autoplay defaults off and cues rather than loads until there
+  is explicit intent. The position timer reports only while playing - the unguarded version
+  of exactly this overwrote local playback on Android. No extraction, no hidden player, no
+  background playback, and quality stays provider-determined.
+
+Two production bugs were found by the history tests: resume initialised its last-write clock
+to 0, conflating "never written" with "written at epoch 0"; and recently-played filtered out
+SKIP events but still found the earlier PLAY for the same track, so a skipped track
+reappeared as something the user had listened to. The most recent event now decides.
+
+Browser playback is verified: a served FLAC reports `loadedmetadata duration=3.00`, fires
+`playing`, advances 99ms to 3000ms, and fires `ended` - the exact events `HtmlAudioAdapter`
+consumes. Only the folder picker's user gesture remains outside automated verification.
+
+Web tests: 70.
 
 ## Next Phases
 

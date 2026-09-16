@@ -16,6 +16,7 @@ import {
   resolveTrackUrl,
   restoreMusicDirectory,
 } from "../library/fileSystem";
+import { HistoryRepository, PlaybackHistoryRecorder } from "../library/history";
 import { OrganizationRepository } from "../library/organization";
 import { LibraryRepository } from "../library/repository";
 import { PlayerCoordinator } from "./coordinator";
@@ -27,6 +28,7 @@ interface PlayerContextValue {
   readonly coordinator: PlayerCoordinator;
   readonly repository: LibraryRepository;
   readonly organization: OrganizationRepository;
+  readonly history: HistoryRepository;
   readonly directory?: FileSystemDirectoryHandle;
   setDirectory(handle: FileSystemDirectoryHandle | undefined): void;
 }
@@ -54,6 +56,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const [repository] = useState(() => new LibraryRepository());
   const [organization] = useState(() => new OrganizationRepository());
+  const [history] = useState(() => new HistoryRepository());
 
   // Built in an effect rather than during render: it owns an audio element and reads a ref,
   // neither of which belongs in a render pass, and there is no player on the server.
@@ -71,13 +74,25 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
     created.setCapabilities({ directoryPicker: isFileSystemAccessSupported() });
     const unbind = bindMediaSession(created);
+
+    // History observes the coordinator rather than living inside it, so a persistence
+    // failure can never stop playback.
+    const recorder = new PlaybackHistoryRecorder(history);
+    const unsubscribeHistory = created.subscribe((state) => {
+      void recorder.onState(state).catch(() => {
+        // History is private, optional data; losing an event must not surface as a
+        // playback error.
+      });
+    });
+
     setCoordinator(created);
 
     return () => {
+      unsubscribeHistory();
       unbind();
       created.release();
     };
-  }, [repository]);
+  }, [repository, history]);
 
   // Re-open the previously chosen folder so the library survives a reload.
   useEffect(() => {
@@ -97,9 +112,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PlayerContextValue | undefined>(
     () =>
       coordinator
-        ? { coordinator, repository, organization, directory, setDirectory }
+        ? { coordinator, repository, organization, history, directory, setDirectory }
         : undefined,
-    [coordinator, repository, organization, directory]
+    [coordinator, repository, organization, history, directory]
   );
 
   if (!value) return <>{children}</>;
@@ -148,6 +163,7 @@ export function useLibrary() {
   return {
     repository: context?.repository,
     organization: context?.organization,
+    history: context?.history,
     directory: context?.directory,
     setDirectory: context?.setDirectory,
   };

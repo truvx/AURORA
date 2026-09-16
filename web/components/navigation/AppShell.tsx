@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ReactNode } from "react";
 import styles from "./AppShell.module.css";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
+import { YouTubeSurface } from "@/components/player/YouTubeSurface";
 
 interface NavItem {
   href: string;
@@ -28,6 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className={styles.shell}>
       <main className={styles.main}>{children}</main>
 
+      <YouTubeSurface />
       <MiniPlayer />
 
       <nav className={styles.nav} aria-label="Primary navigation">

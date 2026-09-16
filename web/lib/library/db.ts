@@ -7,7 +7,7 @@
  */
 
 export const DB_NAME = "aurora";
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 
 export const STORE_TRACKS = "tracks";
 export const STORE_HANDLES = "handles";
@@ -15,6 +15,8 @@ export const STORE_SETTINGS = "settings";
 export const STORE_FAVORITES = "favorites";
 export const STORE_PLAYLISTS = "playlists";
 export const STORE_PLAYLIST_ENTRIES = "playlistEntries";
+export const STORE_HISTORY = "listeningEvents";
+export const STORE_RESUME = "resumePositions";
 
 export interface StoredTrack {
   /** Stable within a library: the file's path relative to the chosen directory. */
@@ -54,6 +56,32 @@ export interface StoredPlaylistEntry {
   addedAt: number;
 }
 
+export type ListeningEventKind = "PLAY" | "SKIP" | "COMPLETE";
+
+export interface ListeningEvent {
+  eventId?: number;
+  mediaId: string;
+  provider: string;
+  timestamp: number;
+  sessionId: string;
+  kind: ListeningEventKind;
+  progressMs: number;
+}
+
+export interface ResumePosition {
+  /** Keyed by provider and media id, never by title - two recordings are not one track. */
+  key: string;
+  provider: string;
+  mediaId: string;
+  positionMs: number;
+  durationMs?: number;
+  updatedAt: number;
+}
+
+export function resumeKey(provider: string, mediaId: string): string {
+  return `${provider}::${mediaId}`;
+}
+
 export function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === "undefined") {
@@ -91,6 +119,20 @@ export function openDatabase(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE_PLAYLIST_ENTRIES)) {
         const entries = db.createObjectStore(STORE_PLAYLIST_ENTRIES, { keyPath: "entryId" });
         entries.createIndex("playlistId", "playlistId", { unique: false });
+      }
+      // v3: listening history and resume positions. History is private, append-only, bounded
+      // by retention, and never required for playback - deleting it all must leave the
+      // player fully working.
+      if (!db.objectStoreNames.contains(STORE_HISTORY)) {
+        const history = db.createObjectStore(STORE_HISTORY, {
+          keyPath: "eventId",
+          autoIncrement: true,
+        });
+        history.createIndex("timestamp", "timestamp", { unique: false });
+        history.createIndex("mediaId", "mediaId", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_RESUME)) {
+        db.createObjectStore(STORE_RESUME, { keyPath: "key" });
       }
     };
 

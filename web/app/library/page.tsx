@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { GlassCard } from "@/components/glass/Glass";
+import { PlaylistsSection } from "@/components/library/PlaylistsSection";
 import { StoredTrack } from "@/lib/library/db";
 import {
   isFileSystemAccessSupported,
@@ -30,6 +31,9 @@ export default function LibraryPage() {
   const [scan, setScan] = useState<ScanState>({ kind: "idle" });
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [view, setView] = useState<"tracks" | "playlists">("tracks");
+  const [addingTrackId, setAddingTrackId] = useState<string | undefined>();
+  const [playlistChoices, setPlaylistChoices] = useState<{ id: string; name: string }[]>([]);
 
   // The server has no window, so this has to differ between server and client without
   // tripping hydration. useSyncExternalStore is the supported way to express that: the
@@ -48,6 +52,24 @@ export default function LibraryPage() {
         // Favorites are an enhancement; the library still works without them.
       });
   }, [organization]);
+
+  const beginAddToPlaylist = useCallback(
+    async (mediaId: string) => {
+      if (!organization) return;
+      setPlaylistChoices(await organization.getPlaylists());
+      setAddingTrackId(mediaId);
+    },
+    [organization]
+  );
+
+  const addToPlaylist = useCallback(
+    async (playlistId: string) => {
+      if (!organization || !addingTrackId) return;
+      await organization.addToPlaylist(playlistId, addingTrackId);
+      setAddingTrackId(undefined);
+    },
+    [organization, addingTrackId]
+  );
 
   const toggleFavorite = useCallback(
     async (mediaId: string) => {
@@ -137,7 +159,7 @@ export default function LibraryPage() {
         )}
       </header>
 
-      {supported === false && (
+      {view === "tracks" && supported === false && (
         <GlassCard>
           <h2>This browser cannot open a music folder</h2>
           <p>
@@ -148,7 +170,7 @@ export default function LibraryPage() {
         </GlassCard>
       )}
 
-      {supported === true && !directory && tracks.length === 0 && (
+      {view === "tracks" && supported === true && !directory && tracks.length === 0 && (
         <GlassCard>
           <h2>Choose your music folder</h2>
           <p>
@@ -159,6 +181,30 @@ export default function LibraryPage() {
             Choose folder
           </button>
         </GlassCard>
+      )}
+
+      {/* Always available: playlists must be reachable before any track is scanned. */}
+      <div className={styles.filters} role="group" aria-label="Library view">
+          <button
+            type="button"
+            onClick={() => setView("tracks")}
+            className={styles.secondaryButton}
+            aria-pressed={view === "tracks"}
+          >
+            Tracks
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("playlists")}
+            className={styles.secondaryButton}
+            aria-pressed={view === "playlists"}
+          >
+            Playlists
+          </button>
+      </div>
+
+      {view === "playlists" && organization && (
+        <PlaylistsSection organization={organization} tracks={tracks} />
       )}
 
       {scan.kind === "scanning" && (
@@ -173,7 +219,7 @@ export default function LibraryPage() {
         </p>
       )}
 
-      {tracks.length > 0 && (
+      {view === "tracks" && tracks.length > 0 && (
         <>
           <div className={styles.filters}>
             <button
@@ -185,6 +231,36 @@ export default function LibraryPage() {
               {showFavoritesOnly ? "Showing favorites" : "Show favorites only"}
             </button>
           </div>
+
+          {addingTrackId && (
+            <GlassCard>
+              <h2 className={styles.pickerTitle}>Add to playlist</h2>
+              {playlistChoices.length === 0 ? (
+                <p className={styles.status}>Create a playlist first.</p>
+              ) : (
+                <ul className={styles.trackList}>
+                  {playlistChoices.map((playlist) => (
+                    <li key={playlist.id}>
+                      <button
+                        type="button"
+                        className={styles.trackRow}
+                        onClick={() => void addToPlaylist(playlist.id)}
+                      >
+                        <span className={styles.trackTitle}>{playlist.name}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setAddingTrackId(undefined)}
+              >
+                Cancel
+              </button>
+            </GlassCard>
+          )}
 
           {visibleTracks.length === 0 ? (
             <p className={styles.status}>No favorites yet.</p>
@@ -213,6 +289,16 @@ export default function LibraryPage() {
                     <button
                       type="button"
                       className={styles.favoriteButton}
+                      onClick={() => void beginAddToPlaylist(track.id)}
+                      aria-label={`Add ${track.title} to a playlist`}
+                    >
+                      <span className="material-symbols-outlined" aria-hidden="true">
+                        playlist_add
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.favoriteButton}
                       onClick={() => void toggleFavorite(track.id)}
                       aria-pressed={isFavorite}
                       aria-label={
@@ -234,7 +320,7 @@ export default function LibraryPage() {
         </>
       )}
 
-      {supported === true && directory && tracks.length === 0 && scan.kind === "idle" && (
+      {view === "tracks" && supported === true && directory && tracks.length === 0 && scan.kind === "idle" && (
         <GlassCard>
           <h2>No audio files found</h2>
           <p>That folder has no files AURORA can play. Try rescanning or choosing another.</p>

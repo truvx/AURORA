@@ -183,15 +183,18 @@ autoplay, and unknown-duration behaviour.
   MP4/M4A atoms are still unparsed and report nothing rather than something invented.
 - **Favorites** (schema v2, additive): stored in IndexedDB with a filter in the library and
   a filled/outlined control so state is never signalled by colour alone.
-- **Playlists** (`lib/library/organization.ts`): create, rename, delete, append, remove, and
-  reorder, mirroring the Android contract - contiguous positions, duplicate entries allowed,
-  entry ids stable across reordering. Repository only; no playlist UI yet.
+- **Playlists** (`lib/library/organization.ts` + `components/library/PlaylistsSection.tsx`):
+  create, delete, open, add, remove, and reorder. Reordering uses named Move up / Move down
+  controls rather than drag, so it is reachable by keyboard and screen reader. A track whose
+  file is missing keeps its place and reads as unavailable rather than disappearing from a
+  list the user built. 15 tests cover the ordering guarantees against a real IndexedDB
+  (fake-indexeddb), matching what the Android DAO is held to.
 - **Now Playing route** with the queue, including position announcements ("track 3 of 12")
   and a ▶ marker so the current track is not identified by colour alone.
 
 ### Not yet done in Phase 17
 
-Playlist UI, history, resume, albums/artists, and the YouTube IFrame surface. The
+History, resume, albums/artists, and the YouTube IFrame surface. The
 folder-picker-to-playback path needs a real user gesture, so it has not been verified by
 automation.
 

@@ -1,0 +1,139 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.createRow {
+  display: flex;
+  gap: var(--space-2, 8px);
+}
+
+.input {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 var(--space-3, 12px);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.18));
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-primary, #fff);
+  font: inherit;
+}
+
+.primaryButton {
+  min-height: 44px;
+  padding: 0 var(--space-4, 16px);
+  border: none;
+  border-radius: 999px;
+  background: var(--accent-primary, #7fd7e8);
+  color: #0b0b0b;
+  font: inherit;
+  cursor: pointer;
+}
+
+.primaryButton:disabled {
+  /* Dimmed and disabled, but the label still reads clearly. */
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2, 8px);
+}
+
+.rowButton {
+  flex: 1;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--space-3, 12px);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  background: var(--surface-glass-secondary, rgba(255, 255, 255, 0.04));
+  color: var(--text-primary, #fff);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rowButton:disabled {
+  cursor: not-allowed;
+  color: var(--text-secondary, #b5b5b5);
+}
+
+.rowTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.status {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #b5b5b5);
+}
+
+.iconButton {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary, #b5b5b5);
+  cursor: pointer;
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rowButton:focus-visible,
+.iconButton:focus-visible,
+.primaryButton:focus-visible,
+.input:focus-visible {
+  outline: 2px solid var(--accent-primary, #7fd7e8);
+  outline-offset: 2px;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* At narrow widths and high zoom the button would otherwise overflow the viewport. */
+@media (max-width: 480px) {
+  .createRow {
+    flex-wrap: wrap;
+  }
+
+  .input {
+    flex-basis: 100%;
+  }
+}

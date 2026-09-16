@@ -9,7 +9,10 @@ import dev.aurora.player.domain.models.ProviderKind
 import dev.aurora.player.domain.providers.MusicProvider
 
 class YouTubeMusicProvider(
-    private val api: YouTubeDataApi
+    private val api: YouTubeDataApi,
+    // Injected so the provider can be tested without a build-time key. Reading BuildConfig
+    // directly made the class untestable and silently coupled it to local.properties.
+    private val apiKey: String = BuildConfig.YOUTUBE_API_KEY
 ) : MusicProvider {
     
     override val id: ProviderKind = ProviderKind.YOUTUBE
@@ -25,7 +28,6 @@ class YouTubeMusicProvider(
     )
 
     override suspend fun search(query: String): Result<List<MediaItem>> {
-        val apiKey = BuildConfig.YOUTUBE_API_KEY
         if (apiKey.isBlank()) {
             return Result.failure(Exception("YouTube API key is not configured."))
         }
@@ -56,7 +58,6 @@ class YouTubeMusicProvider(
 
     override suspend fun resolveMetadata(trackId: String): Result<MediaItem> {
         val videoId = trackId.removePrefix("youtube:")
-        val apiKey = BuildConfig.YOUTUBE_API_KEY
         if (apiKey.isBlank()) {
             return Result.failure(Exception("YouTube API key is not configured."))
         }
@@ -76,7 +77,10 @@ class YouTubeMusicProvider(
             val bestThumbnail = item.snippet.thumbnails.high?.url ?: item.snippet.thumbnails.default?.url
             Result.success(
                 MediaItem(
-                    id = item.id,
+                    // Prefixed to match search(). Without it, an item resolved by metadata
+                    // carried a bare id, and every call site routing on "youtube:" treated
+                    // it as local - so the track resolved to no URI and would not play.
+                    id = "youtube:${item.id}",
                     provider = ProviderKind.YOUTUBE,
                     title = item.snippet.title,
                     artist = item.snippet.channelTitle,

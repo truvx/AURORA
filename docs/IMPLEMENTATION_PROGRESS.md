@@ -219,6 +219,35 @@ consumes. Only the folder picker's user gesture remains outside automated verifi
 
 Web tests: 70.
 
+## Phase 20 (Testing)
+
+Closed the owner-layer gaps the matrix called for, and the tests found a real bug.
+
+- **`RecommendationEngineTest`** (11 cases): ranking, case-insensitive matching, limits, and
+  the rules that matter offline - one failing provider degrades results rather than emptying
+  them, every provider failing yields no candidates rather than an error, and equal scores
+  keep a stable order so the same request does not return different results twice.
+- **`MusicProviderContractTest`**: one suite run against a provider rather than per-provider
+  assertions, as docs/TEST_ARCHITECTURE.md asks. Covers capability declaration, provenance
+  surviving the mapping, typed failures instead of thrown exceptions, an unknown id failing
+  rather than resolving to a substitute, and no raw media URL escaping as an item id.
+- **Playwright smoke suite** (7 journeys): every route rendering without console errors,
+  library view switching, playlist creation surviving a reload, accessible names on playlist
+  controls, keyboard-only reachability, and the empty Now Playing state. Runs against the
+  production build in CI, not the dev server.
+
+### Bug found by the contract test
+
+`YouTubeMusicProvider.search()` returned ids prefixed `youtube:` while `resolveMetadata()`
+returned the bare video id. Three call sites route on that prefix - `AiToolExecutor` and both
+`AuroraTrackResolver` lookups - so any item obtained through metadata resolution was treated
+as local, resolved to no URI, and silently failed to play. That is the exact path AI-driven
+YouTube playback takes. Both now return the prefixed form.
+
+The provider also read `BuildConfig.YOUTUBE_API_KEY` directly, which made it untestable and
+coupled it to `local.properties`; the key is now injected, and an unconfigured key is a typed
+failure rather than a crash.
+
 ## Next Phases
 
 Phase 17 (Web application) remains limited to the AI gateway and app shell. Phases 18-21 (accessibility hardening, performance, testing, CI/release) are unstarted; there is still no CI workflow, and `AiE2ETest` remains a live-network test inside the unit source set.

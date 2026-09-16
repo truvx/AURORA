@@ -7,11 +7,14 @@
  */
 
 export const DB_NAME = "aurora";
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export const STORE_TRACKS = "tracks";
 export const STORE_HANDLES = "handles";
 export const STORE_SETTINGS = "settings";
+export const STORE_FAVORITES = "favorites";
+export const STORE_PLAYLISTS = "playlists";
+export const STORE_PLAYLIST_ENTRIES = "playlistEntries";
 
 export interface StoredTrack {
   /** Stable within a library: the file's path relative to the chosen directory. */
@@ -26,6 +29,28 @@ export interface StoredTrack {
   lastModified: number;
   mimeType?: string;
   durationMs?: number;
+  addedAt: number;
+}
+
+export interface FavoriteEntry {
+  /** Track id; presence in this store means favorited. */
+  mediaId: string;
+  addedAt: number;
+}
+
+export interface StoredPlaylist {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface StoredPlaylistEntry {
+  /** Stable and independent of position, so reordering never invalidates a reference. */
+  entryId: string;
+  playlistId: string;
+  mediaId: string;
+  position: number;
   addedAt: number;
 }
 
@@ -53,6 +78,19 @@ export function openDatabase(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORE_SETTINGS)) {
         db.createObjectStore(STORE_SETTINGS);
+      }
+      // v2: favorites and playlists, mirroring the Android Phase 10 contract. Additive, so
+      // an existing library survives the upgrade untouched.
+      if (!db.objectStoreNames.contains(STORE_FAVORITES)) {
+        db.createObjectStore(STORE_FAVORITES, { keyPath: "mediaId" });
+      }
+      if (!db.objectStoreNames.contains(STORE_PLAYLISTS)) {
+        const playlists = db.createObjectStore(STORE_PLAYLISTS, { keyPath: "id" });
+        playlists.createIndex("updatedAt", "updatedAt", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_PLAYLIST_ENTRIES)) {
+        const entries = db.createObjectStore(STORE_PLAYLIST_ENTRIES, { keyPath: "entryId" });
+        entries.createIndex("playlistId", "playlistId", { unique: false });
       }
     };
 

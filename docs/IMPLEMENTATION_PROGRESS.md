@@ -174,12 +174,26 @@ Autoplay refusal is treated as a recoverable browser policy with an explanation,
 Web test coverage went from zero to 16, including the coordinator's queue, terminal-state,
 autoplay, and unknown-duration behaviour.
 
+### Second pass
+
+- **Tag parsing** (`lib/library/tags.ts`): FLAC Vorbis comments and ID3v2.3/2.4 text frames,
+  so the library shows real titles, artists, and albums instead of filenames. Only the
+  header region of each file is read. A file without tags falls back to its filename for the
+  title and leaves artist and album undefined - the filename is a fallback, not a guess.
+  MP4/M4A atoms are still unparsed and report nothing rather than something invented.
+- **Favorites** (schema v2, additive): stored in IndexedDB with a filter in the library and
+  a filled/outlined control so state is never signalled by colour alone.
+- **Playlists** (`lib/library/organization.ts`): create, rename, delete, append, remove, and
+  reorder, mirroring the Android contract - contiguous positions, duplicate entries allowed,
+  entry ids stable across reordering. Repository only; no playlist UI yet.
+- **Now Playing route** with the queue, including position announcements ("track 3 of 12")
+  and a ▶ marker so the current track is not identified by colour alone.
+
 ### Not yet done in Phase 17
 
-Favorites, playlists, history, resume, albums/artists, and the YouTube IFrame surface on web.
-Tag parsing is not implemented, so titles fall back to filenames and artist stays unknown
-rather than being guessed. The folder-picker-to-playback path needs a real user gesture, so
-it has not been verified by automation.
+Playlist UI, history, resume, albums/artists, and the YouTube IFrame surface. The
+folder-picker-to-playback path needs a real user gesture, so it has not been verified by
+automation.
 
 ## Next Phases
 

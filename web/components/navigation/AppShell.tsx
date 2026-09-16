@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
   { href: "/", label: "Home", icon: "home" },
   { href: "/search", label: "Search", icon: "search" },
   { href: "/library", label: "Library", icon: "library_music" },
+  { href: "/now-playing", label: "Playing", icon: "play_circle" },
   { href: "/ai", label: "AI", icon: "auto_awesome" },
   { href: "/settings", label: "Settings", icon: "settings" },
 ];

@@ -16,6 +16,7 @@ import {
   resolveTrackUrl,
   restoreMusicDirectory,
 } from "../library/fileSystem";
+import { OrganizationRepository } from "../library/organization";
 import { LibraryRepository } from "../library/repository";
 import { PlayerCoordinator } from "./coordinator";
 import { HtmlAudioAdapter } from "./htmlAudioAdapter";
@@ -25,6 +26,7 @@ import { MediaItem, PlayerCommand, PlayerState, initialPlayerState } from "./typ
 interface PlayerContextValue {
   readonly coordinator: PlayerCoordinator;
   readonly repository: LibraryRepository;
+  readonly organization: OrganizationRepository;
   readonly directory?: FileSystemDirectoryHandle;
   setDirectory(handle: FileSystemDirectoryHandle | undefined): void;
 }
@@ -41,18 +43,17 @@ const PlayerContext = createContext<PlayerContextValue | undefined>(undefined);
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const [directory, setDirectory] = useState<FileSystemDirectoryHandle | undefined>();
 
-  // A plain mutable holder rather than a ref: the source resolver runs long after render
-  // and needs the current folder, but rebuilding the coordinator on every folder change
-  // would discard the audio element and the user gesture attached to it.
-  // A ref is the right holder for something read outside render. It is written only from
-  // an effect - writing during render is what the rules forbid - and read later, when the
-  // resolver actually runs.
+  // The source resolver runs long after render and needs the current folder, but rebuilding
+  // the coordinator on every folder change would discard the audio element and the user
+  // gesture attached to it. A ref is the right holder: written only from an effect - writing
+  // during render is what the rules forbid - and read later, when the resolver runs.
   const currentDirectory = useRef<FileSystemDirectoryHandle | undefined>(undefined);
   useEffect(() => {
     currentDirectory.current = directory;
   }, [directory]);
 
   const [repository] = useState(() => new LibraryRepository());
+  const [organization] = useState(() => new OrganizationRepository());
 
   // Built in an effect rather than during render: it owns an audio element and reads a ref,
   // neither of which belongs in a render pass, and there is no player on the server.
@@ -94,8 +95,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<PlayerContextValue | undefined>(
-    () => (coordinator ? { coordinator, repository, directory, setDirectory } : undefined),
-    [coordinator, repository, directory]
+    () =>
+      coordinator
+        ? { coordinator, repository, organization, directory, setDirectory }
+        : undefined,
+    [coordinator, repository, organization, directory]
   );
 
   if (!value) return <>{children}</>;
@@ -143,6 +147,7 @@ export function useLibrary() {
   const context = usePlayerContext();
   return {
     repository: context?.repository,
+    organization: context?.organization,
     directory: context?.directory,
     setDirectory: context?.setDirectory,
   };

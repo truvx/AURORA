@@ -1,5 +1,6 @@
 import { MediaItem } from "../player/types";
 import { STORE_HANDLES, StoredTrack, openDatabase, runTransaction } from "./db";
+import { readTags } from "./tags";
 
 /**
  * Local library access through the File System Access API.
@@ -99,8 +100,8 @@ async function queryPermission(handle: FileSystemDirectoryHandle): Promise<Permi
 /**
  * Walks the chosen folder for audio files.
  *
- * Metadata comes from the file itself. Tags are not parsed yet, so title falls back to the
- * filename and artist stays undefined rather than being guessed - unknown stays unknown,
+ * Title, artist, and album come from the file's own tags. A file without them falls back to
+ * its filename for the title and leaves artist and album undefined - unknown stays unknown,
  * matching the rule the Android client had to be corrected to follow.
  */
 export async function scanDirectory(
@@ -133,9 +134,13 @@ async function walk(
 
     try {
       const file = await (entry as FileSystemFileHandle).getFile();
+      const tags = await readTags(file);
       out.push({
         id: [...path, entry.name].join("/"),
-        title: stripExtension(entry.name),
+        // The filename is a fallback, not a guess at the real title.
+        title: tags.title ?? stripExtension(entry.name),
+        artist: tags.artist,
+        album: tags.album,
         path,
         fileName: entry.name,
         sizeBytes: file.size,

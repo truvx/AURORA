@@ -23,11 +23,13 @@ type ScanState =
   | { kind: "error"; message: string };
 
 export default function LibraryPage() {
-  const { repository, directory, setDirectory } = useLibrary();
+  const { repository, organization, directory, setDirectory } = useLibrary();
   const dispatch = usePlayerCommands();
 
   const [tracks, setTracks] = useState<StoredTrack[]>([]);
   const [scan, setScan] = useState<ScanState>({ kind: "idle" });
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   // The server has no window, so this has to differ between server and client without
   // tripping hydration. useSyncExternalStore is the supported way to express that: the
@@ -36,6 +38,25 @@ export default function LibraryPage() {
     subscribeToNothing,
     isFileSystemAccessSupported,
     serverCapabilityUnknown
+  );
+
+  useEffect(() => {
+    organization
+      ?.getFavoriteIds()
+      .then(setFavorites)
+      .catch(() => {
+        // Favorites are an enhancement; the library still works without them.
+      });
+  }, [organization]);
+
+  const toggleFavorite = useCallback(
+    async (mediaId: string) => {
+      if (!organization) return;
+      const next = !favorites.has(mediaId);
+      await organization.setFavorite(mediaId, next);
+      setFavorites(await organization.getFavoriteIds());
+    },
+    [organization, favorites]
   );
 
   // Show whatever was saved before touching the disk, so a reload is not a blank page.
@@ -101,6 +122,10 @@ export default function LibraryPage() {
     await runScan(directory);
   }, [directory, runScan]);
 
+  const visibleTracks = showFavoritesOnly
+    ? tracks.filter((track) => favorites.has(track.id))
+    : tracks;
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -149,22 +174,64 @@ export default function LibraryPage() {
       )}
 
       {tracks.length > 0 && (
-        <ul className={styles.trackList}>
-          {tracks.map((track) => (
-            <li key={track.id}>
-              <button
-                type="button"
-                className={styles.trackRow}
-                onClick={() =>
-                  dispatch({ type: "load", track: toMediaItem(track), playWhenReady: true })
-                }
-              >
-                <span className={styles.trackTitle}>{track.title}</span>
-                <span className={styles.trackArtist}>{track.artist ?? "Unknown artist"}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <div className={styles.filters}>
+            <button
+              type="button"
+              onClick={() => setShowFavoritesOnly((value) => !value)}
+              className={styles.secondaryButton}
+              aria-pressed={showFavoritesOnly}
+            >
+              {showFavoritesOnly ? "Showing favorites" : "Show favorites only"}
+            </button>
+          </div>
+
+          {visibleTracks.length === 0 ? (
+            <p className={styles.status}>No favorites yet.</p>
+          ) : (
+            <ul className={styles.trackList}>
+              {visibleTracks.map((track) => {
+                const isFavorite = favorites.has(track.id);
+                return (
+                  <li key={track.id} className={styles.trackItem}>
+                    <button
+                      type="button"
+                      className={styles.trackRow}
+                      onClick={() =>
+                        dispatch({
+                          type: "load",
+                          track: toMediaItem(track),
+                          playWhenReady: true,
+                        })
+                      }
+                    >
+                      <span className={styles.trackTitle}>{track.title}</span>
+                      <span className={styles.trackArtist}>
+                        {track.artist ?? "Unknown artist"}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.favoriteButton}
+                      onClick={() => void toggleFavorite(track.id)}
+                      aria-pressed={isFavorite}
+                      aria-label={
+                        isFavorite
+                          ? `Remove ${track.title} from favorites`
+                          : `Add ${track.title} to favorites`
+                      }
+                    >
+                      {/* Filled vs outlined, so the state is not colour alone. */}
+                      <span className="material-symbols-outlined" aria-hidden="true">
+                        {isFavorite ? "favorite" : "favorite_border"}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </>
       )}
 
       {supported === true && directory && tracks.length === 0 && scan.kind === "idle" && (

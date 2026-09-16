@@ -30,6 +30,19 @@ class AuroraTrackResolverTest {
         override suspend fun deleteStaleLocalFiles(uris: List<String>) {}
         override fun observeLocalItems(): kotlinx.coroutines.flow.Flow<List<dev.aurora.player.data.db.MediaItemWithDetails>> = kotlinx.coroutines.flow.flowOf(emptyList())
         override suspend fun getLocalItems(): List<dev.aurora.player.data.db.MediaItemWithDetails> = emptyList()
+        override suspend fun getLocalItemsPage(
+            limit: Int,
+            offset: Int
+        ): List<dev.aurora.player.data.db.MediaItemWithDetails> = emptyList()
+        override suspend fun countLocalItems(): Int = 0
+        override suspend fun searchLocalItems(
+            query: String,
+            limit: Int
+        ): List<dev.aurora.player.data.db.MediaItemWithDetails> = emptyList()
+        override suspend fun searchLocalItemsByArtist(
+            query: String,
+            limit: Int
+        ): List<dev.aurora.player.data.db.MediaItemWithDetails> = emptyList()
         override suspend fun getMetadataForMedia(mediaItemId: String): dev.aurora.player.data.db.TrackTechnicalMetadataEntity? = null
         override suspend fun insertMediaItem(item: dev.aurora.player.data.db.MediaItemEntity) {}
         override suspend fun insertLocalFile(file: dev.aurora.player.data.db.LocalFileEntity) {}

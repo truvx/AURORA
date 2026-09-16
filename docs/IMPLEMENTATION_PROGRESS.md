@@ -248,6 +248,35 @@ The provider also read `BuildConfig.YOUTUBE_API_KEY` directly, which made it unt
 coupled it to `local.properties`; the key is now injected, and an unconfigured key is a typed
 failure rather than a crash.
 
+## Phase 19 (Performance optimization)
+
+Measured first, as the phase requires, and the measurement found two budget violations.
+
+**Full-library loads removed.** `observeLocalItems()` and `getLocalItems()` read every row
+with no limit, and `LocalLibraryProvider.search()` then filtered that whole result in Kotlin -
+the full-library load `docs/PERFORMANCE_BUDGET.md` rules out, getting slower with every track
+added. Search now runs in SQL with a bounded limit, and paged queries plus a count query were
+added. The unpaged reads remain only for scan reconciliation, which genuinely needs every row.
+
+**Regression budgets added.** `QueuePerformanceTest` measures queue operations against the
+50 ms domain budget on a 1,000-item queue, including a head-versus-tail scaling check that
+catches an operation turning quadratic - something a single-operation budget misses.
+`LibraryPagingTest` verifies paging correctness and the 100 ms warm query target against a
+real 2,000-row SQLite database.
+
+Measured results, with method and dataset, are recorded in `docs/PERFORMANCE_BUDGET.md`.
+
+### Requires a physical device
+
+Cold start, frame time, scroll jank, and heap snapshots are not measured. `androidx.benchmark`
+refuses to run on an emulator by design - it reports `ERROR: Running on Emulator` and warns
+that suppressing the check compromises accuracy. The module is left refusing rather than
+configured to emit numbers that would look like evidence without being any. Run
+`./gradlew :benchmark:connectedBenchmarkAndroidTest` with a device attached.
+
+Throttled mobile-web measurement is also outstanding; the recorded web figures are unthrottled
+localhost and are a baseline only.
+
 ## Next Phases
 
 Phase 17 (Web application) remains limited to the AI gateway and app shell. Phases 18-21 (accessibility hardening, performance, testing, CI/release) are unstarted; there is still no CI workflow, and `AiE2ETest` remains a live-network test inside the unit source set.

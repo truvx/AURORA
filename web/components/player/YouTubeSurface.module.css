@@ -1,6 +1,6 @@
 .visible {
   display: block;
-  margin: 0 var(--space-3, 12px);
+  margin: 0 var(--aurora-space-3);
 }
 
 /*
@@ -21,7 +21,7 @@
 }
 
 .attribution {
-  margin: var(--space-2, 8px) 0 0;
+  margin: var(--aurora-space-2) 0 0;
   font-size: 0.8125rem;
-  color: var(--text-secondary, #b5b5b5);
+  color: var(--aurora-text-secondary);
 }

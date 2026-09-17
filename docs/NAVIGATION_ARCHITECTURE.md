@@ -2,7 +2,7 @@
 
 ## Information architecture
 
-The consistent product map is `Home`, `Search`, `Library`, `AI`, and `Settings` as primary destinations. Within Library: `Favorites`, `Playlists`, `Albums`, `Artists`, `Downloads/Imports`, and `Recently Played/Added`. `Queue` and `Now Playing` are global playback surfaces, not duplicated per tab.
+The consistent product map is `Listen`, `Search`, `Library`, `AI`, and `Settings` as primary destinations. `Listen` is the default destination, named for what is on it — resume and recommendations — rather than as a generic `Home`: a destination named for its contents is predictable before you open it, and an umbrella label is not. Within Library: `Favorites`, `Playlists`, `Albums`, `Artists`, `Downloads/Imports`, and `Recently Played/Added`. `Queue` and `Now Playing` are global playback surfaces, not duplicated per tab.
 
 ## Android
 

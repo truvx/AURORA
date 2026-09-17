@@ -1,13 +1,21 @@
 /*
  * Glass component styles — Web implementation of AURORA Liquid Glass
+ *
+ * Material weight carries hierarchy. Blur and shadow are not one shared value across every
+ * surface: a big panel has to read as a thicker piece of glass than a small chip, and it is
+ * the pairing of stronger blur with a deeper shadow that sells the difference. Saturation
+ * is what keeps a blurred backdrop from going grey and flat.
  */
 
 /* ──────── Surface ──────── */
 
 .surface {
   border-radius: var(--aurora-radius-card);
-  backdrop-filter: blur(var(--aurora-blur-surface));
-  -webkit-backdrop-filter: blur(var(--aurora-blur-surface));
+  backdrop-filter: blur(var(--aurora-blur-surface)) saturate(var(--aurora-glass-saturation));
+  -webkit-backdrop-filter: blur(var(--aurora-blur-surface))
+    saturate(var(--aurora-glass-saturation));
+  border: 1px solid var(--aurora-glass-edge);
+  box-shadow: var(--aurora-shadow-card);
 }
 
 .glass_primary {
@@ -15,11 +23,20 @@
 }
 
 .glass_secondary {
+  /* The lighter material: for small interactive pieces, not for structure. */
   background-color: var(--aurora-surface-glass-secondary);
+  backdrop-filter: blur(var(--aurora-blur-subtle)) saturate(var(--aurora-glass-saturation));
+  -webkit-backdrop-filter: blur(var(--aurora-blur-subtle))
+    saturate(var(--aurora-glass-saturation));
+  box-shadow: var(--aurora-shadow-chip);
 }
 
 .glass_elevated {
   background-color: var(--aurora-surface-glass-elevated);
+  backdrop-filter: blur(var(--aurora-blur-floating)) saturate(var(--aurora-glass-saturation));
+  -webkit-backdrop-filter: blur(var(--aurora-blur-floating))
+    saturate(var(--aurora-glass-saturation));
+  box-shadow: var(--aurora-shadow-floating);
 }
 
 .opaque {
@@ -28,13 +45,31 @@
   -webkit-backdrop-filter: none !important;
 }
 
+/*
+ * Glass directly inside glass. Legibility collapses when one translucent surface is layered
+ * on another, so the inner one gives up its translucency and becomes a plain tinted panel
+ * rather than adding a second layer of blur.
+ */
+.surface .surface,
+.surface .card,
+.card .surface,
+.card .card {
+  background-color: var(--aurora-surface-opaque-fallback);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
 /* ──────── Card ──────── */
 
 .card {
   border-radius: var(--aurora-radius-card);
   padding: var(--aurora-space-4);
-  backdrop-filter: blur(var(--aurora-blur-surface));
-  -webkit-backdrop-filter: blur(var(--aurora-blur-surface));
+  backdrop-filter: blur(var(--aurora-blur-surface)) saturate(var(--aurora-glass-saturation));
+  -webkit-backdrop-filter: blur(var(--aurora-blur-surface))
+    saturate(var(--aurora-glass-saturation));
+  border: 1px solid var(--aurora-glass-edge);
+  box-shadow: var(--aurora-shadow-card);
 }
 
 /* ──────── Button ──────── */
@@ -53,10 +88,11 @@
   font-size: var(--aurora-type-label-size);
   font-weight: var(--aurora-type-label-weight);
   line-height: var(--aurora-type-label-line);
-  letter-spacing: 0;
+  letter-spacing: var(--aurora-type-label-tracking);
   transition:
     background-color var(--aurora-duration-quick) var(--aurora-easing-standard),
-    opacity var(--aurora-duration-quick) var(--aurora-easing-standard);
+    opacity var(--aurora-duration-quick) var(--aurora-easing-standard),
+    transform var(--aurora-duration-instant) var(--aurora-easing-standard);
 }
 
 .button:disabled {
@@ -92,7 +128,9 @@
   background: transparent;
   color: var(--aurora-control-primary);
   cursor: pointer;
-  transition: color var(--aurora-duration-quick) var(--aurora-easing-standard);
+  transition:
+    color var(--aurora-duration-quick) var(--aurora-easing-standard),
+    transform var(--aurora-duration-instant) var(--aurora-easing-standard);
 }
 
 .iconButton:hover {

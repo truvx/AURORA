@@ -1,21 +1,21 @@
+/* Padding belongs to the shell's main region; repeating it here inset the content twice. */
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4, 16px);
-  padding: var(--space-4, 16px);
+  gap: var(--aurora-space-4);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3, 12px);
+  gap: var(--aurora-space-3);
 }
 
 .primaryButton,
 .secondaryButton {
   min-height: 44px;
-  padding: 0 var(--space-4, 16px);
+  padding: 0 var(--aurora-space-4);
   border-radius: 999px;
   cursor: pointer;
   font: inherit;
@@ -23,26 +23,26 @@
 
 .primaryButton {
   border: none;
-  background: var(--accent-primary, #7fd7e8);
+  background: var(--aurora-accent-primary);
   color: #0b0b0b;
 }
 
 .secondaryButton {
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.18));
+  border: 1px solid var(--aurora-border-control);
   background: transparent;
-  color: var(--text-primary, #fff);
+  color: var(--aurora-text-primary);
 }
 
 .primaryButton:focus-visible,
 .secondaryButton:focus-visible,
 .trackRow:focus-visible {
-  outline: 2px solid var(--accent-primary, #7fd7e8);
+  outline: 2px solid var(--aurora-accent-primary);
   outline-offset: 2px;
 }
 
 .status {
   margin: 0;
-  color: var(--text-secondary, #b5b5b5);
+  color: var(--aurora-text-secondary);
 }
 
 .trackList {
@@ -51,7 +51,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2, 8px);
+  gap: var(--aurora-space-2);
 }
 
 .trackRow {
@@ -61,18 +61,18 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  padding: var(--space-3, 12px);
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  padding: var(--aurora-space-3);
+  border: 1px solid var(--aurora-border-control);
   border-radius: 12px;
-  background: var(--surface-glass-secondary, rgba(255, 255, 255, 0.04));
-  color: var(--text-primary, #fff);
+  background: var(--aurora-surface-glass-secondary);
+  color: var(--aurora-text-primary);
   text-align: left;
   cursor: pointer;
   font: inherit;
 }
 
 .trackRow:hover {
-  background: var(--surface-glass-elevated, rgba(255, 255, 255, 0.08));
+  background: var(--aurora-surface-glass-elevated);
 }
 
 .trackTitle {
@@ -81,18 +81,21 @@
 
 .trackArtist {
   font-size: 0.875rem;
-  color: var(--text-secondary, #b5b5b5);
+  color: var(--aurora-text-secondary);
 }
 
 .filters {
   display: flex;
-  gap: var(--space-2, 8px);
+  gap: var(--aurora-space-2);
+  /* Four view names do not fit on a phone, and a control pushed off-screen is unreachable
+     - there is no horizontal scroll here to recover it with. */
+  flex-wrap: wrap;
 }
 
 .trackItem {
   display: flex;
   align-items: stretch;
-  gap: var(--space-2, 8px);
+  gap: var(--aurora-space-2);
 }
 
 .trackItem .trackRow {
@@ -105,24 +108,24 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--aurora-border-control);
   border-radius: 12px;
   background: transparent;
-  color: var(--text-secondary, #b5b5b5);
+  color: var(--aurora-text-secondary);
   cursor: pointer;
 }
 
 .favoriteButton[aria-pressed="true"] {
-  color: var(--accent-primary, #7fd7e8);
+  color: var(--aurora-accent-primary);
 }
 
 .favoriteButton:focus-visible {
-  outline: 2px solid var(--accent-primary, #7fd7e8);
+  outline: 2px solid var(--aurora-accent-primary);
   outline-offset: 2px;
 }
 
 .pickerTitle {
-  margin: 0 0 var(--space-2, 8px);
+  margin: 0 0 var(--aurora-space-2);
   font-size: 1rem;
   font-weight: 500;
 }

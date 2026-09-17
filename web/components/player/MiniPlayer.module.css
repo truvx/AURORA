@@ -1,26 +1,65 @@
 .miniPlayer {
-  position: sticky;
-  bottom: 0;
-  margin: 0 var(--space-3, 12px) var(--space-2, 8px);
-  padding: var(--space-3, 12px) var(--space-4, 16px);
+  margin: 0 var(--aurora-space-3);
+  padding: var(--aurora-space-2) var(--aurora-space-4) var(--aurora-space-3);
 }
 
 .row {
   display: flex;
   align-items: center;
-  gap: var(--space-4, 16px);
+  gap: var(--aurora-space-4);
   flex-wrap: wrap;
+  /*
+   * The surface is dragged vertically, so the browser must not claim vertical panning for
+   * scrolling. Horizontal panning is left alone: the scrubber inside still needs it.
+   */
+  touch-action: pan-x;
+  will-change: transform;
+}
+
+/*
+ * While a finger is down the surface is glued to it - no transition here, or the position
+ * would lag the pointer by the transition's duration and the drag would feel like pulling
+ * something through syrup. After release the motion comes from the spring instead.
+ */
+.dragging .row {
+  cursor: grabbing;
+}
+
+/* ──────── Drag affordance ──────── */
+
+.expand {
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Full width so the grab target is generous, though only the grabber is drawn. */
+  min-height: var(--aurora-space-5);
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: grab;
+}
+
+.grabber {
+  display: block;
+  width: 2.25rem;
+  height: 0.25rem;
+  border-radius: 999px;
+  background: var(--aurora-text-tertiary);
 }
 
 .meta {
   min-width: 0;
-  flex: 1 1 180px;
+  flex: 1 1 11rem;
 }
 
 .title {
   margin: 0;
-  font-weight: 500;
-  color: var(--text-primary, #fff);
+  /* Sits on glass: a little more weight and tracking keeps it defined against whatever is
+     moving behind it, without having to make the surface heavier. */
+  font-weight: var(--aurora-vibrancy-weight-bump);
+  letter-spacing: var(--aurora-vibrancy-tracking-bump);
+  color: var(--aurora-text-primary);
   /* Reserve the line so the row does not jump between tracks with different title lengths. */
   white-space: nowrap;
   overflow: hidden;
@@ -29,8 +68,9 @@
 
 .secondary {
   margin: 0;
-  font-size: 0.875rem;
-  color: var(--text-secondary, #b5b5b5);
+  font-size: var(--aurora-type-label-size);
+  letter-spacing: var(--aurora-type-label-tracking);
+  color: var(--aurora-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -39,19 +79,23 @@
 .scrubber {
   display: flex;
   align-items: center;
-  gap: var(--space-2, 8px);
-  flex: 2 1 260px;
+  gap: var(--aurora-space-2);
+  flex: 2 1 16rem;
 }
 
 .range {
   flex: 1;
-  min-width: 100px;
+  min-width: 6rem;
+  accent-color: var(--aurora-accent-primary);
+  /* The thumb is dragged horizontally; the page must not steal that gesture. */
+  touch-action: none;
 }
 
 .time {
   font-variant-numeric: tabular-nums;
-  font-size: 0.8125rem;
-  color: var(--text-secondary, #b5b5b5);
+  font-size: var(--aurora-type-caption-size);
+  letter-spacing: var(--aurora-type-caption-tracking);
+  color: var(--aurora-text-secondary);
   min-width: 3.25rem;
   text-align: center;
 }
@@ -59,41 +103,35 @@
 .controls {
   display: flex;
   align-items: center;
-  gap: var(--space-1, 4px);
+  gap: var(--aurora-space-1);
 }
 
 .control {
   /* 44px minimum pointer target per docs/ACCESSIBILITY_SPEC.md. */
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--aurora-target-min);
+  min-height: var(--aurora-target-min);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: none;
   border-radius: 999px;
   background: transparent;
-  color: var(--text-primary, #fff);
+  color: var(--aurora-text-primary);
   cursor: pointer;
 }
 
 .control:hover {
-  background: var(--surface-glass-secondary, rgba(255, 255, 255, 0.08));
+  background: var(--aurora-surface-glass-secondary);
 }
 
 .control:focus-visible {
   /* Focus must be visible without relying on colour alone. */
-  outline: 2px solid var(--accent-primary, #7fd7e8);
+  outline: 2px solid var(--aurora-focus-ring);
   outline-offset: 2px;
 }
 
 .notice {
-  margin: var(--space-2, 8px) 0 0;
-  font-size: 0.875rem;
-  color: var(--text-secondary, #b5b5b5);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .control {
-    transition: none;
-  }
+  margin: var(--aurora-space-2) 0 0;
+  font-size: var(--aurora-type-label-size);
+  color: var(--aurora-text-secondary);
 }

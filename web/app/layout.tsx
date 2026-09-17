@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AppShell } from "@/components/navigation/AppShell";
 import { ThemeProvider } from "@/lib/theme";
 import { PlayerProvider } from "@/lib/player/PlayerProvider";
 import "@/styles/globals.css";
@@ -37,8 +38,13 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <PlayerProvider>
-          {children}
-        </PlayerProvider>
+            {/*
+              The shell lives here rather than in each page. Wrapping per page meant a page
+              could simply forget, and two of them had: /library and /now-playing rendered
+              with no navigation and no transport controls at all.
+            */}
+            <AppShell>{children}</AppShell>
+          </PlayerProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -21,11 +21,16 @@
 
 html {
   font-family: var(--aurora-font-family);
-  font-size: 16px;
+  /*
+   * 100%, not a fixed 16px: a pinned root size silently overrides the text size the user
+   * chose in their browser, and every rem in the system is measured from here.
+   */
+  font-size: 100%;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
   color: var(--aurora-text-primary);
   background-color: var(--aurora-bg-primary);
 }
@@ -36,48 +41,131 @@ body {
   background-color: var(--aurora-bg-primary);
 }
 
+/* ──────────────── Headings ──────────────── */
+
+/*
+ * The scale applies to the elements themselves, not only to a utility class.
+ *
+ * Most headings in this app are written as plain `h1`/`h2` with no class, so relying on a
+ * class meant they rendered at the browser's default sizes with the browser's default
+ * tracking - outside the type system entirely, and with none of the size-specific tracking
+ * the rest of the scale is built on.
+ */
+h1 {
+  font-size: var(--aurora-type-headline-size);
+  line-height: var(--aurora-type-headline-line);
+  font-weight: var(--aurora-type-headline-weight);
+  letter-spacing: var(--aurora-type-headline-tracking);
+}
+
+h2 {
+  font-size: var(--aurora-type-title-size);
+  line-height: var(--aurora-type-title-line);
+  font-weight: var(--aurora-type-title-weight);
+  letter-spacing: var(--aurora-type-title-tracking);
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--aurora-type-body-size);
+  line-height: var(--aurora-type-body-line);
+  font-weight: var(--aurora-vibrancy-weight-bump);
+  letter-spacing: var(--aurora-type-body-tracking);
+}
+
 /* ──────────────── Typography Utilities ──────────────── */
 
 .aurora-display {
   font-size: var(--aurora-type-display-size);
   line-height: var(--aurora-type-display-line);
   font-weight: var(--aurora-type-display-weight);
-  letter-spacing: 0;
+  letter-spacing: var(--aurora-type-display-tracking);
 }
 
 .aurora-headline {
   font-size: var(--aurora-type-headline-size);
   line-height: var(--aurora-type-headline-line);
   font-weight: var(--aurora-type-headline-weight);
-  letter-spacing: 0;
+  letter-spacing: var(--aurora-type-headline-tracking);
 }
 
 .aurora-title {
   font-size: var(--aurora-type-title-size);
   line-height: var(--aurora-type-title-line);
   font-weight: var(--aurora-type-title-weight);
-  letter-spacing: 0;
+  letter-spacing: var(--aurora-type-title-tracking);
 }
 
 .aurora-body {
   font-size: var(--aurora-type-body-size);
   line-height: var(--aurora-type-body-line);
   font-weight: var(--aurora-type-body-weight);
-  letter-spacing: 0;
+  letter-spacing: var(--aurora-type-body-tracking);
 }
 
 .aurora-label {
   font-size: var(--aurora-type-label-size);
   line-height: var(--aurora-type-label-line);
   font-weight: var(--aurora-type-label-weight);
-  letter-spacing: 0;
+  letter-spacing: var(--aurora-type-label-tracking);
 }
 
 .aurora-caption {
   font-size: var(--aurora-type-caption-size);
   line-height: var(--aurora-type-caption-line);
   font-weight: var(--aurora-type-caption-weight);
-  letter-spacing: 0;
+  letter-spacing: var(--aurora-type-caption-tracking);
+}
+
+.aurora-secondary {
+  color: var(--aurora-text-secondary);
+  margin-top: var(--aurora-space-2);
+}
+
+/*
+ * Vibrancy: text that sits on a translucent surface, where the backdrop can change under
+ * it. Flat grey loses definition there, so this takes weight and tracking up rather than
+ * making the surface heavier.
+ */
+.aurora-on-glass {
+  font-weight: var(--aurora-vibrancy-weight-bump);
+  letter-spacing: var(--aurora-vibrancy-tracking-bump);
+}
+
+/* ──────────────── Press feedback ──────────────── */
+
+/*
+ * Feedback belongs on pointer-down, not on release. Waiting for click to acknowledge a
+ * press is the single fastest way to make an interface feel dead, so this is applied to
+ * every control rather than opted into per component.
+ *
+ * :active is the browser's own pointer-down state, which means it also gets cancel-by-
+ * dragging-away for free: slide off the control before releasing and the press lifts.
+ */
+button,
+[role="button"],
+a,
+summary,
+input[type="range"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active,
+a:active,
+summary:active {
+  /* transform and opacity only: both run on the compositor and cannot cause layout. */
+  transform: scale(0.97);
+}
+
+button,
+[role="button"],
+a,
+summary {
+  transition: transform var(--aurora-duration-instant) var(--aurora-easing-standard);
 }
 
 /* ──────────────── Focus ──────────────── */
@@ -90,14 +178,44 @@ body {
 
 /* ──────────────── Reduced Motion ──────────────── */
 
+/*
+ * Reduced motion is not "no feedback" - it is a gentler, non-vestibular equivalent.
+ *
+ * Travel, parallax, spring overshoot and scale are what cause trouble, so those go. Short
+ * opacity and colour transitions stay, because they are what tells the user a state
+ * actually changed. Zeroing every duration globally, which is what this file used to do,
+ * removes the comprehension cues along with the vestibular ones.
+ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /*
+   * Deliberately not a blanket `transform: none !important`. A surface following the
+   * user's own finger is direct manipulation, not app-initiated travel, and killing its
+   * transform would leave the gesture with nothing to hold. Springs and travel are
+   * suppressed where they start instead: see prefersReducedMotion() in lib/motion.
+   */
+
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active,
+  a:active,
+  summary:active {
+    /* The press still acknowledges itself, it just does not move. */
+    transform: none;
+    opacity: 0.72;
+  }
+
+  button,
+  [role="button"],
+  a,
+  summary {
+    transition: opacity var(--aurora-duration-quick) var(--aurora-easing-standard);
   }
 }
 

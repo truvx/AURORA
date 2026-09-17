@@ -31,11 +31,16 @@ export default function NowPlayingPage() {
 
   return (
     <div className={styles.page}>
-      <h1>Now playing</h1>
+      {/*
+        The track is the subject of this screen, so it carries the heading and the largest
+        type. "Now playing" is the label that gives it context - setting that as the biggest
+        thing on the page puts the emphasis on the state rather than on the music.
+      */}
+      <p className={styles.eyebrow}>Now playing</p>
 
       <GlassCard>
-        <p className={styles.title}>{track.title}</p>
-        <p className={styles.secondary}>{track.artist ?? "Unknown artist"}</p>
+        <h1 className={styles.title}>{track.title}</h1>
+        <p className={styles.artist}>{track.artist ?? "Unknown artist"}</p>
         {track.album && <p className={styles.secondary}>{track.album}</p>}
         {/* Status is words, not a colour or an icon alone. */}
         <p className={styles.status} role="status">

@@ -105,7 +105,20 @@ test("primary navigation is labelled and links to every route", async ({ page })
   const nav = page.getByRole("navigation", { name: "Primary navigation" });
   await expect(nav).toBeVisible();
 
-  for (const label of ["Home", "Search", "Library", "Playing", "AI", "Settings"]) {
+  for (const label of ["Listen", "Search", "Library", "Playing", "AI", "Settings"]) {
     await expect(nav.getByRole("link", { name: label })).toBeVisible();
+  }
+});
+
+test("navigation and transport are present on every route", async ({ page }) => {
+  // /library and /now-playing once rendered without the shell entirely: no navigation and
+  // no transport controls on the two screens the app is actually used from. The shell now
+  // lives in the root layout so a page cannot omit it, and this is what holds that.
+  for (const path of ["/", "/search", "/library", "/now-playing", "/ai", "/settings"]) {
+    await page.goto(path);
+    await expect(
+      page.getByRole("navigation", { name: "Primary navigation" }),
+      `no primary navigation on ${path}`
+    ).toBeVisible();
   }
 });

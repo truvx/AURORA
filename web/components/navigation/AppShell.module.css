@@ -1,19 +1,75 @@
 /*
  * AppShell — layout and navigation styles
+ *
+ * The navigation and the mini-player are a floating translucent layer that content passes
+ * beneath, not opaque bars that take a strip out of the page. That is what makes the glass
+ * mean anything: if nothing ever slides under it, a translucent bar is just an expensive
+ * way to draw a solid one.
  */
 
 .shell {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
+  /* Replaced at runtime by the measured height of the chrome below. */
+  --aurora-chrome-height: 4.5rem;
 }
 
 .main {
   flex: 1;
   padding: var(--aurora-space-6) var(--aurora-space-4);
+  /*
+   * Room for the floating chrome, plus a little air so the last row does not sit tight
+   * against it, plus the home indicator on phones.
+   */
+  padding-bottom: calc(
+    var(--aurora-chrome-height) + var(--aurora-space-4) + env(safe-area-inset-bottom, 0px)
+  );
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
+}
+
+/* ──────── Floating chrome ──────── */
+
+.chrome {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-2);
+  pointer-events: none;
+}
+
+.chrome > * {
+  pointer-events: auto;
+}
+
+/*
+ * Scroll edge effect, not a hard divider.
+ *
+ * A 1px line under floating chrome states a boundary that is not really there; a short
+ * fade lets content dissolve into the chrome instead. It is drawn only where the chrome
+ * actually overlaps content, and is not interactive.
+ */
+.chrome::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: var(--aurora-space-8);
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    var(--aurora-bg-primary),
+    transparent
+  );
+  opacity: 0.85;
 }
 
 /* ──────── Bottom Navigation ──────── */
@@ -23,13 +79,18 @@
   align-items: center;
   justify-content: space-around;
   padding: var(--aurora-space-2) 0;
+  /*
+   * The structural layer, so it carries the heavier material: a stronger blur and more
+   * saturation than the cards that float above the page, which is what makes it read as
+   * the thicker piece of glass it is.
+   */
   background-color: var(--aurora-surface-glass-elevated);
-  backdrop-filter: blur(var(--aurora-blur-surface));
-  -webkit-backdrop-filter: blur(var(--aurora-blur-surface));
-  border-top: 1px solid var(--aurora-divider-subtle);
-  position: sticky;
-  bottom: 0;
-  z-index: 100;
+  backdrop-filter: blur(var(--aurora-blur-floating)) saturate(var(--aurora-glass-saturation));
+  -webkit-backdrop-filter: blur(var(--aurora-blur-floating))
+    saturate(var(--aurora-glass-saturation));
+  /* Light catching the top edge, the way it would on a real pane. */
+  border-top: 1px solid var(--aurora-glass-edge);
+  box-shadow: var(--aurora-shadow-floating);
 }
 
 .navLink {
@@ -44,7 +105,9 @@
   text-decoration: none;
   color: var(--aurora-text-secondary);
   border-radius: var(--aurora-radius-control);
-  transition: color var(--aurora-duration-quick) var(--aurora-easing-standard);
+  transition:
+    color var(--aurora-duration-quick) var(--aurora-easing-standard),
+    transform var(--aurora-duration-instant) var(--aurora-easing-standard);
 }
 
 .navLink:hover {
@@ -59,6 +122,12 @@
   font-size: var(--aurora-type-caption-size);
   line-height: var(--aurora-type-caption-line);
   font-weight: var(--aurora-type-caption-weight);
+  /* Vibrancy: a touch more definition for small text over a changing backdrop. */
+  letter-spacing: var(--aurora-vibrancy-tracking-bump);
+}
+
+.navLink.active .navLabel {
+  font-weight: var(--aurora-vibrancy-weight-bump);
 }
 
 /* ──────── Desktop: sidebar navigation ──────── */
@@ -68,22 +137,36 @@
     flex-direction: row;
   }
 
+  .main {
+    padding: var(--aurora-space-8) var(--aurora-space-6);
+    padding-left: calc(5rem + var(--aurora-space-6));
+    padding-bottom: calc(var(--aurora-chrome-height) + var(--aurora-space-6));
+  }
+
+  .chrome {
+    /* Clear of the rail, so the two translucent layers sit beside each other rather than
+       one on top of the other - stacked glass is where legibility collapses. */
+    left: 5rem;
+  }
+
+  .chrome::before {
+    left: 0;
+  }
+
   .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
     flex-direction: column;
     justify-content: flex-start;
     gap: var(--aurora-space-1);
     padding: var(--aurora-space-6) var(--aurora-space-3);
     border-top: none;
-    border-right: 1px solid var(--aurora-divider-subtle);
-    position: sticky;
-    top: 0;
-    bottom: auto;
+    border-right: 1px solid var(--aurora-glass-edge);
     height: 100dvh;
-    width: 80px;
-  }
-
-  .main {
-    padding: var(--aurora-space-8) var(--aurora-space-6);
+    width: 5rem;
+    z-index: 101;
   }
 }
 

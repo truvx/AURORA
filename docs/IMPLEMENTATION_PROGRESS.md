@@ -109,8 +109,29 @@ reachable. Reorder controls measure 48dp on rendered nodes.
 Espresso 3.6.1 could not run on Android 17 at all, so no Compose UI test could have passed
 before this phase regardless of the code under test.
 
-Outstanding for Phase 18: web accessibility (Phase 17 has no UI to audit yet), contrast
-validation against live artwork, and a TalkBack pass on a physical device.
+### Contrast scrim
+
+The earlier contrast work left a measured but unfixed defect: dark glass is only 20% opaque,
+so a white album cover composited through it dropped near-white text to about 1.35:1 -
+illegible. A test recorded that as a tripwire because artwork rendering had not shipped yet.
+
+`ui/theme/ContrastScrim` now implements the adaptive scrim the design system's stack calls
+for ("raise scrim/opacity until all required content passes contrast"). It bisects for the
+smallest scrim alpha that brings the real composite - artwork, scrim, glass, text - to the
+WCAG AA body-text target, and reports when even a full scrim cannot, so the caller drops to
+the opaque fallback rather than shipping unreadable text. A fixed dimming value would have
+been too weak for white artwork and needlessly heavy for dark artwork.
+
+`AmbientArtworkLayer` applies it between artwork and glass, and skips the atmosphere entirely
+under reduced transparency. The tripwire test now asserts legibility instead of predicting
+failure.
+
+Verified across the full luminance range and saturated colours, not just sampled points,
+since album art is arbitrary.
+
+Outstanding for Phase 18: web accessibility beyond the E2E keyboard and accessible-name
+checks, a TalkBack pass on a physical device, and palette extraction to supply a real artwork
+colour to the layer.
 
 ## Completion pass (plan: docs/superpowers/plans/2026-09-12-aurora-completion.md)
 

@@ -64,20 +64,33 @@ class ContrastTest {
     }
 
     @Test
-    fun `bright artwork behind glass would need a scrim before artwork rendering ships`() {
-        // Measured, not asserted as passing: dark glass is only 20% opaque, so a white album
-        // cover composites to roughly white and near-white text falls to about 1.35:1 -
-        // effectively illegible. AmbientArtworkLayer renders no artwork today, so this is a
-        // prediction rather than a live defect, and the scrim the design system calls for
-        // does not exist yet.
+    fun `bright artwork behind glass is rescued by the contrast scrim`() {
+        // Without a scrim this was the worst case: dark glass is only 20% opaque, so a white
+        // album cover composites to roughly white and near-white text falls to about 1.35:1.
+        // AmbientArtworkLayer now applies ContrastScrim between artwork and glass, so the
+        // same case has to clear the body-text target.
         val colors = AuroraDarkColors
-        val overWhite = over(colors.surfaceGlassPrimary, Color.White)
-        val ratio = contrastRatio(colors.textPrimary, overWhite)
+        val unscrimmed = contrastRatio(colors.textPrimary, over(colors.surfaceGlassPrimary, Color.White))
+        assertTrue(
+            "expected the unscrimmed case to be illegible, was $unscrimmed",
+            unscrimmed < minimumBodyContrast
+        )
+
+        val scrimAlpha = ContrastScrim.requiredAlpha(
+            foreground = colors.textPrimary,
+            backdrop = Color.White,
+            glass = colors.surfaceGlassPrimary
+        )
+        val scrimmed = ContrastScrim.contrastFor(
+            scrimAlpha,
+            colors.textPrimary,
+            Color.White,
+            colors.surfaceGlassPrimary
+        )
 
         assertTrue(
-            "This test exists to fail the moment artwork rendering lands without a scrim. " +
-                "Measured contrast over white artwork: $ratio",
-            ratio < minimumBodyContrast
+            "contrast over white artwork after scrim was $scrimmed, below $minimumBodyContrast",
+            scrimmed >= minimumBodyContrast
         )
     }
 

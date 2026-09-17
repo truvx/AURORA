@@ -54,7 +54,19 @@ fun GlassSurface(
     }
 
     val backdrop = dev.aurora.player.ui.theme.LocalAuroraBackdrop.current
-    
+    val depth = Aurora.depth
+
+    // Material weight carries hierarchy: a floating surface has to read as a thicker piece
+    // of glass than a small chip, and blur is what says so. One shared radius across every
+    // level - which is what this was - flattens all three into the same material.
+    val blurRadius = with(androidx.compose.ui.platform.LocalDensity.current) {
+        when (level) {
+            GlassLevel.Primary -> depth.blurSurface
+            GlassLevel.Secondary -> depth.blurSubtle
+            GlassLevel.Elevated -> depth.blurFloating
+        }.toPx()
+    }
+
     Box(
         modifier = modifier
             .clip(shape)
@@ -65,7 +77,7 @@ fun GlassSurface(
                         shape = { shape },
                         effects = {
                             vibrancy()
-                            blur(64f)
+                            blur(blurRadius)
                         },
                         onDrawSurface = {
                             drawRect(color = backgroundColor)

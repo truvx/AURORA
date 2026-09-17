@@ -34,6 +34,13 @@ fun NowPlayingScreen(
         modifier = modifier
             .fillMaxSize()
             .background(Aurora.colors.backgroundPrimary)
+            /*
+             * This is drawn over the shell rather than inside the Scaffold, so it gets none
+             * of the Scaffold's inset handling and has to ask for its own. Without it the
+             * close and queue controls sit underneath the system status bar, where they are
+             * visible but unreachable - the status bar takes the touches.
+             */
+            .systemBarsPadding()
             .padding(Aurora.spacing.space6),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

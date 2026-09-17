@@ -114,6 +114,7 @@ fun QueueItemRow(
         ) {
             ArtworkSurface(
                 altText = "${item.title} artwork",
+                artworkUri = item.artworkUri,
                 modifier = Modifier.size(48.dp)
             )
 

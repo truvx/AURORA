@@ -66,9 +66,12 @@ class LimiterAudioProcessor : BaseAudioProcessor(), dev.aurora.player.domain.aud
                 }
                 inputBuffer.position(limit)
             }
-            else -> {
-                outputBuffer.put(inputBuffer)
-            }
+            else -> throw IllegalStateException(
+                // Unreachable: onConfigure returns NOT_SET for any other encoding. Copying
+                // here instead would throw anyway when the buffers alias, and would report
+                // itself as an unexplained renderer fault rather than as this.
+                "Unsupported PCM encoding ${inputAudioFormat.encoding} reached the limiter"
+            )
         }
         outputBuffer.flip()
     }

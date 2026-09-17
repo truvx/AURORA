@@ -20,6 +20,11 @@ import dev.aurora.player.ui.theme.ContrastScrim
  * the backdrop rather than fixed, because a value strong enough for a white album cover
  * would needlessly crush a dark one.
  *
+ * This is the layer the glass samples, so it must not contain any glass itself: a backdrop
+ * that includes the surfaces reading from it recurses forever when the render tree is
+ * prepared. [content] is for things that genuinely belong *in* the atmosphere, and is empty
+ * by default - the app's own UI is drawn as a sibling above this, not inside it.
+ *
  * Reduced transparency skips the atmosphere entirely: a user asking for plainer surfaces
  * should not get a tinted backdrop behind them.
  */
@@ -31,7 +36,7 @@ fun AmbientArtworkLayer(
      * the neutral atmosphere used when nothing is playing.
      */
     artworkColor: Color? = null,
-    content: @Composable BoxScope.() -> Unit
+    content: @Composable BoxScope.() -> Unit = {}
 ) {
     val colors = Aurora.colors
     val reducedTransparency = LocalAccessibilityPreferences.current.reducedTransparency

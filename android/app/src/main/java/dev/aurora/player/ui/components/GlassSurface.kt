@@ -16,15 +16,17 @@ import com.kyant.backdrop.effects.vibrancy
 /**
  * Base AURORA glass material surface.
  *
- * Provides translucent background with the AURORA glass recipe.
- * Falls back to opaque surface when reduced transparency is active
- * or when the platform cannot composite efficiently.
+ * Translucent background with the AURORA glass recipe: the surface samples what is behind
+ * it, blurs and saturates it, then lays its own tint over the top. Material weight carries
+ * hierarchy, so the blur radius follows the level rather than being one shared value.
  *
- * Phase 1: Uses solid-with-alpha tint. Future phases add backdrop
- * blur when the artwork atmosphere system is implemented.
+ * Falls back to opaque when the user has asked for reduced transparency, or when a caller
+ * asks for it explicitly. Glass is never the only thing providing contrast: legibility over
+ * the composited surface is asserted in GlassContrastTest, and artwork bright enough to
+ * threaten it is handled by the scrim in AmbientArtworkLayer.
  *
- * @param level Glass depth level controlling opacity and tint
- * @param useOpaqueFallback Force opaque rendering for accessibility/performance
+ * @param level Glass depth level controlling tint opacity and blur radius
+ * @param useOpaqueFallback Force opaque rendering for a surface that cannot afford glass
  */
 enum class GlassLevel { Primary, Secondary, Elevated }
 
@@ -32,7 +34,7 @@ enum class GlassLevel { Primary, Secondary, Elevated }
 fun GlassSurface(
     modifier: Modifier = Modifier,
     level: GlassLevel = GlassLevel.Primary,
-    useOpaqueFallback: Boolean = true,
+    useOpaqueFallback: Boolean = false,
     shape: androidx.compose.ui.graphics.Shape = Aurora.shapes.card,
     content: @Composable BoxScope.() -> Unit,
 ) {

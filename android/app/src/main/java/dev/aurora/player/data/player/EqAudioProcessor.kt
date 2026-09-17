@@ -21,9 +21,22 @@ class EqAudioProcessor : BaseAudioProcessor(), dev.aurora.player.domain.audio.Au
         isEnabled = config.enabled
     }
 
-    override fun isActive(): Boolean {
-        return super.isActive() && isEnabled
+    private companion object {
+        /**
+         * Flip to true when real filters land.
+         *
+         * Until then this processor copies its input to its output and changes nothing, so
+         * being "active" buys a full buffer copy per callback and no audible difference.
+         * Worse, that copy is `outputBuffer.put(inputBuffer)`, which throws when Media3
+         * hands a processor a buffer that is already its own output - the same fault that
+         * stopped every untagged track from playing in NormalizationAudioProcessor.
+         */
+        const val FILTERING_IMPLEMENTED = false
     }
+
+    /** [isEnabled] is still honoured, so the user's setting is ready when filters exist. */
+    override fun isActive(): Boolean =
+        super.isActive() && FILTERING_IMPLEMENTED && isEnabled
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         return if (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT || inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT) {

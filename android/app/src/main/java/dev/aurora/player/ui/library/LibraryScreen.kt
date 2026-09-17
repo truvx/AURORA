@@ -275,9 +275,11 @@ fun LibraryScreen(
                                     .padding(spacing.space3),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Placeholder for Artwork in Track Row
                                 dev.aurora.player.ui.components.ArtworkSurface(
-                                    altText = "Album art",
+                                    // Named, so a screen reader announces which album's art
+                                    // this is rather than "Album art" on every row.
+                                    altText = "${item.title} artwork",
+                                    artworkUri = item.artworkUri,
                                     modifier = Modifier.height(48.dp)
                                 )
                                 Column(

@@ -30,16 +30,28 @@ class NormalizationAudioProcessor : BaseAudioProcessor() {
         }
     }
 
+    /**
+     * Applies the gain sample by sample.
+     *
+     * There is deliberately no fast path for a gain of exactly 1. The previous one did
+     * `replaceOutputBuffer(size).put(inputBuffer)`, and Media3 can hand a processor a buffer
+     * that is already its own output buffer - `put` then throws "The source buffer is this
+     * buffer" and the renderer reports an unexplained "Unexpected runtime error".
+     *
+     * That path ran for every track *without* ReplayGain metadata, which is most music, so
+     * nothing but the one tagged test file could be played. It survived because that tagged
+     * file was what verification used.
+     *
+     * The loop below is safe whether or not the buffers alias: it reads at an absolute index
+     * that is never behind the sequential write position, so a value is always read before
+     * anything can overwrite it. A multiply per sample is a rounding error next to the codec
+     * that produced them; if a real fast path is ever wanted it belongs in `isActive`, not
+     * here, so that Media3 skips this processor entirely.
+     */
     override fun queueInput(inputBuffer: ByteBuffer) {
         val position = inputBuffer.position()
         val limit = inputBuffer.limit()
         val size = limit - position
-
-        if (linearGain == 1.0f) {
-            // Passthrough if no gain is applied
-            replaceOutputBuffer(size).put(inputBuffer).flip()
-            return
-        }
 
         val outputBuffer = replaceOutputBuffer(size)
 
@@ -66,9 +78,13 @@ class NormalizationAudioProcessor : BaseAudioProcessor() {
                 }
                 inputBuffer.position(limit)
             }
-            else -> {
-                outputBuffer.put(inputBuffer)
-            }
+            else -> throw IllegalStateException(
+                // Unreachable: onConfigure returns NOT_SET for anything else, so Media3
+                // never configures this processor with an encoding it cannot handle. Stated
+                // rather than silently copied, because a silent copy here would pass
+                // untouched audio through a processor whose whole job is to change it.
+                "Unsupported PCM encoding ${inputAudioFormat.encoding} reached the processor"
+            )
         }
 
         outputBuffer.flip()

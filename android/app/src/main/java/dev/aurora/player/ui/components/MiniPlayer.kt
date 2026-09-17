@@ -195,12 +195,18 @@ fun MiniPlayer(
                 ) {
                     ArtworkSurface(
                         altText = "${currentTrack.title} artwork",
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        if (currentTrack.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) {
-                            YouTubePlayerSurface(modifier = Modifier.fillMaxSize())
+                        artworkUri = currentTrack.artworkUri,
+                        modifier = Modifier.size(48.dp),
+                        // Only YouTube supplies its own surface. Passing a lambda
+                        // unconditionally - which is what a trailing block does - made the
+                        // content branch always win, so local artwork could never draw and
+                        // every non-YouTube track showed an empty square.
+                        content = if (currentTrack.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) {
+                            { YouTubePlayerSurface(modifier = Modifier.fillMaxSize()) }
+                        } else {
+                            null
                         }
-                    }
+                    )
 
                     Spacer(modifier = Modifier.width(Aurora.spacing.space4))
 

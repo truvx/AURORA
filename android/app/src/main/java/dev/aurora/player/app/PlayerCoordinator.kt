@@ -56,7 +56,29 @@ class PlayerCoordinator(
     private fun loadTrack(track: dev.aurora.player.domain.models.MediaItem, playWhenReady: Boolean) {
         Log.d(TAG, "loadTrack: id=${track.id}, title=${track.title}, provider=${track.provider}, playWhenReady=$playWhenReady")
         targetPlayIntent = playWhenReady
-        _state.update { it.copy(status = PlaybackStatus.Loading, currentTrack = track) }
+        _state.update { current ->
+            // A directly loaded track must exist in the queue. Without this, skipNext()
+            // returns at its empty-queue guard when the track ends, so the player never
+            // reaches Completed, history never records a completion, and no queue snapshot
+            // is ever written.
+            val existingIndex = current.queue.items.indexOfFirst { it.id == track.id }
+            val queue = if (existingIndex >= 0) {
+                // Already queued: select it rather than adding a duplicate.
+                current.queue.copy(currentIndex = existingIndex)
+            } else {
+                // Load replaces the queue; AddToQueue is the command that appends.
+                current.queue.copy(
+                    items = listOf(track),
+                    currentIndex = 0,
+                    shuffledOrder = emptyList()
+                )
+            }
+            current.copy(
+                status = PlaybackStatus.Loading,
+                currentTrack = track,
+                queue = queue
+            )
+        }
         scope.launch {
             val uri = resolver.resolveUri(track.id)
             val loudnessData = resolver.resolveLoudness(track.id)
@@ -366,15 +388,16 @@ class PlayerCoordinator(
             }
             is EngineEvent.Paused -> {
                 Log.d(TAG, "Engine PAUSED -> PlaybackStatus.Paused")
-                _state.update { it.copy(status = PlaybackStatus.Paused) }
+                applySettledStatus(PlaybackStatus.Paused)
             }
             is EngineEvent.BufferingChanged -> {
                 Log.d(TAG, "Engine BufferingChanged: isBuffering=${event.isBuffering}")
                 if (event.isBuffering) {
                     _state.update { it.copy(status = PlaybackStatus.Buffering) }
                 } else {
-                    val status = if (targetPlayIntent) PlaybackStatus.Playing else PlaybackStatus.Paused
-                    _state.update { it.copy(status = status) }
+                    applySettledStatus(
+                        if (targetPlayIntent) PlaybackStatus.Playing else PlaybackStatus.Paused
+                    )
                 }
             }
             is EngineEvent.PositionChanged -> {
@@ -428,6 +451,27 @@ class PlayerCoordinator(
             is EngineEvent.Error -> {
                 Log.e(TAG, "Engine ERROR: ${event.error}")
                 _state.update { it.copy(status = PlaybackStatus.Error, lastError = event.error) }
+            }
+        }
+    }
+
+    /**
+     * Applies a status that reflects the engine settling, unless playback already reached a
+     * terminal state.
+     *
+     * Media3 emits BufferingChanged(false) - and, depending on the adapter, Paused -
+     * immediately after TrackCompleted. Letting either overwrite Completed reset the status
+     * about a millisecond after it was set, so nothing observing this conflated StateFlow
+     * ever saw the completion, and finished tracks were never recorded in listening history.
+     *
+     * Started is deliberately not routed through here: it means playback genuinely resumed.
+     */
+    private fun applySettledStatus(status: PlaybackStatus) {
+        _state.update {
+            if (it.status == PlaybackStatus.Completed || it.status == PlaybackStatus.Error) {
+                it
+            } else {
+                it.copy(status = status)
             }
         }
     }

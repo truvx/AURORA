@@ -1,0 +1,27 @@
+.visible {
+  display: block;
+  margin: 0 var(--aurora-space-3);
+}
+
+/*
+ * Collapsed, not removed: destroying the host element would tear down the IFrame player.
+ * This is never used to keep a YouTube video playing out of sight - playback surfaces only
+ * while the player is visible.
+ */
+.hidden {
+  display: none;
+}
+
+.player {
+  width: 100%;
+  /* 16:9, so the official player keeps its own proportions and controls stay usable. */
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.attribution {
+  margin: var(--aurora-space-2) 0 0;
+  font-size: 0.8125rem;
+  color: var(--aurora-text-secondary);
+}

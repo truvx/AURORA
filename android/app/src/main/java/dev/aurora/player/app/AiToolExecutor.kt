@@ -35,6 +35,19 @@ class AiToolExecutor(
      */
     suspend fun executeTool(toolCall: AiToolCall): List<RecommendationCandidate> {
         return when (toolCall.name) {
+            "findSimilarMusic" -> {
+                // Declared to the model in web/lib/ai/tools.ts. The reference is resolved
+                // through a provider first, so an invented id yields nothing rather than
+                // seeding recommendations from a track that does not exist.
+                val referenceId = toolCall.args["referenceTrackId"]?.jsonPrimitive?.content
+                    ?: return emptyList()
+                val reference = resolveItem(referenceId) ?: return emptyList()
+
+                recommendationEngine.getRecommendations(
+                    query = listOfNotNull(reference.artist, reference.title).joinToString(" "),
+                    mood = toolCall.args["mood"]?.jsonPrimitive?.content
+                )
+            }
             "searchMusic", "recommendMusic" -> {
                 val query = toolCall.args["query"]?.jsonPrimitive?.content ?: ""
                 val mood = toolCall.args["mood"]?.jsonPrimitive?.content

@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import dev.aurora.player.ui.artwork.rememberArtworkPalette
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,10 +31,30 @@ fun NowPlayingScreen(
     
     val currentTrack = state.currentTrack
 
+    /*
+     * The player carries the artwork's own atmosphere rather than a flat canvas.
+     *
+     * This is the most artwork-forward screen in the app, and it sits above the shell, so a
+     * plain opaque background painted straight over the ambient layer - which is what it had
+     * - hid exactly the thing the glass elsewhere exists to show. Still opaque, because the
+     * screen behind it is a different task and should not read through.
+     */
+    val palette by rememberArtworkPalette(currentTrack?.artworkUri)
+
+    AmbientArtworkLayer(
+        modifier = modifier.fillMaxSize(),
+        artworkColor = palette
+    ) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .background(Aurora.colors.backgroundPrimary)
+            /*
+             * This is drawn over the shell rather than inside the Scaffold, so it gets none
+             * of the Scaffold's inset handling and has to ask for its own. Without it the
+             * close and queue controls sit underneath the system status bar, where they are
+             * visible but unreachable - the status bar takes the touches.
+             */
+            .systemBarsPadding()
             .padding(Aurora.spacing.space6),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -71,14 +92,17 @@ fun NowPlayingScreen(
         // Artwork
         ArtworkSurface(
             altText = "${currentTrack?.title ?: "No track"} artwork",
+            artworkUri = currentTrack?.artworkUri,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Aurora.spacing.space4)
-        ) {
-            if (currentTrack?.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) {
-                YouTubePlayerSurface(modifier = Modifier.fillMaxSize())
+                .padding(horizontal = Aurora.spacing.space4),
+            // Only YouTube brings its own surface; everything else shows its cover.
+            content = if (currentTrack?.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) {
+                { YouTubePlayerSurface(modifier = Modifier.fillMaxSize()) }
+            } else {
+                null
             }
-        }
+        )
 
         Spacer(modifier = Modifier.height(Aurora.spacing.space10))
 
@@ -196,5 +220,6 @@ fun NowPlayingScreen(
         }
         
         Spacer(modifier = Modifier.weight(1f))
+    }
     }
 }

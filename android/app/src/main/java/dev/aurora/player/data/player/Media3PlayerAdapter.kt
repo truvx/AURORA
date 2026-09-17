@@ -20,11 +20,16 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.common.audio.AudioProcessor
+import androidx.media3.common.util.UnstableApi
 
+// Media3's audio-processing and renderer APIs are annotated @UnstableApi. This class is
+// built directly on them, so the opt-in is deliberate and scoped to this file rather than
+// enabled module-wide, which would silently cover future code too.
+@androidx.annotation.OptIn(markerClass = [UnstableApi::class])
 class Media3PlayerAdapter(
     context: Context,
     private val scope: CoroutineScope
-) : PlayerAdapter {
+) : PlayerAdapter, Media3PlayerOwner {
 
     val normalizationProcessor = NormalizationAudioProcessor()
     val eqProcessor = EqAudioProcessor()
@@ -54,6 +59,8 @@ class Media3PlayerAdapter(
         )
         .setHandleAudioBecomingNoisy(true)
         .build()
+
+    override val sessionPlayer: ExoPlayer get() = exoPlayer
 
     private val _events = MutableSharedFlow<EngineEvent>(extraBufferCapacity = 64)
     override val events: Flow<EngineEvent> = _events

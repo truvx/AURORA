@@ -1,0 +1,140 @@
+/* Padding belongs to the shell's main region; repeating it here inset the content twice. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-4);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--aurora-space-3);
+}
+
+.primaryButton,
+.secondaryButton {
+  min-height: 44px;
+  padding: 0 var(--aurora-space-4);
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.primaryButton {
+  border: none;
+  background: var(--aurora-accent-primary);
+  color: #0b0b0b;
+}
+
+.secondaryButton {
+  border: 1px solid var(--aurora-border-control);
+  background: transparent;
+  color: var(--aurora-text-primary);
+}
+
+.primaryButton:focus-visible,
+.secondaryButton:focus-visible,
+.trackRow:focus-visible {
+  outline: 2px solid var(--aurora-accent-primary);
+  outline-offset: 2px;
+}
+
+.status {
+  margin: 0;
+  color: var(--aurora-text-secondary);
+}
+
+.trackList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-2);
+}
+
+.trackRow {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--aurora-space-3);
+  padding: var(--aurora-space-3);
+  border: 1px solid var(--aurora-border-control);
+  border-radius: 12px;
+  background: var(--aurora-surface-glass-secondary);
+  color: var(--aurora-text-primary);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.trackRow:hover {
+  background: var(--aurora-surface-glass-elevated);
+}
+
+/* The text column beside the cover. min-width:0 lets long titles ellipsise rather than
+   forcing the row wider than its container. */
+.trackText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.trackTitle {
+  font-weight: var(--aurora-vibrancy-weight-bump);
+}
+
+.trackArtist {
+  font-size: 0.875rem;
+  color: var(--aurora-text-secondary);
+}
+
+.filters {
+  display: flex;
+  gap: var(--aurora-space-2);
+  /* Four view names do not fit on a phone, and a control pushed off-screen is unreachable
+     - there is no horizontal scroll here to recover it with. */
+  flex-wrap: wrap;
+}
+
+.trackItem {
+  display: flex;
+  align-items: stretch;
+  gap: var(--aurora-space-2);
+}
+
+.trackItem .trackRow {
+  flex: 1;
+}
+
+.favoriteButton {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--aurora-border-control);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--aurora-text-secondary);
+  cursor: pointer;
+}
+
+.favoriteButton[aria-pressed="true"] {
+  color: var(--aurora-accent-primary);
+}
+
+.favoriteButton:focus-visible {
+  outline: 2px solid var(--aurora-accent-primary);
+  outline-offset: 2px;
+}
+
+.pickerTitle {
+  margin: 0 0 var(--aurora-space-2);
+  font-size: 1rem;
+  font-weight: 500;
+}

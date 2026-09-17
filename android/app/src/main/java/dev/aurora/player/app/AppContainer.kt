@@ -12,6 +12,7 @@ import dev.aurora.player.data.providers.YouTubeMusicProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 interface AppContainer {
     val database: AuroraDatabase
@@ -23,6 +24,13 @@ interface AppContainer {
     val playerAdapter: PlayerAdapter
     val playerCoordinator: PlayerCoordinator
     val localLibraryProvider: dev.aurora.player.data.providers.LocalLibraryProvider
+    val libraryOrganizationRepository: dev.aurora.player.domain.library.LibraryOrganizationRepository
+
+    /**
+     * Starts observing playback to record history, resume positions, and queue snapshots,
+     * and restores the previous queue. Safe to call once from Application.onCreate.
+     */
+    fun startPlaybackPersistence()
     val aiProvider: dev.aurora.player.domain.ai.AiProvider
     val recommendationEngine: dev.aurora.player.domain.recommendations.RecommendationEngine
     val aiToolExecutor: AiToolExecutor
@@ -36,7 +44,12 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             context,
             AuroraDatabase::class.java,
             "aurora-database"
-        ).addMigrations(AuroraDatabase.MIGRATION_1_2, AuroraDatabase.MIGRATION_2_3)
+        ).addMigrations(
+            AuroraDatabase.MIGRATION_1_2,
+            AuroraDatabase.MIGRATION_2_3,
+            AuroraDatabase.MIGRATION_3_4,
+            AuroraDatabase.MIGRATION_4_5
+        )
          .build()
     }
 
@@ -85,6 +98,13 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         )
     }
 
+    override val libraryOrganizationRepository: dev.aurora.player.domain.library.LibraryOrganizationRepository by lazy {
+        dev.aurora.player.data.library.RoomLibraryOrganizationRepository(
+            database.libraryOrganizationDao(),
+            localLibraryDao
+        )
+    }
+
     override val aiProvider: dev.aurora.player.domain.ai.AiProvider by lazy {
         val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
         val contentType = okhttp3.MediaType.get("application/json")
@@ -118,5 +138,29 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             recommendationEngine = recommendationEngine,
             providers = listOf(localLibraryProvider, youtubeMusicProvider)
         )
+    }
+
+    private var persistenceStarted = false
+
+    override fun startPlaybackPersistence() {
+        if (persistenceStarted) return
+        persistenceStarted = true
+
+        applicationScope.launch {
+            // Restore first, so the recorder does not immediately snapshot an empty queue
+            // over the one we are about to put back.
+            runCatching {
+                QueueRestorer(
+                    libraryOrganizationRepository,
+                    listOf(localLibraryProvider, youtubeMusicProvider)
+                ).restore(playerCoordinator)
+            }
+
+            // History must never be able to break playback, so failures here are contained.
+            runCatching {
+                PlaybackHistoryRecorder(libraryOrganizationRepository)
+                    .observe(playerCoordinator.state)
+            }
+        }
     }
 }

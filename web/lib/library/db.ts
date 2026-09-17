@@ -1,0 +1,175 @@
+/**
+ * IndexedDB schema for the web client.
+ *
+ * Stores bounded metadata only. Audio bytes are never written here: the directory handle
+ * lets us re-open the real files on demand, so a large library costs kilobytes of metadata
+ * rather than gigabytes of duplicated audio (docs/WEB_ARCHITECTURE.md).
+ */
+
+export const DB_NAME = "aurora";
+export const DB_VERSION = 3;
+
+export const STORE_TRACKS = "tracks";
+export const STORE_HANDLES = "handles";
+export const STORE_SETTINGS = "settings";
+export const STORE_FAVORITES = "favorites";
+export const STORE_PLAYLISTS = "playlists";
+export const STORE_PLAYLIST_ENTRIES = "playlistEntries";
+export const STORE_HISTORY = "listeningEvents";
+export const STORE_RESUME = "resumePositions";
+
+export interface StoredTrack {
+  /** Stable within a library: the file's path relative to the chosen directory. */
+  id: string;
+  title: string;
+  artist?: string;
+  album?: string;
+  /** Path segments from the chosen root, used to re-open the file. */
+  path: string[];
+  fileName: string;
+  sizeBytes: number;
+  lastModified: number;
+  mimeType?: string;
+  durationMs?: number;
+  addedAt: number;
+}
+
+export interface FavoriteEntry {
+  /** Track id; presence in this store means favorited. */
+  mediaId: string;
+  addedAt: number;
+}
+
+export interface StoredPlaylist {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface StoredPlaylistEntry {
+  /** Stable and independent of position, so reordering never invalidates a reference. */
+  entryId: string;
+  playlistId: string;
+  mediaId: string;
+  position: number;
+  addedAt: number;
+}
+
+export type ListeningEventKind = "PLAY" | "SKIP" | "COMPLETE";
+
+export interface ListeningEvent {
+  eventId?: number;
+  mediaId: string;
+  provider: string;
+  timestamp: number;
+  sessionId: string;
+  kind: ListeningEventKind;
+  progressMs: number;
+}
+
+export interface ResumePosition {
+  /** Keyed by provider and media id, never by title - two recordings are not one track. */
+  key: string;
+  provider: string;
+  mediaId: string;
+  positionMs: number;
+  durationMs?: number;
+  updatedAt: number;
+}
+
+export function resumeKey(provider: string, mediaId: string): string {
+  return `${provider}::${mediaId}`;
+}
+
+export function openDatabase(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === "undefined") {
+      reject(new Error("This browser has no IndexedDB, so the library cannot be saved."));
+      return;
+    }
+
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_TRACKS)) {
+        const tracks = db.createObjectStore(STORE_TRACKS, { keyPath: "id" });
+        tracks.createIndex("album", "album", { unique: false });
+        tracks.createIndex("artist", "artist", { unique: false });
+        tracks.createIndex("addedAt", "addedAt", { unique: false });
+      }
+      // Directory handles are structured-cloneable, so the chosen folder survives reloads
+      // and the user is not asked to pick it again every session.
+      if (!db.objectStoreNames.contains(STORE_HANDLES)) {
+        db.createObjectStore(STORE_HANDLES);
+      }
+      if (!db.objectStoreNames.contains(STORE_SETTINGS)) {
+        db.createObjectStore(STORE_SETTINGS);
+      }
+      // v2: favorites and playlists, mirroring the Android Phase 10 contract. Additive, so
+      // an existing library survives the upgrade untouched.
+      if (!db.objectStoreNames.contains(STORE_FAVORITES)) {
+        db.createObjectStore(STORE_FAVORITES, { keyPath: "mediaId" });
+      }
+      if (!db.objectStoreNames.contains(STORE_PLAYLISTS)) {
+        const playlists = db.createObjectStore(STORE_PLAYLISTS, { keyPath: "id" });
+        playlists.createIndex("updatedAt", "updatedAt", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_PLAYLIST_ENTRIES)) {
+        const entries = db.createObjectStore(STORE_PLAYLIST_ENTRIES, { keyPath: "entryId" });
+        entries.createIndex("playlistId", "playlistId", { unique: false });
+      }
+      // v3: listening history and resume positions. History is private, append-only, bounded
+      // by retention, and never required for playback - deleting it all must leave the
+      // player fully working.
+      if (!db.objectStoreNames.contains(STORE_HISTORY)) {
+        const history = db.createObjectStore(STORE_HISTORY, {
+          keyPath: "eventId",
+          autoIncrement: true,
+        });
+        history.createIndex("timestamp", "timestamp", { unique: false });
+        history.createIndex("mediaId", "mediaId", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_RESUME)) {
+        db.createObjectStore(STORE_RESUME, { keyPath: "key" });
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () =>
+      reject(request.error ?? new Error("The library database could not be opened"));
+  });
+}
+
+export function runTransaction<T>(
+  db: IDBDatabase,
+  storeNames: string | string[],
+  mode: IDBTransactionMode,
+  work: (stores: IDBObjectStore[]) => IDBRequest<T> | void
+): Promise<T | undefined> {
+  return new Promise((resolve, reject) => {
+    const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+    const transaction = db.transaction(names, mode);
+    const stores = names.map((name) => transaction.objectStore(name));
+
+    let request: IDBRequest<T> | void;
+    try {
+      request = work(stores);
+    } catch (error) {
+      transaction.abort();
+      reject(error);
+      return;
+    }
+
+    transaction.oncomplete = () => resolve(request ? request.result : undefined);
+    transaction.onerror = () =>
+      reject(transaction.error ?? new Error("The library database write failed"));
+    // Quota exhaustion surfaces as an abort; saying so is better than a silent no-op.
+    transaction.onabort = () =>
+      reject(
+        transaction.error ??
+          new Error("The library database ran out of space or the write was cancelled")
+      );
+  });
+}

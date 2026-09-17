@@ -8,39 +8,85 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import dev.aurora.player.ui.accessibility.LocalAccessibilityPreferences
 import dev.aurora.player.ui.theme.Aurora
+import dev.aurora.player.ui.theme.ContrastScrim
 
 /**
- * Provides the environmental backdrop for the AURORA application.
+ * The environmental backdrop everything else floats above.
  *
- * In future phases, this will observe the current playback state and
- * render the heavily blurred album artwork.
+ * Implements the design system's stack: canvas, artwork atmosphere, contrast-protecting
+ * scrim, then glass. The scrim is the part that makes translucency safe - measured against
+ * the backdrop rather than fixed, because a value strong enough for a white album cover
+ * would needlessly crush a dark one.
  *
- * For now, it renders an atmospheric gradient that simulates the lighting
- * of an empty state, setting the visual foundation for the Liquid Glass
- * surfaces floating above it.
+ * This is the layer the glass samples, so it must not contain any glass itself: a backdrop
+ * that includes the surfaces reading from it recurses forever when the render tree is
+ * prepared. [content] is for things that genuinely belong *in* the atmosphere, and is empty
+ * by default - the app's own UI is drawn as a sibling above this, not inside it.
+ *
+ * Reduced transparency skips the atmosphere entirely: a user asking for plainer surfaces
+ * should not get a tinted backdrop behind them.
  */
 @Composable
 fun AmbientArtworkLayer(
     modifier: Modifier = Modifier,
-    content: @Composable BoxScope.() -> Unit
+    /**
+     * Dominant colour of the current artwork, once palette extraction exists. Null renders
+     * the neutral atmosphere used when nothing is playing.
+     */
+    artworkColor: Color? = null,
+    content: @Composable BoxScope.() -> Unit = {}
 ) {
     val colors = Aurora.colors
+    val reducedTransparency = LocalAccessibilityPreferences.current.reducedTransparency
 
-    // Placeholder simulated ambient environment
-    val ambientGradient = Brush.radialGradient(
-        colors = listOf(
-            colors.accentSecondary.copy(alpha = 0.15f), // Inner subtle glow
-            colors.backgroundPrimary // Fade out to primary background
-        ),
-        radius = 1500f
-    )
+    val backdrop = artworkColor ?: colors.backgroundPrimary
+
+    // Measured against the real composite the user will see, so the guarantee holds for
+    // artwork the app has never seen before.
+    val scrimAlpha = if (artworkColor == null) {
+        0f
+    } else {
+        ContrastScrim.requiredAlpha(
+            foreground = colors.textPrimary,
+            backdrop = backdrop,
+            glass = colors.surfaceGlassPrimary
+        )
+    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(colors.backgroundPrimary)
-            .background(ambientGradient)
+            .then(
+                if (reducedTransparency || artworkColor == null) {
+                    // No artwork to protect: keep the existing neutral atmosphere, which is
+                    // already measured as legible by ContrastTest.
+                    Modifier.background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                colors.accentSecondary.copy(
+                                    alpha = if (reducedTransparency) 0f else 0.15f
+                                ),
+                                colors.backgroundPrimary
+                            ),
+                            radius = 1500f
+                        )
+                    )
+                } else {
+                    Modifier
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(backdrop.copy(alpha = 0.55f), colors.backgroundPrimary),
+                                radius = 1500f
+                            )
+                        )
+                        // Sits between artwork and glass, exactly where the design system
+                        // places it in the stack.
+                        .background(Color.Black.copy(alpha = scrimAlpha))
+                }
+            )
     ) {
         content()
     }

@@ -1,0 +1,6 @@
+# Release signing (optional). Without these, assembleRelease produces an unsigned APK
+# rather than silently falling back to the debug key.
+# RELEASE_STORE_FILE=/absolute/path/to/aurora-release.jks
+# RELEASE_STORE_PASSWORD=
+# RELEASE_KEY_ALIAS=aurora
+# RELEASE_KEY_PASSWORD=

@@ -16,5 +16,8 @@ class AuroraApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = DefaultAppContainer(this)
+        // Restores the previous queue and begins recording listening history, resume
+        // positions, and queue snapshots. All local and private; see docs/SECURITY.md.
+        container.startPlaybackPersistence()
     }
 }

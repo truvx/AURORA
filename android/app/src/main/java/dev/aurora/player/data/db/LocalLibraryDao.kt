@@ -71,6 +71,47 @@ interface LocalLibraryDao {
     @Query("SELECT * FROM media_items WHERE provider = 'LOCAL'")
     suspend fun getLocalItems(): List<MediaItemWithDetails>
 
+    /**
+     * A page of the library, ordered stably so paging cannot skip or repeat a row.
+     *
+     * docs/PERFORMANCE_BUDGET.md forbids loading a whole library into memory; the unpaged
+     * queries above remain only for scan reconciliation, which genuinely needs every row.
+     */
+    @Transaction
+    @Query(
+        "SELECT * FROM media_items WHERE provider = 'LOCAL' " +
+            "ORDER BY title ASC, id ASC LIMIT :limit OFFSET :offset"
+    )
+    suspend fun getLocalItemsPage(limit: Int, offset: Int): List<MediaItemWithDetails>
+
+    @Query("SELECT COUNT(*) FROM media_items WHERE provider = 'LOCAL'")
+    suspend fun countLocalItems(): Int
+
+    /**
+     * Search executed in SQL rather than by filtering a full-library read in memory.
+     *
+     * The previous implementation loaded every row and filtered in Kotlin, which is the
+     * full-library load the budget rules out and gets slower with every track added.
+     */
+    @Transaction
+    @Query(
+        "SELECT * FROM media_items WHERE provider = 'LOCAL' " +
+            "AND title LIKE '%' || :query || '%' " +
+            "ORDER BY title ASC, id ASC LIMIT :limit"
+    )
+    suspend fun searchLocalItems(query: String, limit: Int): List<MediaItemWithDetails>
+
+    /** Artist lives in a joined table, so matching it needs its own bounded query. */
+    @Transaction
+    @Query(
+        "SELECT media_items.* FROM media_items " +
+            "INNER JOIN media_item_artist_cross_ref ON media_items.id = media_item_artist_cross_ref.mediaId " +
+            "INNER JOIN artists ON artists.id = media_item_artist_cross_ref.artistId " +
+            "WHERE media_items.provider = 'LOCAL' AND artists.name LIKE '%' || :query || '%' " +
+            "ORDER BY media_items.title ASC, media_items.id ASC LIMIT :limit"
+    )
+    suspend fun searchLocalItemsByArtist(query: String, limit: Int): List<MediaItemWithDetails>
+
     @Query("SELECT * FROM local_files WHERE mediaId = :mediaId LIMIT 1")
     suspend fun getLocalFileForMedia(mediaId: String): LocalFileEntity?
 

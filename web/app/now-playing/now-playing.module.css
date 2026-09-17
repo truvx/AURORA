@@ -1,0 +1,118 @@
+/* Padding belongs to the shell's main region; repeating it here inset the content twice. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-4);
+}
+
+/* Small, quiet, and above the subject: context, not the headline. */
+.eyebrow {
+  margin: 0;
+  font-size: var(--aurora-type-label-size);
+  line-height: var(--aurora-type-label-line);
+  font-weight: var(--aurora-type-label-weight);
+  letter-spacing: var(--aurora-type-label-tracking);
+  color: var(--aurora-text-secondary);
+}
+
+.title {
+  margin: 0;
+  /*
+   * The display role, with the negative tracking that goes with type this size: letters
+   * read too far apart as they grow, so the largest text on the screen is the one that
+   * needs tightening most.
+   */
+  font-size: var(--aurora-type-display-size);
+  line-height: var(--aurora-type-display-line);
+  font-weight: var(--aurora-type-display-weight);
+  letter-spacing: var(--aurora-type-display-tracking);
+  color: var(--aurora-text-primary);
+  /* Long titles wrap rather than overflow the card. */
+  overflow-wrap: anywhere;
+}
+
+.artist {
+  margin: var(--aurora-space-1) 0 0;
+  font-size: var(--aurora-type-title-size);
+  line-height: var(--aurora-type-title-line);
+  letter-spacing: var(--aurora-type-title-tracking);
+  color: var(--aurora-text-secondary);
+}
+
+.secondary {
+  margin: 0;
+  color: var(--aurora-text-secondary);
+}
+
+.status {
+  margin: var(--aurora-space-3) 0 0;
+  color: var(--aurora-text-secondary);
+}
+
+.queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-2);
+}
+
+.queueRow {
+  display: flex;
+  align-items: stretch;
+  gap: var(--aurora-space-2);
+}
+
+.queueButton {
+  flex: 1;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0 var(--aurora-space-3);
+  padding: var(--aurora-space-3);
+  border: 1px solid var(--aurora-border-control);
+  border-radius: 12px;
+  background: var(--aurora-surface-glass-secondary);
+  color: var(--aurora-text-primary);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.queueButton[aria-current="true"] {
+  /* Paired with the ▶ marker so the current track is not signalled by colour alone. */
+  border-color: var(--aurora-accent-primary);
+}
+
+.queueIndex {
+  grid-row: 1 / span 2;
+  text-align: center;
+  color: var(--aurora-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.queueTitle {
+  font-weight: 500;
+}
+
+.removeButton {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--aurora-border-control);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--aurora-text-secondary);
+  cursor: pointer;
+}
+
+.queueButton:focus-visible,
+.removeButton:focus-visible {
+  outline: 2px solid var(--aurora-accent-primary);
+  outline-offset: 2px;
+}

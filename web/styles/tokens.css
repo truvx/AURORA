@@ -39,6 +39,11 @@
   --aurora-control-on-primary: var(--aurora-neutral-0);
   --aurora-focus-ring: rgba(8, 126, 155, 0.56);
   --aurora-divider-subtle: rgba(210, 214, 222, 0.24);
+  /*
+   * Control outlines, not decoration: a row or input whose only boundary is this line
+   * needs WCAG 1.4.11's 3:1, which --aurora-divider-subtle is far too faint to give.
+   */
+  --aurora-border-control: rgba(96, 104, 117, 0.42);
   --aurora-player-bg: var(--aurora-neutral-10);
   --aurora-player-control: var(--aurora-neutral-90);
   --aurora-player-progress: var(--aurora-accent-cyan);
@@ -55,41 +60,62 @@
   /* ──────────────── Typography ──────────────── */
   --aurora-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
+  /*
+   * Tracking is size-specific, never one value for every role. Letters read too far apart
+   * as type grows, so display tightens; small text needs a little air to stay legible, so
+   * caption opens up. A single letter-spacing would be wrong at one end or the other.
+   */
   --aurora-type-display-size: 2.5rem;     /* 40px */
   --aurora-type-display-line: 2.875rem;   /* 46px */
   --aurora-type-display-weight: 700;
+  --aurora-type-display-tracking: -0.022em;
 
   --aurora-type-headline-size: 1.875rem;  /* 30px */
   --aurora-type-headline-line: 2.25rem;   /* 36px */
   --aurora-type-headline-weight: 700;
+  --aurora-type-headline-tracking: -0.016em;
 
   --aurora-type-title-size: 1.375rem;     /* 22px */
   --aurora-type-title-line: 1.75rem;      /* 28px */
   --aurora-type-title-weight: 600;
+  --aurora-type-title-tracking: -0.009em;
 
   --aurora-type-body-size: 1rem;          /* 16px */
   --aurora-type-body-line: 1.5rem;        /* 24px */
   --aurora-type-body-weight: 400;
+  --aurora-type-body-tracking: 0em;
 
   --aurora-type-label-size: 0.875rem;     /* 14px */
   --aurora-type-label-line: 1.25rem;      /* 20px */
   --aurora-type-label-weight: 600;
+  --aurora-type-label-tracking: 0.006em;
 
   --aurora-type-caption-size: 0.75rem;    /* 12px */
   --aurora-type-caption-line: 1rem;       /* 16px */
   --aurora-type-caption-weight: 400;
+  --aurora-type-caption-tracking: 0.014em;
 
-  /* ──────────────── Spacing (4-unit rhythm) ──────────────── */
-  --aurora-space-1: 4px;
-  --aurora-space-2: 8px;
-  --aurora-space-3: 12px;
-  --aurora-space-4: 16px;
-  --aurora-space-5: 20px;
-  --aurora-space-6: 24px;
-  --aurora-space-8: 32px;
-  --aurora-space-10: 40px;
-  --aurora-space-12: 48px;
-  --aurora-space-16: 64px;
+  /*
+   * Text sitting on a translucent surface loses definition against whatever moves behind
+   * it. A touch more weight and tracking buys that definition back without a heavier scrim.
+   */
+  --aurora-vibrancy-weight-bump: 500;
+  --aurora-vibrancy-tracking-bump: 0.008em;
+
+  /*
+   * Spacing (4-unit rhythm), in rem so the layout grows with the user's text-size setting
+   * instead of staying fixed while the type around it grows.
+   */
+  --aurora-space-1: 0.25rem;
+  --aurora-space-2: 0.5rem;
+  --aurora-space-3: 0.75rem;
+  --aurora-space-4: 1rem;
+  --aurora-space-5: 1.25rem;
+  --aurora-space-6: 1.5rem;
+  --aurora-space-8: 2rem;
+  --aurora-space-10: 2.5rem;
+  --aurora-space-12: 3rem;
+  --aurora-space-16: 4rem;
 
   /* ──────────────── Shape ──────────────── */
   --aurora-radius-control: 12px;
@@ -98,11 +124,26 @@
   --aurora-radius-dialog: 24px;
   --aurora-radius-artwork: 16px;
 
-  /* ──────────────── Depth / Glass ──────────────── */
+  /*
+   * Depth / Glass
+   *
+   * Material weight encodes hierarchy, and a bigger surface has to read as a thicker piece
+   * of glass than a small chip: blur and shadow scale together with the surface, they are
+   * not one shared value. Saturation is what stops a blurred backdrop going grey and makes
+   * the layer read as glass rather than as frosted plastic.
+   */
   --aurora-blur-none: 0px;
   --aurora-blur-subtle: 8px;
   --aurora-blur-surface: 16px;
-  --aurora-blur-floating: 24px;
+  --aurora-blur-floating: 28px;
+  --aurora-glass-saturation: 180%;
+
+  /* Light catching the top edge of a real pane. */
+  --aurora-glass-edge: rgba(255, 255, 255, 0.5);
+
+  --aurora-shadow-chip: 0 1px 2px rgba(15, 20, 28, 0.08);
+  --aurora-shadow-card: 0 4px 16px rgba(15, 20, 28, 0.10);
+  --aurora-shadow-floating: 0 12px 40px rgba(15, 20, 28, 0.18);
 
   /* ──────────────── Motion ──────────────── */
   --aurora-duration-instant: 80ms;
@@ -150,6 +191,7 @@
   --aurora-control-on-primary: var(--aurora-neutral-0);
   --aurora-focus-ring: rgba(102, 217, 242, 0.56);
   --aurora-divider-subtle: rgba(54, 59, 70, 0.24);
+  --aurora-border-control: rgba(167, 175, 189, 0.44);
   --aurora-player-bg: var(--aurora-neutral-10);
   --aurora-player-control: var(--aurora-neutral-90);
   --aurora-player-progress: var(--aurora-accent-cyan);
@@ -160,4 +202,39 @@
   --aurora-glass-tint: rgba(27, 30, 37, 0.16);
   --aurora-glass-highlight: rgba(54, 59, 70, 0.20);
   --aurora-glass-scrim: rgba(0, 0, 0, 0.40);
+
+  --aurora-glass-edge: rgba(255, 255, 255, 0.12);
+
+  /* Shadows carry further on a dark canvas before they read as separation at all. */
+  --aurora-shadow-chip: 0 1px 2px rgba(0, 0, 0, 0.36);
+  --aurora-shadow-card: 0 4px 16px rgba(0, 0, 0, 0.44);
+  --aurora-shadow-floating: 0 12px 40px rgba(0, 0, 0, 0.58);
+}
+
+/*
+ * prefers-contrast: more — near-solid backgrounds with a defined, contrasting border.
+ * Translucency is the first thing to go: a moving backdrop is exactly what someone asking
+ * for more contrast is trying to get away from.
+ */
+@media (prefers-contrast: more) {
+  :root {
+    --aurora-surface-glass-primary: var(--aurora-neutral-0);
+    --aurora-surface-glass-secondary: var(--aurora-neutral-10);
+    --aurora-surface-glass-elevated: var(--aurora-neutral-0);
+    --aurora-text-secondary: var(--aurora-neutral-90);
+    --aurora-text-tertiary: var(--aurora-neutral-90);
+    --aurora-border-control: var(--aurora-neutral-90);
+    --aurora-divider-subtle: var(--aurora-neutral-90);
+    --aurora-glass-saturation: 100%;
+  }
+
+  [data-theme="dark"] {
+    --aurora-surface-glass-primary: var(--aurora-neutral-10);
+    --aurora-surface-glass-secondary: var(--aurora-neutral-20);
+    --aurora-surface-glass-elevated: var(--aurora-neutral-20);
+    --aurora-text-secondary: var(--aurora-neutral-90);
+    --aurora-text-tertiary: var(--aurora-neutral-90);
+    --aurora-border-control: var(--aurora-neutral-90);
+    --aurora-divider-subtle: var(--aurora-neutral-90);
+  }
 }

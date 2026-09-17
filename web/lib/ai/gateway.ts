@@ -1,6 +1,7 @@
 import { processWithGemini } from "./geminiProvider";
 import { processWithOpenAI } from "./openAiProvider";
 import { z } from "zod";
+import { TOOLS } from "./tools";
 
 export type AiRequest = {
   query: string;
@@ -8,10 +9,25 @@ export type AiRequest = {
   providerPreference?: "gemini" | "openai";
 };
 
+// The allowlist the model is actually offered, derived from the tool definitions so the
+// two can never drift apart. A model that emits anything else is rejected at the gateway
+// rather than relying on the client to ignore it.
+const TOOL_NAMES = TOOLS.map((tool) => tool.name) as [string, ...string[]];
+
 // Define strict schema for expected AI responses
 const ToolCallSchema = z.object({
-  name: z.string(),
-  args: z.record(z.string(), z.any())
+  name: z.enum(TOOL_NAMES),
+  // Argument values are scalars or arrays of scalars; nested objects are not part of any
+  // declared tool and would only widen what reaches the executor.
+  args: z.record(
+    z.string(),
+    z.union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.array(z.union([z.string(), z.number()]))
+    ])
+  )
 });
 
 const AiResponseSchema = z.object({

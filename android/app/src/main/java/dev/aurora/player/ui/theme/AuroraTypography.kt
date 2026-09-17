@@ -12,8 +12,14 @@ import androidx.compose.ui.unit.sp
  * AURORA typography scale from docs/TYPOGRAPHY_FINAL.md.
  *
  * Uses Inter as the primary family with system sans-serif fallback.
- * Letter spacing is 0 for all tokens. Tabular numerals should be
- * enabled where timing/count values are displayed.
+ *
+ * Tracking is size-specific, never one value across the scale. Letters read too far
+ * apart as type grows, so display and headline tighten; small text needs a little air
+ * to stay legible, so label and caption open up. A single letter-spacing is wrong at
+ * one end of the scale or the other. Values are em-derived against each role's own
+ * size and expressed in sp so they scale with the user's font-size setting.
+ *
+ * Tabular numerals should be enabled where timing/count values are displayed.
  */
 
 val InterFontFamily = FontFamily.Default // Phase 1: system sans-serif fallback.
@@ -45,56 +51,56 @@ val AuroraTypographyTokens = AuroraTypography(
         fontWeight = FontWeight.Bold,
         fontSize = 40.sp,
         lineHeight = 46.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = -0.88.sp,
     ),
     headline = TextStyle(
         fontFamily = InterFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 30.sp,
         lineHeight = 36.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = -0.48.sp,
     ),
     title = TextStyle(
         fontFamily = InterFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = -0.2.sp,
     ),
     body = TextStyle(
         fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = 0.0.sp,
     ),
     label = TextStyle(
         fontFamily = InterFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = 0.08.sp,
     ),
     caption = TextStyle(
         fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = 0.17.sp,
     ),
     numeric = TextStyle(
         fontFamily = InterFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = 0.08.sp,
     ),
     playerNumeric = TextStyle(
         fontFamily = InterFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 32.sp,
         lineHeight = 36.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = -0.7.sp,
     ),
 )
 

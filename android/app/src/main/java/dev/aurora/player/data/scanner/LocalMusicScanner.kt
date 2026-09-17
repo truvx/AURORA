@@ -12,7 +12,9 @@ import dev.aurora.player.data.db.ArtistEntity
 import dev.aurora.player.data.db.ArtworkEntity
 import dev.aurora.player.data.db.LocalFileEntity
 import dev.aurora.player.data.db.MediaItemEntity
+import dev.aurora.player.data.db.TrackLoudnessEntity
 import dev.aurora.player.data.db.TrackTechnicalMetadataEntity
+import dev.aurora.player.domain.audio.ReplayGainReference
 import dev.aurora.player.domain.models.ProviderKind
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -131,8 +133,9 @@ open class LocalMusicScanner(private val context: Context) {
                         )
                         
                         val extractedTechMeta = extractTechnicalMetadata(context, uri, mediaId, mimeType, durationMs)
-                        
-                        tracks.add(ScannedTrack(mediaItem, fileEntity, extractedTechMeta, albumEntity, listOf(artistEntity), artworkEntity))
+                        val loudnessEntity = extractLoudness(context, uri, mediaId)
+
+                        tracks.add(ScannedTrack(mediaItem, fileEntity, extractedTechMeta, albumEntity, listOf(artistEntity), artworkEntity, loudnessEntity))
                     } catch (e: Exception) {
                         // Log and skip individual bad row
                     }
@@ -151,6 +154,29 @@ open class LocalMusicScanner(private val context: Context) {
         }
     }
     
+    /**
+     * Reads ReplayGain tags already present in the file. Returns null when the file carries
+     * no usable tags, so loudness stays genuinely unknown rather than being invented.
+     */
+    private fun extractLoudness(context: Context, uri: Uri, mediaId: String): TrackLoudnessEntity? {
+        val tags = try {
+            context.contentResolver.openInputStream(uri)?.use { ReplayGainReader.read(it) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        } ?: return null
+
+        return TrackLoudnessEntity(
+            mediaId = mediaId,
+            lufsIntegrated = tags.trackGainDb?.let(ReplayGainReference::lufsFromGain),
+            truePeak = tags.trackPeak,
+            albumLufs = tags.albumGainDb?.let(ReplayGainReference::lufsFromGain),
+            albumPeak = tags.albumPeak,
+            analysisVersion = ReplayGainReference.ANALYSIS_VERSION
+        )
+    }
+
     private fun extractTechnicalMetadata(
         context: Context, 
         uri: Uri, 
@@ -244,5 +270,7 @@ data class ScannedTrack(
     val metadata: TrackTechnicalMetadataEntity,
     val album: AlbumEntity?,
     val artists: List<ArtistEntity>,
-    val artwork: ArtworkEntity?
+    val artwork: ArtworkEntity?,
+    /** Null when the file carries no ReplayGain tags - loudness is then unknown. */
+    val loudness: TrackLoudnessEntity? = null
 )

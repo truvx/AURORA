@@ -60,6 +60,15 @@ class AiE2ETest {
 
     @Test
     fun testLiveAiAndYouTubePipeline() = runBlocking {
+        // This is an integration test against a real AI gateway, not a unit test. It needs
+        // `npm run dev` in web/ plus live provider credentials, so it is skipped by default
+        // and the rest of the suite stays runnable offline.
+        // Run it with: ./gradlew :app:testDebugUnitTest -PauroraLiveAi=true
+        org.junit.Assume.assumeTrue(
+            "Skipping live AI gateway test; enable with -PauroraLiveAi=true",
+            System.getProperty("aurora.liveAi") == "true"
+        )
+
         val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
         val contentType = MediaType.get("application/json")
         

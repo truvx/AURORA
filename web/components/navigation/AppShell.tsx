@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ReactNode, useEffect, useRef } from "react";
 import styles from "./AppShell.module.css";
+import { AmbientArtworkLayer } from "@/components/artwork/AmbientArtworkLayer";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
 import { YouTubeSurface } from "@/components/player/YouTubeSurface";
 
@@ -54,6 +55,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className={styles.shell} ref={shell}>
+      {/* Behind everything, so the glass above it has something to refract. */}
+      <AmbientArtworkLayer />
+
       <main className={styles.main}>{children}</main>
 
       <div className={styles.chrome} ref={chrome}>

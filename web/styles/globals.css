@@ -38,7 +38,15 @@ html {
 body {
   min-height: 100dvh;
   color: var(--aurora-text-primary);
-  background-color: var(--aurora-bg-primary);
+  /*
+   * Deliberately transparent, with the canvas colour left on `html` above.
+   *
+   * The artwork atmosphere is a fixed layer at z-index -1. `body` is not a stacking
+   * context, so its own background paints as an ordinary descendant - which is to say
+   * *over* that layer. An opaque colour here hides the atmosphere completely while every
+   * computed style still reports it as present.
+   */
+  background-color: transparent;
 }
 
 /* ──────────────── Headings ──────────────── */

@@ -1,6 +1,8 @@
 "use client";
 
+import { Artwork } from "@/components/artwork/Artwork";
 import { GlassCard } from "@/components/glass/Glass";
+import { useArtworkById } from "@/lib/artwork/useArtwork";
 import { usePlayerCommands, usePlayerState } from "@/lib/player/PlayerProvider";
 import { PlayerState } from "@/lib/player/types";
 import styles from "./now-playing.module.css";
@@ -16,6 +18,7 @@ export default function NowPlayingPage() {
   const status = usePlayerState(selectStatus);
   const error = usePlayerState(selectError);
   const dispatch = usePlayerCommands();
+  const artwork = useArtworkById(track?.id);
 
   if (!track) {
     return (
@@ -39,6 +42,7 @@ export default function NowPlayingPage() {
       <p className={styles.eyebrow}>Now playing</p>
 
       <GlassCard>
+        <Artwork url={artwork.url} title={track.title} size="player" />
         <h1 className={styles.title}>{track.title}</h1>
         <p className={styles.artist}>{track.artist ?? "Unknown artist"}</p>
         {track.album && <p className={styles.secondary}>{track.album}</p>}

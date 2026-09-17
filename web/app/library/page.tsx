@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { Artwork } from "@/components/artwork/Artwork";
 import { GlassCard } from "@/components/glass/Glass";
 import { PlaylistsSection } from "@/components/library/PlaylistsSection";
+import { useTrackArtwork } from "@/lib/artwork/useArtwork";
 import { TrackGroup, groupByAlbum, groupByArtist } from "@/lib/library/grouping";
 import { StoredTrack } from "@/lib/library/db";
 import {
@@ -301,22 +303,16 @@ export default function LibraryPage() {
                 const isFavorite = favorites.has(track.id);
                 return (
                   <li key={track.id} className={styles.trackItem}>
-                    <button
-                      type="button"
-                      className={styles.trackRow}
-                      onClick={() =>
+                    <TrackRow
+                      track={track}
+                      onPlay={() =>
                         dispatch({
                           type: "load",
                           track: toMediaItem(track),
                           playWhenReady: true,
                         })
                       }
-                    >
-                      <span className={styles.trackTitle}>{track.title}</span>
-                      <span className={styles.trackArtist}>
-                        {track.artist ?? "Unknown artist"}
-                      </span>
-                    </button>
+                    />
                     <button
                       type="button"
                       className={styles.favoriteButton}
@@ -361,6 +357,26 @@ export default function LibraryPage() {
         </GlassCard>
       )}
     </div>
+  );
+}
+
+/**
+ * One track in the list, with its cover.
+ *
+ * Its own component because each row loads its own artwork, and a hook cannot be called
+ * from inside a map in the parent.
+ */
+function TrackRow({ track, onPlay }: { track: StoredTrack; onPlay: () => void }) {
+  const artwork = useTrackArtwork(track);
+
+  return (
+    <button type="button" className={styles.trackRow} onClick={onPlay}>
+      <Artwork url={artwork.url} title={track.title} size="row" />
+      <span className={styles.trackText}>
+        <span className={styles.trackTitle}>{track.title}</span>
+        <span className={styles.trackArtist}>{track.artist ?? "Unknown artist"}</span>
+      </span>
+    </button>
   );
 }
 

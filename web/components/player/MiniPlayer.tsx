@@ -2,7 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { Artwork } from "@/components/artwork/Artwork";
 import { GlassSurface } from "@/components/glass/Glass";
+import { useArtworkById } from "@/lib/artwork/useArtwork";
 import { SPRING, clampWithRubberband, createDragHandlers, projectedSnapTarget, useSpringValue } from "@/lib/motion";
 import { haptic } from "@/lib/motion/haptics";
 import { usePlayerCommands, usePlayerState } from "@/lib/player/PlayerProvider";
@@ -37,6 +39,7 @@ export function MiniPlayer() {
   const status = usePlayerState(selectStatus);
   const autoplayBlocked = usePlayerState(selectAutoplayBlocked);
   const error = usePlayerState(selectError);
+  const artwork = useArtworkById(track?.id);
 
   const surface = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -154,6 +157,8 @@ export function MiniPlayer() {
         >
           <span className={styles.grabber} aria-hidden="true" />
         </button>
+
+        <Artwork url={artwork.url} title={track.title} size="row" />
 
         <div className={styles.meta}>
           <p className={styles.title}>{track.title}</p>

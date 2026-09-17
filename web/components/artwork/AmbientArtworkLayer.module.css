@@ -1,0 +1,52 @@
+/*
+ * The artwork atmosphere.
+ *
+ * Fixed and behind everything, so content and chrome both pass over it and the translucent
+ * surfaces have something to refract. Not interactive and not in the accessibility tree.
+ */
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+
+  /* No artwork: the plain canvas, which is what the app looked like before. */
+  --aurora-atmosphere: transparent;
+
+  background:
+    radial-gradient(
+      120% 80% at 50% 0%,
+      color-mix(in srgb, var(--aurora-atmosphere) 55%, transparent),
+      transparent 70%
+    ),
+    var(--aurora-bg-primary);
+
+  /*
+   * Ambient, and slow on purpose. This is the full viewport: the motion spec puts artwork
+   * transitions at the ambient duration precisely so a change of track reads as the room
+   * changing colour rather than as a flash.
+   */
+  transition: background var(--aurora-duration-ambient) var(--aurora-easing-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer {
+    /* The colour still changes - it just arrives rather than sweeping in. */
+    transition: none;
+  }
+}
+
+/*
+ * Someone asking for plainer surfaces should not get a tinted backdrop behind them either.
+ */
+@media (prefers-reduced-transparency: reduce) {
+  .layer {
+    background: var(--aurora-bg-primary);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .layer {
+    background: var(--aurora-bg-primary);
+  }
+}

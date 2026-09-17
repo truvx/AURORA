@@ -1,0 +1,36 @@
+.artwork {
+  flex: 0 0 auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--aurora-radius-artwork);
+  /* A cover with a pale edge would otherwise dissolve into the surface behind it. */
+  border: 1px solid var(--aurora-glass-edge);
+  background-color: var(--aurora-surface-glass-secondary);
+}
+
+.row {
+  width: 3rem;
+  height: 3rem;
+}
+
+.player {
+  width: 100%;
+  max-width: 20rem;
+  height: auto;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--aurora-text-tertiary);
+}
+
+.placeholder .material-symbols-outlined {
+  font-size: 1.5rem;
+}
+
+.player.placeholder {
+  /* aspect-ratio alone gives a zero-height box when there is no image to size it. */
+  min-height: 12rem;
+}

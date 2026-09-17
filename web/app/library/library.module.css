@@ -58,9 +58,8 @@
   width: 100%;
   min-height: 44px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  align-items: center;
+  gap: var(--aurora-space-3);
   padding: var(--aurora-space-3);
   border: 1px solid var(--aurora-border-control);
   border-radius: 12px;
@@ -75,8 +74,18 @@
   background: var(--aurora-surface-glass-elevated);
 }
 
+/* The text column beside the cover. min-width:0 lets long titles ellipsise rather than
+   forcing the row wider than its container. */
+.trackText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
 .trackTitle {
-  font-weight: 500;
+  font-weight: var(--aurora-vibrancy-weight-bump);
 }
 
 .trackArtist {

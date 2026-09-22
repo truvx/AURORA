@@ -58,7 +58,13 @@
   --aurora-disabled-opacity: 0.48;
 
   /* ──────────────── Typography ──────────────── */
-  --aurora-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /*
+   * --font-aurora-sans is supplied by next/font in the root layout, which self-hosts the
+   * face. The system stack behind it is what renders while the face loads, and what renders
+   * if it fails entirely.
+   */
+  --aurora-font-family: var(--font-aurora-sans), -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, sans-serif;
 
   /*
    * Tracking is size-specific, never one value for every role. Letters read too far apart

@@ -18,6 +18,8 @@ Validate provider responses, file metadata, URLs, AI output, and user input at t
 
 Provider credentials are isolated per adapter and never exposed to presentation. The AURORA AI gateway is the production boundary for Gemini/OpenAI secrets; clients receive only scoped, minimum-necessary results. Apply input size/rate limits, safe error mapping, bounded retries, and timeout/cancellation behavior to network and AI operations. Never disable TLS/certificate validation.
 
+As implemented (`web/app/api/ai/intent/route.ts`, `web/lib/ai/guard.ts`): every request needs `Authorization: Bearer <AURORA_GATEWAY_TOKEN>`, and with no token configured the gateway refuses everything rather than running open. Requests are capped at 16 KB and 20 per minute across the gateway (in memory, so per server process). Client `context` is a map of at most 20 short strings and travels in the user turn marked as data, never in the system instruction. Failures return a stable `error.code`. The Android client stores the token encrypted with an Android Keystore key, entered in Settings; it is never compiled into the app.
+
 ## Local data
 
 Respect URI permissions and ownership. Minimize cloud sharing of local-library metadata/history. Redact telemetry. Keep sensitive processing local by default and make optional sharing explicit.

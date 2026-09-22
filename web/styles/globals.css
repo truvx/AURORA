@@ -49,6 +49,32 @@ body {
   background-color: transparent;
 }
 
+/* ──────────────── Icons ──────────────── */
+
+/*
+ * Material Symbols, self-hosted by next/font.
+ *
+ * Google's stylesheet used to define this class; serving the face ourselves means defining
+ * it too. `liga` is the part that matters - the markup writes icon names as text, and it is
+ * the ligature table that turns "skip_previous" into a glyph. Without it every icon in the
+ * app renders as its own name in words.
+ */
+.material-symbols-outlined {
+  font-family: var(--font-aurora-icons), sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
 /* ──────────────── Headings ──────────────── */
 
 /*

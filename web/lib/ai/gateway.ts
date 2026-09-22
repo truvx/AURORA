@@ -1,11 +1,12 @@
 import { processWithGemini } from "./geminiProvider";
 import { processWithOpenAI } from "./openAiProvider";
 import { z } from "zod";
+import { GatewayError } from "./errors";
 import { TOOLS } from "./tools";
 
 export type AiRequest = {
   query: string;
-  context: any;
+  context: Record<string, string>;
   providerPreference?: "gemini" | "openai";
 };
 
@@ -35,28 +36,32 @@ const AiResponseSchema = z.object({
   text: z.string()
 });
 
-export async function handleAiIntent(request: AiRequest) {
-  const { query, context, providerPreference = "gemini" } = request;
+export type Providers = {
+  gemini: typeof processWithGemini;
+  openai: typeof processWithOpenAI;
+};
 
-  // Ideally this checks `.env.local`
-  const geminiKey = process.env.GEMINI_API_KEY;
-  const openAiKey = process.env.OPENAI_API_KEY;
+export async function handleAiIntent(
+  request: AiRequest,
+  env: Record<string, string | undefined> = process.env,
+  providers: Providers = { gemini: processWithGemini, openai: processWithOpenAI }
+) {
+  const { query, context, providerPreference = "gemini" } = request;
 
   let rawResult;
   if (providerPreference === "openai") {
-    if (!openAiKey) throw new Error("OpenAI not configured on server.");
-    rawResult = await processWithOpenAI(openAiKey, query, context);
+    if (!env.OPENAI_API_KEY) throw new GatewayError("ai_not_configured", "OpenAI is not configured on the server.");
+    rawResult = await providers.openai(env.OPENAI_API_KEY, query, context);
   } else {
-    // Default to Gemini
-    if (!geminiKey) throw new Error("Gemini not configured on server.");
-    rawResult = await processWithGemini(geminiKey, query, context);
+    if (!env.GEMINI_API_KEY) throw new GatewayError("ai_not_configured", "Gemini is not configured on the server.");
+    rawResult = await providers.gemini(env.GEMINI_API_KEY, query, context);
   }
 
   // Validate the output strictly
   const parsed = AiResponseSchema.safeParse(rawResult);
   if (!parsed.success) {
-    console.error("AI returned malformed data:", parsed.error);
-    throw new Error("AI provider returned invalid data format.");
+    console.error("AI returned malformed data:", parsed.error.issues.map((issue) => issue.path.join(".")));
+    throw new GatewayError("invalid_provider_response", "The AI provider returned an unexpected response.");
   }
   return parsed.data;
 }

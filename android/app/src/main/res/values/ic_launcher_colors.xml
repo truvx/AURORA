@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The app's own canvas colour, so the icon reads as a piece of AURORA. -->
+    <color name="ic_launcher_background">#0E0E0F</color>
+</resources>

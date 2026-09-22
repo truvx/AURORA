@@ -162,7 +162,7 @@ val AuroraDarkColors = AuroraColors(
     // White, not a dark tint: these materials lighten what is behind them.
     surfaceGlassPrimary = DarkPrimitives.white.copy(alpha = 0.12f),
     surfaceGlassSecondary = DarkPrimitives.white.copy(alpha = 0.07f),
-    surfaceGlassElevated = DarkPrimitives.white.copy(alpha = 0.18f),
+    surfaceGlassElevated = DarkPrimitives.white.copy(alpha = 0.10f),
     surfaceOpaqueFallback = DarkPrimitives.neutral20,
     textPrimary = DarkPrimitives.neutral90,
     textSecondary = DarkPrimitives.neutral70,

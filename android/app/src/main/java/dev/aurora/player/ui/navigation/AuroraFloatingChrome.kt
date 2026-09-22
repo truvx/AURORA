@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.asPaddingValues
@@ -97,7 +98,7 @@ fun AuroraFloatingChrome(
                 backdrop = backdrop
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.space2),
+                    modifier = Modifier.fillMaxSize().padding(horizontal = spacing.space2),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -224,7 +225,10 @@ fun GlassCircleButton(
         shape = CircleShape,
         backdrop = backdrop
     ) {
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        // fillMaxSize, not fillMaxWidth: GlassSurface lays its content out from the top
+        // start, so a box only as tall as the icon left the lens pinned to the top of the
+        // circle rather than centred in it.
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,

@@ -1,6 +1,7 @@
 package dev.aurora.player.ui.navigation
 
 import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -13,6 +14,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import kotlinx.coroutines.launch
+import com.kyant.backdrop.backdrops.layerBackdrop
 import dev.aurora.player.ui.screens.AiScreen
 import dev.aurora.player.ui.screens.HomeScreen
 import dev.aurora.player.ui.library.LibraryScreen
@@ -31,11 +34,22 @@ import androidx.compose.foundation.layout.Column
  * These were written and then left unwired, so playing a track from the library changed
  * nothing on screen - no transport controls, no way to reach the full player, and no queue.
  */
+/** A screen reached from the header rather than the navigation pill. */
+private const val WHATS_NEW_ROUTE = "whats_new"
+
+/** Load a track and start it: the two commands every "play this" in the UI sends. */
+private fun playNow(container: dev.aurora.player.app.AppContainer, item: dev.aurora.player.domain.models.MediaItem) {
+    container.playerCoordinator.dispatch(dev.aurora.player.domain.player.PlayerCommand.Load(item))
+    container.playerCoordinator.dispatch(dev.aurora.player.domain.player.PlayerCommand.Play)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuroraNavigation(
     navController: NavHostController,
     container: dev.aurora.player.app.AppContainer,
+    contentBackdrop: com.kyant.backdrop.backdrops.LayerBackdrop? = null,
+    chromeBackdrop: com.kyant.backdrop.Backdrop? = null,
     modifier: Modifier = Modifier,
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -61,42 +75,115 @@ fun AuroraNavigation(
         playerExpanded = false
     }
 
-    androidx.compose.foundation.layout.Box(modifier = modifier) {
-    Scaffold(
-        bottomBar = {
-            Column {
-                // Hidden while the full player is open. They are two states of one surface,
-                // so showing both at once duplicates every transport control in the
-                // accessibility tree - a screen reader finds two "Play" buttons, one of
-                // them behind a screen the user cannot see past.
-                if (!playerExpanded) {
-                    dev.aurora.player.ui.components.MiniPlayer(
-                        onExpand = { playerExpanded = true }
-                    )
-                }
-                AuroraBottomBar(
-                    currentRoute = currentRoute,
-                    onNavigate = { destination ->
-                        navController.navigate(destination.route) {
-                            // Avoid building up a large back stack of tabs
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
+    // One way to switch tabs, shared by the bottom bar and by screens that send the user
+    // elsewhere (the AI screen pointing at Settings), so both keep the same back stack.
+    fun navigateToTab(destination: AuroraDestination) {
+        navController.navigate(destination.route) {
+            // Avoid building up a large back stack of tabs
+            popUpTo(navController.graph.startDestinationId) {
+                saveState = true
             }
+            launchSingleTop = true
+            restoreState = true
         }
-    ) { innerPadding ->
+    }
+
+    /*
+     * No Scaffold: the chrome floats over the content rather than reserving a strip of the
+     * window, which is what lets the page pass under the glass and refract through it.
+     * Screens make room for it themselves via LocalChromeInsets, so the last row can scroll
+     * clear instead of sitting under the bar forever.
+     */
+    val chromeInsets = rememberChromeInsets()
+
+    // One instance for the whole shell: Home and What's New show the same releases, and
+    // building a second view model would fetch them twice.
+    val homeViewModel = androidx.compose.runtime.remember {
+        dev.aurora.player.ui.screens.HomeViewModel(
+            organization = container.libraryOrganizationRepository,
+            resolver = container.mediaResolver,
+            releasesRepository = container.latestReleasesRepository,
+            whatsNew = container.whatsNewStore
+        )
+    }
+
+    androidx.compose.foundation.layout.Box(
+        modifier = modifier.fillMaxSize()
+    ) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalChromeInsets provides chromeInsets) {
+        androidx.compose.foundation.layout.Box(
+            modifier = (if (contentBackdrop != null) {
+                Modifier.layerBackdrop(contentBackdrop)
+            } else {
+                Modifier
+            }).fillMaxSize()
+        ) {
         NavHost(
             navController = navController,
             startDestination = AuroraDestination.Home.route,
-            modifier = Modifier.padding(innerPadding),
         ) {
-            composable(AuroraDestination.Home.route) { HomeScreen() }
-            composable(AuroraDestination.Search.route) { SearchScreen() }
+            composable(AuroraDestination.Home.route) {
+                val scope = androidx.compose.runtime.rememberCoroutineScope()
+                val profile by container.profileStore.profile.collectAsState()
+                HomeScreen(
+                    viewModel = homeViewModel,
+                    profile = profile,
+                    onOpenWhatsNew = { navController.navigate(WHATS_NEW_ROUTE) },
+                    onOpenProfile = { navigateToTab(AuroraDestination.Settings) },
+                    onPlay = { item -> playNow(container, item) },
+                    onAddToQueue = { item ->
+                        container.playerCoordinator.dispatch(
+                            dev.aurora.player.domain.player.PlayerCommand.AddToQueue(item)
+                        )
+                    },
+                    onPlayMix = { mix ->
+                        scope.launch {
+                            // A mix is a search that has not run yet: it is generated when
+                            // the listener asks for it, not kept warm in the background.
+                            val results = container.recommendationEngine
+                                .getRecommendations(mix.query)
+                                .map { it.item }
+                            if (results.isNotEmpty()) {
+                                playNow(container, results.first())
+                                results.drop(1).forEach { track ->
+                                    container.playerCoordinator.dispatch(
+                                        dev.aurora.player.domain.player.PlayerCommand.AddToQueue(track)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+            composable(AuroraDestination.Search.route) {
+                val searchViewModel = androidx.compose.runtime.remember {
+                    dev.aurora.player.ui.screens.SearchViewModel(
+                        localProvider = container.localLibraryProvider,
+                        youtubeProvider = container.youtubeMusicProvider,
+                        trending = container.trendingRepository
+                    )
+                }
+                SearchScreen(
+                    viewModel = searchViewModel,
+                    onPlay = { item -> playNow(container, item) },
+                    onAddToQueue = { item ->
+                        container.playerCoordinator.dispatch(
+                            dev.aurora.player.domain.player.PlayerCommand.AddToQueue(item)
+                        )
+                    }
+                )
+            }
+            composable(WHATS_NEW_ROUTE) {
+                val releasesState by homeViewModel.releases.collectAsState()
+                val ready = releasesState as? dev.aurora.player.ui.screens.ReleasesState.Ready
+                dev.aurora.player.ui.screens.WhatsNewScreen(
+                    releases = ready?.releases.orEmpty(),
+                    unseen = ready?.unseen.orEmpty(),
+                    onPlay = { item -> playNow(container, item) },
+                    onBack = { navController.popBackStack() },
+                    onSeen = homeViewModel::markReleasesSeen
+                )
+            }
             composable(AuroraDestination.Library.route) {
                 val libraryViewModel = androidx.compose.runtime.remember {
                     dev.aurora.player.ui.library.LibraryViewModel(
@@ -142,7 +229,8 @@ fun AuroraNavigation(
                 }
                 AiScreen(
                     viewModel = aiViewModel,
-                    playerCoordinator = container.playerCoordinator
+                    playerCoordinator = container.playerCoordinator,
+                    onOpenSettings = { navigateToTab(AuroraDestination.Settings) }
                 ) 
             }
             composable(AuroraDestination.Settings.route) { 
@@ -155,9 +243,23 @@ fun AuroraNavigation(
                 }
                 SettingsScreen(
                     playerCoordinator = container.playerCoordinator,
-                    privacyViewModel = privacyViewModel
+                    privacyViewModel = privacyViewModel,
+                    gatewayTokenStore = container.gatewayTokenStore
                 )
             }
+        }
+        }
+
+        // Drawn after the captured content layer, never inside it: the chrome samples that
+        // layer, and a surface that samples the layer it lives in recurses forever.
+        if (!playerExpanded) {
+            AuroraFloatingChrome(
+                currentRoute = currentRoute,
+                onNavigate = ::navigateToTab,
+                onExpandPlayer = { playerExpanded = true },
+                backdrop = chromeBackdrop,
+                modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
+            )
         }
     }
 

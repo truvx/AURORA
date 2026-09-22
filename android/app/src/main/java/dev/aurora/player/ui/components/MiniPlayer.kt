@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -47,6 +48,7 @@ import dev.aurora.player.ui.theme.Aurora
 @Composable
 fun MiniPlayer(
     modifier: Modifier = Modifier,
+    backdrop: com.kyant.backdrop.Backdrop? = null,
     onExpand: () -> Unit
 ) {
     val coordinator = LocalPlayerCoordinator.current
@@ -110,10 +112,11 @@ fun MiniPlayer(
     ) {
         if (currentTrack != null) {
             GlassSurface(
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(percent = 50),
+                backdrop = backdrop,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Aurora.spacing.space3, vertical = Aurora.spacing.space1)
-                    .height(64.dp)
+                    .height(60.dp)
                     .offset { IntOffset(0, lift.value.roundToInt()) }
                     .graphicsLayer {
                         // Hint the destination: the surface grows slightly as it rises, so
@@ -190,13 +193,13 @@ fun MiniPlayer(
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = Aurora.spacing.space4),
+                        .padding(start = Aurora.spacing.space2, end = Aurora.spacing.space2),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     ArtworkSurface(
                         altText = "${currentTrack.title} artwork",
                         artworkUri = currentTrack.artworkUri,
-                        modifier = Modifier.size(48.dp),
+                        modifier = Modifier.size(44.dp),
                         // Only YouTube supplies its own surface. Passing a lambda
                         // unconditionally - which is what a trailing block does - made the
                         // content branch always win, so local artwork could never draw and
@@ -208,7 +211,7 @@ fun MiniPlayer(
                         }
                     )
 
-                    Spacer(modifier = Modifier.width(Aurora.spacing.space4))
+                    Spacer(modifier = Modifier.width(Aurora.spacing.space3))
 
                     Column(
                         modifier = Modifier.weight(1f),
@@ -245,6 +248,15 @@ fun MiniPlayer(
                         },
                         icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                         contentDesc = if (isPlaying) "Pause" else "Play",
+                    )
+
+                    GlassIconButton(
+                        onClick = {
+                            haptics.fire(HapticEvent.Tap)
+                            coordinator.dispatch(PlayerCommand.SkipNext)
+                        },
+                        icon = Icons.Rounded.SkipNext,
+                        contentDesc = "Next track",
                     )
                 }
             }

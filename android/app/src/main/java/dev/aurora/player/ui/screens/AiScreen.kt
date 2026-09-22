@@ -27,6 +27,7 @@ import dev.aurora.player.app.PlayerCoordinator
 fun AiScreen(
     viewModel: AiViewModel,
     playerCoordinator: PlayerCoordinator,
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val spacing = Aurora.spacing
@@ -39,9 +40,14 @@ fun AiScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .statusBarsPadding()
+            .padding(horizontal = spacing.space4)
+            // Top clears the status bar; bottom is the room the floating chrome needs, so
+            // the last row scrolls clear of the glass instead of sitting under it forever.
             .padding(
-                horizontal = spacing.space4, 
-                vertical = spacing.space6 + 48.dp // Padding for Top/Bottom bars
+                top = spacing.space6,
+                bottom = dev.aurora.player.ui.navigation.LocalChromeInsets.current
+                    .calculateBottomPadding()
             ),
         verticalArrangement = Arrangement.Top,
     ) {
@@ -104,7 +110,19 @@ fun AiScreen(
                     modifier = Modifier.fillMaxWidth(),
                     level = GlassLevel.Secondary
                 ) {
-                    Text(text = "Error: ${state.message}", color = colors.statusError, style = typography.body)
+                    Column {
+                        // The message is the whole explanation; prefixing "Error:" and colouring
+                        // it red added alarm without adding information.
+                        Text(text = state.message, color = colors.textPrimary, style = typography.body)
+                        if (state.opensSettings) {
+                            Spacer(modifier = Modifier.height(spacing.space3))
+                            GlassButton(
+                                text = "Open Settings",
+                                style = dev.aurora.player.ui.components.GlassButtonStyle.Secondary,
+                                onClick = onOpenSettings
+                            )
+                        }
+                    }
                 }
             }
             is AiUiState.Success -> {

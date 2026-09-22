@@ -3,6 +3,8 @@ package dev.aurora.player.ui.screens
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.aurora.player.app.AiToolExecutor
+import dev.aurora.player.domain.ai.AiFailureReason
+import dev.aurora.player.domain.ai.AiGatewayException
 import dev.aurora.player.domain.ai.AiProvider
 import dev.aurora.player.domain.ai.AiRequest
 import dev.aurora.player.domain.recommendations.RecommendationCandidate
@@ -15,7 +17,29 @@ sealed class AiUiState {
     object Idle : AiUiState()
     object Loading : AiUiState()
     data class Success(val candidates: List<RecommendationCandidate>, val message: String) : AiUiState()
-    data class Error(val message: String) : AiUiState()
+
+    /** [opensSettings] is true when the fix is on this device: connecting the gateway. */
+    data class Error(val message: String, val opensSettings: Boolean = false) : AiUiState()
+}
+
+/** What to tell the person, per failure. Each says what happened and what to do next. */
+internal fun errorFor(reason: AiFailureReason): AiUiState.Error = when (reason) {
+    AiFailureReason.NotConnected -> AiUiState.Error(
+        "AURORA AI isn't connected. Add your gateway token in Settings.",
+        opensSettings = true
+    )
+    AiFailureReason.GatewayNotConfigured ->
+        AiUiState.Error("The AI gateway isn't set up yet: it has no access token configured.")
+    AiFailureReason.AiNotConfigured ->
+        AiUiState.Error("The AI gateway has no provider key set up.")
+    AiFailureReason.RateLimited ->
+        AiUiState.Error("That's a lot of requests in a short time. Try again in a minute.")
+    AiFailureReason.ProviderBusy ->
+        AiUiState.Error("The AI service is busy right now. Try again shortly.")
+    AiFailureReason.Unreachable ->
+        AiUiState.Error("Couldn't reach the AI gateway. Check your connection.")
+    AiFailureReason.Unexpected ->
+        AiUiState.Error("Something went wrong with that request. Try again.")
 }
 
 class AiViewModel(
@@ -46,7 +70,8 @@ class AiViewModel(
                     message = response.text
                 )
             }.onFailure { e ->
-                _uiState.value = AiUiState.Error(e.message ?: "Failed to process AI request")
+                // Never the raw exception text: that was "HTTP 500" for every failure.
+                _uiState.value = errorFor((e as? AiGatewayException)?.reason ?: AiFailureReason.Unexpected)
             }
         }
     }

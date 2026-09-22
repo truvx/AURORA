@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -32,6 +33,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.aurora.player.app.PlayerCoordinator
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import dev.aurora.player.data.security.GatewayTokenStore
 import dev.aurora.player.domain.audio.LoudnessPreference
 import dev.aurora.player.domain.player.PlayerCommand
 import dev.aurora.player.ui.components.GlassButton
@@ -52,6 +65,7 @@ import dev.aurora.player.ui.theme.Aurora
 fun SettingsScreen(
     playerCoordinator: PlayerCoordinator? = null,
     privacyViewModel: PrivacyViewModel? = null,
+    gatewayTokenStore: GatewayTokenStore? = null,
     modifier: Modifier = Modifier
 ) {
     val spacing = Aurora.spacing
@@ -63,10 +77,15 @@ fun SettingsScreen(
         modifier = modifier
             .fillMaxSize()
             // .background(colors.backgroundPrimary) // Removed to let AmbientArtworkLayer show through
+            .statusBarsPadding()
             .verticalScroll(rememberScrollState())
+            .padding(horizontal = spacing.space4)
+            // Top clears the status bar; bottom is the room the floating chrome needs, so
+            // the last row scrolls clear of the glass instead of sitting under it forever.
             .padding(
-                horizontal = spacing.space4, 
-                vertical = spacing.space6 + 48.dp // Padding for Top/Bottom bars
+                top = spacing.space6,
+                bottom = dev.aurora.player.ui.navigation.LocalChromeInsets.current
+                    .calculateBottomPadding()
             ),
         verticalArrangement = Arrangement.Top,
     ) {
@@ -224,6 +243,11 @@ fun SettingsScreen(
             }
         }
 
+        if (gatewayTokenStore != null) {
+            Spacer(modifier = Modifier.height(spacing.space6))
+            AiGatewaySection(gatewayTokenStore, haptics)
+        }
+
         if (privacyViewModel != null) {
             Spacer(modifier = Modifier.height(spacing.space6))
             PrivacySection(privacyViewModel, haptics)
@@ -321,3 +345,138 @@ private fun PrivacySection(
     }
 }
 
+/**
+ * Connects this device to the AURORA AI gateway.
+ *
+ * The gateway refuses requests without its access token, so AI features stay off until one
+ * is entered here. It is stored encrypted with a Keystore key and never shown back: once
+ * saved, the only actions are replacing it or disconnecting.
+ */
+@Composable
+private fun AiGatewaySection(
+    store: GatewayTokenStore,
+    haptics: dev.aurora.player.ui.haptics.HapticEngine
+) {
+    val spacing = Aurora.spacing
+    val typography = Aurora.typography
+    val colors = Aurora.colors
+    val connected by store.isConfigured.collectAsState()
+    var draft by remember { mutableStateOf("") }
+    var failed by remember { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    Text(
+        text = "AI",
+        style = typography.headline,
+        color = colors.textPrimary,
+        modifier = Modifier.padding(bottom = spacing.space3)
+    )
+
+    GlassCard(modifier = Modifier.fillMaxWidth(), level = GlassLevel.Primary) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.AutoAwesome,
+                    contentDescription = null,
+                    tint = colors.accentPrimary,
+                    modifier = Modifier.padding(end = spacing.space3)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "AI gateway", style = typography.title, color = colors.textPrimary)
+                    // Status in words, not only colour.
+                    Text(
+                        text = if (connected) "Connected" else "Not connected",
+                        style = typography.body,
+                        color = colors.textSecondary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(spacing.space3))
+
+            if (connected) {
+                GlassButton(
+                    text = "Disconnect",
+                    style = GlassButtonStyle.Secondary,
+                    onClick = {
+                        haptics.fire(HapticEvent.Tap)
+                        store.clear()
+                    }
+                )
+            } else {
+                Text(
+                    text = "Paste the access token set as AURORA_GATEWAY_TOKEN on your gateway. " +
+                        "It's encrypted on this device.",
+                    style = typography.body,
+                    color = colors.textSecondary,
+                    modifier = Modifier.padding(bottom = spacing.space3)
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = draft,
+                        onValueChange = {
+                            draft = it
+                            failed = false
+                        },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Gateway token", color = colors.textTertiary) },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            autoCorrectEnabled = false
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedContainerColor = colors.surfaceGlassSecondary,
+                            unfocusedContainerColor = colors.surfaceGlassSecondary,
+                            focusedTextColor = colors.textPrimary,
+                            unfocusedTextColor = colors.textPrimary,
+                            cursorColor = colors.accentPrimary
+                        ),
+                        shape = Aurora.shapes.card
+                    )
+                    Spacer(modifier = Modifier.width(spacing.space3))
+                    GlassButton(
+                        text = if (saving) "Connecting…" else "Connect",
+                        enabled = draft.isNotBlank() && !saving,
+                        onClick = {
+                            val token = draft
+                            saving = true
+                            scope.launch {
+                                // Keystore key generation is slow enough to drop frames, so
+                                // it runs off the main thread.
+                                val stored = withContext(Dispatchers.IO) {
+                                    try {
+                                        store.set(token)
+                                        true
+                                    } catch (_: java.security.GeneralSecurityException) {
+                                        // The Keystore refused to create or use the key. Rare,
+                                        // and not something retrying would change.
+                                        false
+                                    }
+                                }
+                                saving = false
+                                failed = !stored
+                                if (stored) {
+                                    haptics.fire(HapticEvent.Success)
+                                    draft = ""
+                                }
+                            }
+                        }
+                    )
+                }
+                if (failed) {
+                    Text(
+                        text = "This device couldn't store the token securely.",
+                        style = typography.label,
+                        color = colors.textPrimary,
+                        modifier = Modifier.padding(top = spacing.space2)
+                    )
+                }
+            }
+        }
+    }
+}

@@ -8,19 +8,25 @@ Use perceptual color (OKLCH or equivalent) where the platform supports it, with 
 
 | Token | Light seed | Dark seed | Role |
 |---|---:|---:|---|
-| `color.neutral.0` | `#FFFFFF` | `#000000` | extremes |
-| `color.neutral.10` | `#F7F8FA` | `#111318` | canvas tint |
-| `color.neutral.20` | `#ECEEF2` | `#1B1E25` | secondary surface |
-| `color.neutral.40` | `#D2D6DE` | `#363B46` | muted border |
-| `color.neutral.70` | `#606875` | `#A7AFBD` | secondary text |
-| `color.neutral.90` | `#252A33` | `#F0F2F6` | primary text |
-| `color.accent.cyan` | `#087E9B` | `#66D9F2` | cool accent |
-| `color.accent.violet` | `#6C51C9` | `#BBA8FF` | discovery/AI accent |
+| `color.neutral.0` | `#FFFFFF` | `#0E0E0F` | canvas |
+| `color.neutral.10` | `#F6F6F8` | `#151517` | canvas tint |
+| `color.neutral.20` | `#ECECEF` | `#1F1F22` | opaque fallback surface |
+| `color.neutral.40` | `#D2D2D8` | `#3A3A3F` | muted border |
+| `color.neutral.70` | `#5A5A63` | `#ABABB2` | secondary text |
+| `color.neutral.90` | `#17171A` | `#F5F5F7` | primary text |
+| `color.accent.blue` | `#2458D6` | `#6A98FF` | selection and progress only |
+| `color.favorite` | `#D7263D` | `#F9555B` | liked heart |
+| `color.orb.core / mid / rim / glow` | `#28A4FE` `#3D6FF8` `#2A3FC7` `#B5C3FC` | same | AI orb gradient |
 | `color.semantic.success` | `#197A4A` | `#67D49A` | success |
 | `color.semantic.warning` | `#8B5A00` | `#F2C66D` | warning |
 | `color.semantic.error` | `#B3261E` | `#FF9F99` | error |
 
-These are seeds, not permission to use raw colors directly. Contrast pairs must be chosen after compositing over the actual surface.
+The palette is neutral by design (2026-09-22, from the approved reference designs): colour reaches the interface through album artwork refracting in the glass, not through the chrome. Two consequences worth stating, because both were got wrong first:
+
+- **Dark-theme glass is a white tint at low alpha** (12% primary, 7% secondary, 18% elevated). These materials lighten what is behind them - the reference nav bar reads about 22% white over near-black content. A dark tint darkens instead, and never reads as glass.
+- **The primary action is a solid pill** using the theme's strongest contrast (white on dark, near-black on light), as in the playlist reference. The reference app's blue carries white text at 3.45:1 and cannot be a button fill.
+
+Pairs are asserted in `ColorContrastTest`, and text over glass across every possible artwork colour in `GlassContrastTest` (both Android).
 
 ## Semantic color tokens
 
@@ -45,6 +51,8 @@ divider.subtle           structural separator, not primary grouping
 player.background        now-playing canvas
 player.control           main player controls
 player.progress          progress track/fill
+favorite                 liked state; always paired with a filled/outlined icon change
+ai.orb.core|mid|rim|glow the assistant's orb, identical in both themes
 status.success|warning|error  redundant semantic status colors
 ```
 

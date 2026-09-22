@@ -53,7 +53,19 @@ fun AuroraAppRoot() {
     ) {
         AuroraTheme {
             val navController = rememberNavController()
+            // Two captured layers, for two different jobs.
+            //
+            // `backdrop` is the artwork atmosphere alone, and it is what glass *inside* the
+            // page samples. `contentBackdrop` captures the page itself, so the floating
+            // chrome can refract the list scrolling beneath it - which is what the
+            // references show and what a bar sampling only a flat wash cannot do.
+            //
+            // The chrome is drawn outside both layers. Glass that samples the layer it is
+            // drawn into puts the render node inside itself, and the render thread
+            // overflows its stack: a native crash on every launch, which is exactly what
+            // happened when the backdrop wrapped the whole navigation.
             val backdrop = rememberLayerBackdrop()
+            val contentBackdrop = rememberLayerBackdrop()
 
             /*
              * The atmosphere the glass refracts: the dominant colour of whatever is playing.
@@ -96,6 +108,11 @@ fun AuroraAppRoot() {
                  * describes: canvas and artwork atmosphere first, then glass above it,
                  * then content. Glass sampling what is behind it, never itself.
                  */
+                val chromeBackdrop = com.kyant.backdrop.backdrops.rememberCombinedBackdrop(
+                    backdrop,
+                    contentBackdrop
+                )
+
                 Box(modifier = Modifier.fillMaxSize()) {
                     dev.aurora.player.ui.components.AmbientArtworkLayer(
                         modifier = Modifier.layerBackdrop(backdrop),
@@ -104,7 +121,9 @@ fun AuroraAppRoot() {
 
                     AuroraNavigation(
                         navController = navController,
-                        container = container
+                        container = container,
+                        contentBackdrop = contentBackdrop,
+                        chromeBackdrop = chromeBackdrop
                     )
                 }
             }

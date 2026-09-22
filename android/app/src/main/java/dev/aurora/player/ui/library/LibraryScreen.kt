@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -110,9 +111,14 @@ fun LibraryScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .statusBarsPadding()
+            .padding(horizontal = spacing.space4)
+            // Top clears the status bar; bottom is the room the floating chrome needs, so
+            // the last row scrolls clear of the glass instead of sitting under it forever.
             .padding(
-                horizontal = spacing.space4, 
-                vertical = spacing.space6 + 48.dp // Padding for Top/Bottom bars
+                top = spacing.space6,
+                bottom = dev.aurora.player.ui.navigation.LocalChromeInsets.current
+                    .calculateBottomPadding()
             )
     ) {
         if (!hasPermission) {

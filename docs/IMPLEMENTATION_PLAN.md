@@ -1,6 +1,6 @@
 # AURORA Implementation Plan
 
-Status: final ordered plan, 2026-09-03. This plan is documentation only; no phase below has been implemented by the foundation task.
+Status: final ordered plan, 2026-09-03. Phases 0-17 have since been implemented on both clients; phases 18-21 are partly done. The ordering below is kept as the record of how the product was built and as the contract for anything in those last four phases that is still open.
 
 ## Delivery rules
 

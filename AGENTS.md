@@ -4,7 +4,9 @@ AURORA is a personal-use music player for Android and Web. It combines high-qual
 
 ## Current repository phase
 
-The repository currently contains architecture, design, policy, implementation-plan, and toolchain documentation only. Do not create Android source, Jetpack Compose UI, React components, playback implementation, YouTube implementation, AI implementation, authentication implementation, database implementation, production API clients, placeholder screens, application build files, application dependencies, fake playback, fake authentication, fake quality, invented APIs, YouTube extraction, unauthorized downloading, or DRM work unless a later prompt explicitly authorizes the appropriate implementation phase.
+Both clients are built and running. `android/` is a Kotlin/Compose app with Media3 playback, a Room library, the liquid-glass interface, YouTube discovery and the AI screen; it produces a signed beta APK. `web/` is a Next.js App Router client with the same domain model over IndexedDB, plus the AI gateway both clients call. Phases 0-17 of the plan are implemented; 18-21 (accessibility hardening, performance, testing, CI/release) are partly done and are where most open work sits.
+
+So: write real code. What is still forbidden is what was always forbidden because it is wrong, not because of the phase - fake playback, fake authentication, fake quality figures, invented APIs, YouTube extraction or downloading, hidden or background YouTube players, and DRM circumvention. Placeholder screens and stub implementations that pretend to work also stay out.
 
 The canonical contract is `docs/FINAL_ARCHITECTURE_BASELINE.md`. The ordered work is `docs/IMPLEMENTATION_PLAN.md`. Detailed policy documents and the final toolchain are linked from those files.
 
@@ -22,7 +24,9 @@ BEFORE a major implementation:
 8. review
 9. update docs when architecture changes
 
-Never make large speculative rewrites. Do not create a git commit unless explicitly requested.
+Never make large speculative rewrites.
+
+Commit once verification passes, as `CLAUDE.md` requires: build, lint, typecheck and the relevant tests green, with evidence. Do not commit work that has not been verified, and do not push or open a pull request unless asked.
 
 ## Architecture boundaries
 
@@ -107,7 +111,7 @@ Protect a 16.7 ms frame budget, keep I/O off the UI thread, isolate position tic
 
 ## Implementation sequence
 
-Follow `docs/IMPLEMENTATION_PLAN.md` exactly unless a new ADR changes the order:
+The plan's order was for building the thing from nothing, and phases 0-17 are done. New work is no longer drawn from it in sequence; it comes from the open task list and from what the app actually needs. `docs/IMPLEMENTATION_PLAN.md` still governs anything not yet built, and its phases 18-21 - accessibility hardening, performance, testing, CI/release - remain live:
 
 Phase 0 Toolchain; Phase 1 Repository/project skeleton; Phase 2 Design system foundation; Phase 3 Application shell/navigation; Phase 4 Local music library; Phase 5 Player engine; Phase 6 Queue and Now Playing; Phase 7 YouTube integration; Phase 8 Audio quality system; Phase 9 Loudness normalization; Phase 10 Library/favorites/playlists; Phase 11 AI foundation; Phase 12 Gemini integration; Phase 13 OpenAI integration; Phase 14 AI music agent; Phase 15 Recommendation engine; Phase 16 Haptics and advanced motion; Phase 17 Web application; Phase 18 Accessibility hardening; Phase 19 Performance optimization; Phase 20 Testing; Phase 21 CI/release.
 
@@ -125,6 +129,10 @@ Read `aurora-project-rules` first. Use the matching AURORA skill and document be
 - Motion/haptics: `aurora-motion`, `aurora-haptics`, `docs/AURORA_MOTION_SPEC.md`, `docs/AURORA_HAPTIC_SPEC.md`
 - Security/testing/web: `aurora-security`, `aurora-testing`, `aurora-web`, `docs/SECURITY.md`, `docs/TEST_ARCHITECTURE.md`, `docs/WEB_ARCHITECTURE.md`
 - Reviews: `review-architecture-scope`, `review-backend-change`, `review-frontend-change`, `review-security-privacy`, `review-test-coverage`
-- Android/Kotlin/Compose: use the installed Android and Chris Banes skills for AGP, Compose, state/effects, animation, performance, Flow, accessibility/focus, and testing.
+- Android tooling: `android-cli` for the SDK, emulators, adb and Gradle from the terminal; `android-profiler` for frame timing and startup; `edge-to-edge` for insets and system bars
+- Web/React: `vercel-react-best-practices`, `vercel-react-view-transitions`, `web-design-guidelines`
+- Working practice: `focused-tdd`, `bug-triage`, `ci-fix`, `dependency-upgrader`, `docs-sync`, `testing-setup`, `release-notes`
+
+Skills live in `.claude/skills/`; that directory is the list, not this one. If a skill named here is missing, say so rather than guessing at what it would have said.
 
 Use official primary documentation for current provider/framework/version behavior. If a current API or capability cannot be verified, document it as unknown and do not implement around an assumption.

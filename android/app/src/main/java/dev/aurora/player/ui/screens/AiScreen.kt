@@ -19,6 +19,7 @@ import dev.aurora.player.ui.components.GlassButton
 import dev.aurora.player.ui.components.GlassCard
 import dev.aurora.player.ui.components.GlassLevel
 import dev.aurora.player.ui.components.RecommendationCard
+import androidx.compose.material.icons.rounded.ArrowUpward
 import dev.aurora.player.ui.theme.Aurora
 import dev.aurora.player.app.PlayerCoordinator
 
@@ -81,14 +82,18 @@ fun AiScreen(
                             unfocusedTextColor = colors.textPrimary,
                             cursorColor = colors.accentPrimary
                         ),
-                        shape = Aurora.shapes.card
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(percent = 50)
                     )
                     Spacer(modifier = Modifier.width(spacing.space3))
-                    GlassButton(
-                        text = "Ask",
-                        onClick = { 
+                    // Solid, round and small: the send button in the references is the one
+                    // filled control on an otherwise translucent bar.
+                    dev.aurora.player.ui.components.PrimaryCircleButton(
+                        icon = Icons.Rounded.ArrowUpward,
+                        contentDescription = "Ask AURORA",
+                        size = 48.dp,
+                        onClick = {
                             if (textState.text.isNotBlank()) {
-                                viewModel.submitQuery(textState.text) 
+                                viewModel.submitQuery(textState.text)
                                 textState = TextFieldValue("")
                             }
                         }

@@ -39,6 +39,13 @@ import dev.aurora.player.ui.components.GlassLevel
 import dev.aurora.player.ui.components.GlassSurface
 import dev.aurora.player.ui.haptics.HapticEvent
 import dev.aurora.player.ui.haptics.LocalHapticEngine
+import androidx.compose.material.icons.outlined.Shuffle
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.PlaylistAdd
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
 import dev.aurora.player.ui.theme.Aurora
 
 /**
@@ -58,6 +65,8 @@ fun PlaylistsSection(
     onDeletePlaylist: (String) -> Unit,
     onRemoveEntry: (playlistId: String, entryId: String) -> Unit,
     onMoveEntry: (playlistId: String, from: Int, to: Int) -> Unit,
+    onPlayTracks: (tracks: List<dev.aurora.player.domain.models.MediaItem>, shuffled: Boolean) -> Unit = { _, _ -> },
+    onQueueTracks: (tracks: List<dev.aurora.player.domain.models.MediaItem>) -> Unit = { },
     modifier: Modifier = Modifier
 ) {
     if (openPlaylist != null) {
@@ -67,6 +76,8 @@ fun PlaylistsSection(
             onBack = { onOpenPlaylist(null) },
             onRemoveEntry = { entryId -> onRemoveEntry(openPlaylist.id, entryId) },
             onMoveEntry = { from, to -> onMoveEntry(openPlaylist.id, from, to) },
+            onPlayTracks = onPlayTracks,
+            onQueueTracks = onQueueTracks,
             modifier = modifier
         )
     } else {
@@ -202,6 +213,8 @@ private fun PlaylistDetail(
     onBack: () -> Unit,
     onRemoveEntry: (String) -> Unit,
     onMoveEntry: (Int, Int) -> Unit,
+    onPlayTracks: (List<dev.aurora.player.domain.models.MediaItem>, Boolean) -> Unit,
+    onQueueTracks: (List<dev.aurora.player.domain.models.MediaItem>) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val spacing = Aurora.spacing
@@ -209,100 +222,218 @@ private fun PlaylistDetail(
     val colors = Aurora.colors
     val haptics = LocalHapticEngine.current
 
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = spacing.space3),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            GlassIconButton(
-                icon = Icons.Outlined.ArrowBack,
-                contentDesc = "Back to all playlists",
-                onClick = {
-                    haptics.fire(HapticEvent.Selection)
-                    onBack()
-                }
+    val playable = tracks.mapNotNull { it.item }
+    // The playlist's own cover: the first track that has artwork. A playlist has no image
+    // of its own, and one of its covers is truer than a generated pattern.
+    val heroArtwork = tracks.firstNotNullOfOrNull { it.item?.artworkUri }
+
+    LazyColumn(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = spacing.space4),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GlassIconButton(
+                    icon = Icons.Outlined.ArrowBack,
+                    contentDesc = "Back to all playlists",
+                    onClick = {
+                        haptics.fire(HapticEvent.Selection)
+                        onBack()
+                    }
+                )
+            }
+        }
+
+        // --- hero -----------------------------------------------------------------------
+        item {
+            dev.aurora.player.ui.components.ArtworkSurface(
+                altText = "${playlist.name} artwork",
+                artworkUri = heroArtwork,
+                modifier = Modifier.fillMaxWidth(0.62f)
             )
-            Spacer(modifier = Modifier.width(spacing.space3))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(playlist.name, style = typography.title, color = colors.textPrimary)
+        }
+
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(top = spacing.space5),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = playlist.name,
+                    style = typography.display,
+                    color = colors.textPrimary,
+                    textAlign = TextAlign.Center
+                )
                 Text(
                     text = trackCountLabel(tracks.size),
-                    style = typography.label,
+                    style = typography.body,
                     color = colors.textSecondary
                 )
             }
         }
 
+        // --- actions --------------------------------------------------------------------
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = spacing.space5),
+                horizontalArrangement = Arrangement.spacedBy(spacing.space4, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                dev.aurora.player.ui.navigation.GlassCircleButton(
+                    icon = Icons.Outlined.Shuffle,
+                    contentDescription = "Shuffle ${playlist.name}",
+                    onClick = { onPlayTracks(playable, true) },
+                    size = 52.dp
+                )
+                dev.aurora.player.ui.components.PrimaryPlayButton(
+                    text = "Play",
+                    onClick = { onPlayTracks(playable, false) }
+                )
+                dev.aurora.player.ui.navigation.GlassCircleButton(
+                    icon = Icons.Outlined.PlaylistAdd,
+                    contentDescription = "Add ${playlist.name} to the queue",
+                    // Queues behind what is playing; it does not interrupt it.
+                    onClick = { onQueueTracks(playable) },
+                    size = 52.dp
+                )
+            }
+        }
+
+        // --- tracks ---------------------------------------------------------------------
         if (tracks.isEmpty()) {
-            Text(
-                text = "This playlist is empty. Add tracks from your library.",
-                style = typography.body,
-                color = colors.textSecondary,
-                modifier = Modifier.padding(vertical = spacing.space6)
-            )
+            item {
+                Text(
+                    text = "This playlist is empty. Add tracks from your library.",
+                    style = typography.body,
+                    color = colors.textSecondary,
+                    modifier = Modifier.padding(vertical = spacing.space6)
+                )
+            }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(spacing.space2)) {
-                itemsIndexed(tracks, key = { _, t -> t.entryId }) { index, entry ->
-                    GlassSurface(modifier = Modifier.fillMaxWidth(), level = GlassLevel.Secondary) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(spacing.space3),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    // A track whose file is gone still holds its place rather
-                                    // than vanishing from the user's playlist.
-                                    text = entry.item?.title ?: "Unavailable track",
-                                    style = typography.title,
-                                    color = if (entry.item != null) {
-                                        colors.textPrimary
-                                    } else {
-                                        colors.textSecondary
-                                    }
-                                )
-                                Text(
-                                    // Missing artist metadata is not the same as a missing
-                                    // file; saying "unavailable" for an untagged track would
-                                    // claim something untrue about the user's library.
-                                    text = when {
-                                        entry.item == null -> "Not currently available"
-                                        entry.item.artist != null -> entry.item.artist!!
-                                        else -> "Unknown artist"
-                                    },
-                                    style = typography.label,
-                                    color = colors.textSecondary
-                                )
-                            }
-                            GlassIconButton(
-                                icon = Icons.Outlined.ArrowUpward,
-                                contentDesc = "Move up",
-                                enabled = index > 0,
-                                onClick = {
-                                    haptics.fire(HapticEvent.QueueReorder)
-                                    onMoveEntry(index, index - 1)
-                                }
-                            )
-                            GlassIconButton(
-                                icon = Icons.Outlined.ArrowDownward,
-                                contentDesc = "Move down",
-                                enabled = index < tracks.lastIndex,
-                                onClick = {
-                                    haptics.fire(HapticEvent.QueueReorder)
-                                    onMoveEntry(index, index + 1)
-                                }
-                            )
-                            GlassIconButton(
-                                icon = Icons.Outlined.Delete,
-                                contentDesc = "Remove from playlist",
-                                onClick = {
-                                    haptics.fire(HapticEvent.Warning)
-                                    onRemoveEntry(entry.entryId)
-                                }
-                            )
+            itemsIndexed(tracks, key = { _, t -> t.entryId }) { index, entry ->
+                PlaylistTrackRow(
+                    entry = entry,
+                    index = index,
+                    isLast = index == tracks.lastIndex,
+                    onPlay = { entry.item?.let { onPlayTracks(listOf(it), false) } },
+                    onMoveUp = { onMoveEntry(index, index - 1) },
+                    onMoveDown = { onMoveEntry(index, index + 1) },
+                    onRemove = { onRemoveEntry(entry.entryId) }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * One row of a playlist, with a hairline under it.
+ *
+ * Reordering and removal live in the overflow menu rather than as three permanent buttons:
+ * the references keep a row to its content and one "more", and the rows were previously
+ * wider in controls than in music.
+ */
+@Composable
+private fun PlaylistTrackRow(
+    entry: PlaylistTrack,
+    index: Int,
+    isLast: Boolean,
+    onPlay: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    val spacing = Aurora.spacing
+    val typography = Aurora.typography
+    val colors = Aurora.colors
+    val haptics = LocalHapticEngine.current
+    var menuOpen by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().height(64.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            dev.aurora.player.ui.components.ArtworkSurface(
+                altText = "",
+                artworkUri = entry.item?.artworkUri,
+                modifier = Modifier.size(48.dp).clearAndSetSemantics {}
+            )
+            Spacer(modifier = Modifier.width(spacing.space3))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = entry.item != null, onClick = onPlay)
+            ) {
+                Text(
+                    // A track whose file is gone still holds its place rather than vanishing
+                    // from the user's playlist.
+                    text = entry.item?.title ?: "Unavailable track",
+                    style = typography.title,
+                    color = if (entry.item != null) colors.textPrimary else colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    // Missing artist metadata is not the same as a missing file; saying
+                    // "unavailable" for an untagged track would claim something untrue.
+                    text = when {
+                        entry.item == null -> "Not currently available"
+                        entry.item.artist != null -> entry.item.artist!!
+                        else -> "Unknown artist"
+                    },
+                    style = typography.body,
+                    color = colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Box {
+                GlassIconButton(
+                    icon = Icons.Outlined.MoreHoriz,
+                    contentDesc = "More options for ${entry.item?.title ?: "this track"}",
+                    onClick = { menuOpen = true }
+                )
+                androidx.compose.material3.DropdownMenu(
+                    expanded = menuOpen,
+                    onDismissRequest = { menuOpen = false }
+                ) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("Move up") },
+                        enabled = index > 0,
+                        onClick = {
+                            menuOpen = false
+                            haptics.fire(HapticEvent.QueueReorder)
+                            onMoveUp()
                         }
-                    }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("Move down") },
+                        enabled = !isLast,
+                        onClick = {
+                            menuOpen = false
+                            haptics.fire(HapticEvent.QueueReorder)
+                            onMoveDown()
+                        }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("Remove from playlist") },
+                        onClick = {
+                            menuOpen = false
+                            haptics.fire(HapticEvent.Warning)
+                            onRemove()
+                        }
+                    )
                 }
             }
+        }
+        if (!isLast) {
+            androidx.compose.material3.HorizontalDivider(
+                color = colors.dividerSubtle,
+                modifier = Modifier.padding(start = 48.dp + spacing.space3)
+            )
         }
     }
 }

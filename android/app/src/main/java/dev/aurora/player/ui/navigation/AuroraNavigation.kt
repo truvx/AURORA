@@ -37,6 +37,28 @@ import androidx.compose.foundation.layout.Column
 /** A screen reached from the header rather than the navigation pill. */
 private const val WHATS_NEW_ROUTE = "whats_new"
 
+/**
+ * Play a whole list: the first track loads and starts, the rest queue behind it.
+ *
+ * Shuffling happens here rather than by turning shuffle mode on, so "Shuffle" plays these
+ * tracks in a random order without changing what the player does when the queue advances
+ * afterwards.
+ */
+private fun playAll(
+    container: dev.aurora.player.app.AppContainer,
+    tracks: List<dev.aurora.player.domain.models.MediaItem>,
+    shuffled: Boolean
+) {
+    val ordered = if (shuffled) tracks.shuffled() else tracks
+    val first = ordered.firstOrNull() ?: return
+    playNow(container, first)
+    ordered.drop(1).forEach { track ->
+        container.playerCoordinator.dispatch(
+            dev.aurora.player.domain.player.PlayerCommand.AddToQueue(track)
+        )
+    }
+}
+
 /** Load a track and start it: the two commands every "play this" in the UI sends. */
 private fun playNow(container: dev.aurora.player.app.AppContainer, item: dev.aurora.player.domain.models.MediaItem) {
     container.playerCoordinator.dispatch(dev.aurora.player.domain.player.PlayerCommand.Load(item))
@@ -217,7 +239,15 @@ fun AuroraNavigation(
                     onDeletePlaylist = libraryViewModel::deletePlaylist,
                     onAddToPlaylist = libraryViewModel::addToPlaylist,
                     onRemoveEntry = libraryViewModel::removeFromPlaylist,
-                    onMoveEntry = libraryViewModel::moveEntry
+                    onMoveEntry = libraryViewModel::moveEntry,
+                    onPlayTracks = { tracks, shuffled -> playAll(container, tracks, shuffled) },
+                    onQueueTracks = { tracks ->
+                        tracks.forEach { track ->
+                            container.playerCoordinator.dispatch(
+                                dev.aurora.player.domain.player.PlayerCommand.AddToQueue(track)
+                            )
+                        }
+                    }
                 )
             }
             composable(AuroraDestination.Ai.route) { 
@@ -244,7 +274,8 @@ fun AuroraNavigation(
                 SettingsScreen(
                     playerCoordinator = container.playerCoordinator,
                     privacyViewModel = privacyViewModel,
-                    gatewayTokenStore = container.gatewayTokenStore
+                    gatewayTokenStore = container.gatewayTokenStore,
+                    profileStore = container.profileStore
                 )
             }
         }

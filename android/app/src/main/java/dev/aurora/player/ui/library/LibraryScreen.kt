@@ -69,6 +69,8 @@ fun LibraryScreen(
     onAddToPlaylist: (playlistId: String, mediaId: String) -> Unit,
     onRemoveEntry: (playlistId: String, entryId: String) -> Unit,
     onMoveEntry: (playlistId: String, from: Int, to: Int) -> Unit,
+    onPlayTracks: (tracks: List<dev.aurora.player.domain.models.MediaItem>, shuffled: Boolean) -> Unit = { _, _ -> },
+    onQueueTracks: (tracks: List<dev.aurora.player.domain.models.MediaItem>) -> Unit = { },
     modifier: Modifier = Modifier
 ) {
     val haptics = LocalHapticEngine.current
@@ -161,6 +163,11 @@ fun LibraryScreen(
                 )
             }
         } else {
+            // A playlist detail is a page of its own, as in the references: the library
+            // title and the Tracks/Playlists switch belong to the list behind it.
+            val viewingPlaylist = showPlaylists && openPlaylistId != null
+
+            if (!viewingPlaylist) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = spacing.space4),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -207,6 +214,7 @@ fun LibraryScreen(
                     }
                 )
             }
+            }
 
             if (showPlaylists) {
                 PlaylistsSection(
@@ -217,7 +225,9 @@ fun LibraryScreen(
                     onCreatePlaylist = onCreatePlaylist,
                     onDeletePlaylist = onDeletePlaylist,
                     onRemoveEntry = onRemoveEntry,
-                    onMoveEntry = onMoveEntry
+                    onMoveEntry = onMoveEntry,
+                    onPlayTracks = onPlayTracks,
+                    onQueueTracks = onQueueTracks
                 )
                 return@Column
             }

@@ -66,6 +66,7 @@ fun SettingsScreen(
     playerCoordinator: PlayerCoordinator? = null,
     privacyViewModel: PrivacyViewModel? = null,
     gatewayTokenStore: GatewayTokenStore? = null,
+    profileStore: dev.aurora.player.data.discovery.ProfileStore? = null,
     modifier: Modifier = Modifier
 ) {
     val spacing = Aurora.spacing
@@ -95,6 +96,11 @@ fun SettingsScreen(
             color = colors.textPrimary,
             modifier = Modifier.padding(bottom = spacing.space6)
         )
+
+        if (profileStore != null) {
+            ProfileSection(profileStore, haptics)
+            Spacer(modifier = Modifier.height(spacing.space6))
+        }
 
         // ── Haptic Feedback Toggle ────────────────────────────────────────
 
@@ -476,6 +482,137 @@ private fun AiGatewaySection(
                         modifier = Modifier.padding(top = spacing.space2)
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * The listener's own name and picture, kept on this device.
+ *
+ * Not an account: AURORA has no sign-in, and this exists so the avatar in the header is
+ * theirs rather than a stock silhouette. The photo is copied into app storage and
+ * downscaled, because a Photo Picker grant does not outlive the process.
+ */
+@Composable
+private fun ProfileSection(
+    store: dev.aurora.player.data.discovery.ProfileStore,
+    haptics: dev.aurora.player.ui.haptics.HapticEngine
+) {
+    val spacing = Aurora.spacing
+    val typography = Aurora.typography
+    val colors = Aurora.colors
+    val profile by store.profile.collectAsState()
+    val scope = rememberCoroutineScope()
+    var draftName by remember(profile.name) { mutableStateOf(profile.name.orEmpty()) }
+    var photoFailed by remember { mutableStateOf(false) }
+
+    val pickPhoto = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                // Decoding and writing a file is not main-thread work.
+                val ok = withContext(Dispatchers.IO) { store.setPhoto(uri) }
+                photoFailed = !ok
+                if (ok) haptics.fire(HapticEvent.Success)
+            }
+        }
+    }
+
+    Text(
+        text = "You",
+        style = typography.headline,
+        color = colors.textPrimary,
+        modifier = Modifier.padding(bottom = spacing.space3)
+    )
+
+    GlassCard(modifier = Modifier.fillMaxWidth(), level = GlassLevel.Primary) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ProfileAvatar(profile = profile, onClick = {
+                    pickPhoto.launch(
+                        androidx.activity.result.PickVisualMediaRequest(
+                            androidx.activity.result.contract.ActivityResultContracts
+                                .PickVisualMedia.ImageOnly
+                        )
+                    )
+                }, size = 56.dp)
+                Spacer(modifier = Modifier.width(spacing.space3))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = profile.name ?: "Add your name",
+                        style = typography.title,
+                        color = colors.textPrimary
+                    )
+                    Text(
+                        text = "Shown on your avatar. Stored only on this device.",
+                        style = typography.body,
+                        color = colors.textSecondary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(spacing.space3))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = draftName,
+                    onValueChange = {
+                        draftName = it
+                        store.setName(it)
+                    },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Your name", color = colors.textTertiary) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = colors.surfaceGlassSecondary,
+                        unfocusedContainerColor = colors.surfaceGlassSecondary,
+                        focusedTextColor = colors.textPrimary,
+                        unfocusedTextColor = colors.textPrimary,
+                        cursorColor = colors.accentPrimary
+                    ),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(percent = 50)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(spacing.space3))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing.space2)) {
+                GlassButton(
+                    text = if (profile.photoPath == null) "Choose photo" else "Change photo",
+                    style = GlassButtonStyle.Secondary,
+                    onClick = {
+                        haptics.fire(HapticEvent.Tap)
+                        pickPhoto.launch(
+                            androidx.activity.result.PickVisualMediaRequest(
+                                androidx.activity.result.contract.ActivityResultContracts
+                                    .PickVisualMedia.ImageOnly
+                            )
+                        )
+                    }
+                )
+                if (profile.photoPath != null) {
+                    GlassButton(
+                        text = "Remove",
+                        style = GlassButtonStyle.Secondary,
+                        onClick = {
+                            haptics.fire(HapticEvent.Tap)
+                            store.clearPhoto()
+                        }
+                    )
+                }
+            }
+
+            if (photoFailed) {
+                Text(
+                    text = "That image could not be read.",
+                    style = typography.label,
+                    color = colors.textPrimary,
+                    modifier = Modifier.padding(top = spacing.space2)
+                )
             }
         }
     }

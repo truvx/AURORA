@@ -109,11 +109,12 @@ fun NowPlayingScreen(
         // Title and Artist
         Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.Start
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = currentTrack?.title ?: "No track playing",
                 style = Aurora.typography.headline,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 color = Aurora.colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -121,6 +122,7 @@ fun NowPlayingScreen(
             Text(
                 text = currentTrack?.artist ?: "",
                 style = Aurora.typography.title,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 color = Aurora.colors.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -167,9 +169,10 @@ fun NowPlayingScreen(
                 modifier = Modifier.size(64.dp)
             )
 
-            // Play/Pause
+            // Play/Pause: solid, not glass. The references make this the one filled
+            // control on the screen, which is also where the thumb lands.
             val isPlaying = state.status == PlaybackStatus.Playing || state.status == PlaybackStatus.Buffering
-            GlassIconButton(
+            dev.aurora.player.ui.components.PrimaryCircleButton(
                 onClick = {
                     if (isPlaying) {
                         haptics.fire(HapticEvent.Pause)
@@ -180,9 +183,8 @@ fun NowPlayingScreen(
                     }
                 },
                 icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                contentDesc = if (isPlaying) "Pause" else "Play",
-                selected = isPlaying, // to give it a highlighted tint maybe
-                modifier = Modifier.size(80.dp)
+                contentDescription = if (isPlaying) "Pause" else "Play",
+                size = 76.dp
             )
 
             // Next

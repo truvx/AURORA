@@ -9,6 +9,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.printToString
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.aurora.player.domain.library.Playlist
@@ -125,27 +127,34 @@ class AccessibilitySemanticsTest {
 
     @Test
     fun reorderingHasNamedControlsRatherThanDragOnly() {
-        // The spec requires a named Move up / Move down alternative to dragging.
+        // The spec requires a named Move up / Move down alternative to dragging. They live
+        // in each row's overflow menu now - the references keep a row to its content and
+        // one "more" - so the guarantee is that they are reachable and named, not that they
+        // are permanently on screen.
         playlistContent()
 
-        rule.onAllNodesWithContentDescriptionSubstring("Move up").assertAny()
-        rule.onAllNodesWithContentDescriptionSubstring("Move down").assertAny()
+        rule.onAllNodesWithContentDescriptionSubstring("More options")[0].performClick()
+
+        rule.onNodeWithText("Move up").assertExists()
+        rule.onNodeWithText("Move down").assertExists()
     }
 
     @Test
     fun reorderControlsMeetTheMinimumTargetSize() {
         playlistContent()
 
-        // 48dp minimum per the spec, checked on the real rendered node. Every row has its
-        // own control, so assert the size of each rather than assuming a single match.
-        val controls = rule.onAllNodesWithContentDescriptionSubstring("Move down")
-        val count = controls.fetchSemanticsNodes().size
-        assertTrue("expected reorder controls to exist", count > 0)
+        // 48dp minimum per the spec, checked on the real rendered nodes: both the menu
+        // button that reveals them and the menu items themselves.
+        val more = rule.onAllNodesWithContentDescriptionSubstring("More options")
+        val count = more.fetchSemanticsNodes().size
+        assertTrue("expected an overflow control on each row", count > 0)
         repeat(count) { index ->
-            controls[index]
-                .assertWidthIsAtLeast(48.dp)
-                .assertHeightIsAtLeast(48.dp)
+            more[index].assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
         }
+
+        more[0].performClick()
+        rule.onNodeWithText("Move up").assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithText("Move down").assertHeightIsAtLeast(48.dp)
     }
 
     @Test

@@ -1,6 +1,5 @@
 package dev.aurora.player.data.providers
 
-import dev.aurora.player.BuildConfig
 import dev.aurora.player.data.api.YouTubeDataApi
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.domain.models.ProviderCapabilities
@@ -10,9 +9,9 @@ import dev.aurora.player.domain.providers.MusicProvider
 
 class YouTubeMusicProvider(
     private val api: YouTubeDataApi,
-    // Injected so the provider can be tested without a build-time key. Reading BuildConfig
-    // directly made the class untestable and silently coupled it to local.properties.
-    private val apiKey: String = BuildConfig.YOUTUBE_API_KEY
+    // A lookup rather than a value: the key is entered in Settings and kept in the
+    // Keystore, so it can arrive, change, or be cleared long after this object was built.
+    private val apiKeyProvider: () -> String
 ) : MusicProvider {
     
     override val id: ProviderKind = ProviderKind.YOUTUBE
@@ -28,6 +27,7 @@ class YouTubeMusicProvider(
     )
 
     override suspend fun search(query: String): Result<List<MediaItem>> {
+        val apiKey = apiKeyProvider()
         if (apiKey.isBlank()) {
             return Result.failure(Exception("YouTube API key is not configured."))
         }
@@ -58,6 +58,7 @@ class YouTubeMusicProvider(
 
     override suspend fun resolveMetadata(trackId: String): Result<MediaItem> {
         val videoId = trackId.removePrefix("youtube:")
+        val apiKey = apiKeyProvider()
         if (apiKey.isBlank()) {
             return Result.failure(Exception("YouTube API key is not configured."))
         }

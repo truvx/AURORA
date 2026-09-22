@@ -93,7 +93,8 @@ class AiE2ETest {
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
         val ytApi = ytRetrofit.create(YouTubeDataApi::class.java)
-        val ytProvider = YouTubeMusicProvider(ytApi)
+        val youTubeKey = System.getProperty("aurora.youtubeKey").orEmpty()
+        val ytProvider = YouTubeMusicProvider(ytApi) { youTubeKey }
 
         // 3. Setup Recommendation Engine
         val engine = RecommendationEngine(listOf(ytProvider))
@@ -117,7 +118,6 @@ class AiE2ETest {
 
         // 6. Test Live YouTube Search Execution
         println("Testing YouTube Data API Search Execution...")
-        println("YouTube API key present: ${dev.aurora.player.BuildConfig.YOUTUBE_API_KEY.isNotEmpty()}")
         val candidates = executor.executeTool(searchCall!!)
         assertTrue("Should find candidates from YouTube", candidates.isNotEmpty())
         
@@ -144,7 +144,7 @@ class AiE2ETest {
 
     @Test
     fun testInvalidTrackIdCannotReachCoordinator() = runBlocking {
-        val ytProvider = YouTubeMusicProvider(Retrofit.Builder().baseUrl("https://www.googleapis.com/youtube/v3/").addConverterFactory(kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.asConverterFactory(MediaType.get("application/json"))).build().create(YouTubeDataApi::class.java))
+        val ytProvider = YouTubeMusicProvider(Retrofit.Builder().baseUrl("https://www.googleapis.com/youtube/v3/").addConverterFactory(kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.asConverterFactory(MediaType.get("application/json"))).build().create(YouTubeDataApi::class.java)) { System.getProperty("aurora.youtubeKey").orEmpty() }
         val engine = RecommendationEngine(listOf(ytProvider))
         val scope = CoroutineScope(Dispatchers.Unconfined)
         var loadedTrack: MediaItem? = null

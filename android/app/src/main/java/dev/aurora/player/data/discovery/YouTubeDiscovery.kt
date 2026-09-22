@@ -25,7 +25,11 @@ class DiscoveryUnavailable(val reason: Reason) : Exception(reason.name) {
  */
 class LatestReleasesRepository(
     private val api: YouTubeDataApi,
-    private val apiKey: String,
+    /*
+     * A lookup rather than a value: the key is entered in Settings and kept in the
+     * Keystore, so it can arrive, change, or be cleared long after this object was built.
+     */
+    private val apiKeyProvider: () -> String,
     private val cache: DiscoveryCache,
     private val now: () -> Long = System::currentTimeMillis
 ) {
@@ -36,6 +40,7 @@ class LatestReleasesRepository(
     private data class ChannelRecord(val channelId: String?, val uploadsPlaylistId: String?)
 
     suspend fun latest(artists: List<String>): Result<List<Release>> {
+        val apiKey = apiKeyProvider()
         if (apiKey.isBlank()) return Result.failure(DiscoveryUnavailable(DiscoveryUnavailable.Reason.NO_API_KEY))
         if (artists.isEmpty()) return Result.success(emptyList())
 
@@ -48,7 +53,7 @@ class LatestReleasesRepository(
         var anyReached = false
         for (artist in artists) {
             try {
-                val playlist = uploadsPlaylistFor(artist)
+                val playlist = uploadsPlaylistFor(artist, apiKey)
                 anyReached = true
                 if (playlist == null) continue
                 val items = api.getPlaylistItems(playlistId = playlist, maxResults = PER_ARTIST, apiKey = apiKey).items
@@ -91,7 +96,7 @@ class LatestReleasesRepository(
     }
 
     /** The artist's uploads playlist, found once and remembered - including "no channel". */
-    private suspend fun uploadsPlaylistFor(artist: String): String? {
+    private suspend fun uploadsPlaylistFor(artist: String, apiKey: String): String? {
         val key = "channel:" + artist.lowercase()
         cache.read(key, CHANNEL_TTL_MS, ChannelRecord.serializer())?.let { return it.uploadsPlaylistId }
 
@@ -121,10 +126,15 @@ class LatestReleasesRepository(
 /** YouTube's most-popular Music chart for the listener's region. One quota unit per refresh. */
 class TrendingRepository(
     private val api: YouTubeDataApi,
-    private val apiKey: String,
+    /*
+     * A lookup rather than a value: the key is entered in Settings and kept in the
+     * Keystore, so it can arrive, change, or be cleared long after this object was built.
+     */
+    private val apiKeyProvider: () -> String,
     private val cache: DiscoveryCache
 ) {
     suspend fun trending(regionCode: String): Result<List<MediaItem>> {
+        val apiKey = apiKeyProvider()
         if (apiKey.isBlank()) return Result.failure(DiscoveryUnavailable(DiscoveryUnavailable.Reason.NO_API_KEY))
         val key = "trending:$regionCode"
         cache.read(key, TTL_MS, ListSerializer(CachedMedia.serializer()))?.let { cached ->

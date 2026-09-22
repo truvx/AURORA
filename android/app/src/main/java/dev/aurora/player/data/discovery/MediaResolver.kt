@@ -18,7 +18,11 @@ import kotlinx.coroutines.CancellationException
 class MediaResolver(
     private val local: MusicProvider,
     private val api: YouTubeDataApi,
-    private val apiKey: String,
+    /*
+     * A lookup rather than a value: the key is entered in Settings and kept in the
+     * Keystore, so it can arrive, change, or be cleared long after this object was built.
+     */
+    private val apiKeyProvider: () -> String,
     private val cache: DiscoveryCache
 ) {
     suspend fun resolve(ids: List<String>): Map<String, MediaItem> {
@@ -34,6 +38,7 @@ class MediaResolver(
             }
         }
 
+        val apiKey = apiKeyProvider()
         if (missingYouTube.isNotEmpty() && apiKey.isNotBlank()) {
             for (batch in missingYouTube.chunked(50)) {
                 val response = try {

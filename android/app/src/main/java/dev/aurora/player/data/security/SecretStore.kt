@@ -15,40 +15,47 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * The access token for the AURORA AI gateway.
+ * One secret the person supplies: the AI gateway's access token, or the YouTube Data API
+ * key.
  *
- * Entered by the person in Settings rather than compiled into the app. A value baked into
- * BuildConfig ships inside the APK, where anyone holding the file can read it - which is
- * how the YouTube key is handled today, and exactly what docs/SECURITY.md rules out for
- * tokens.
+ * Entered in Settings rather than compiled into the app. A value baked into BuildConfig
+ * ships inside the APK, where anyone holding the file can read it - which is exactly what
+ * docs/SECURITY.md rules out.
  */
-interface GatewayTokenStore {
+interface SecretStore {
     val isConfigured: StateFlow<Boolean>
     fun get(): String?
-    fun set(token: String)
+    fun set(value: String)
     fun clear()
 }
 
 /**
- * Encrypts the token with an AES-GCM key held in the Android Keystore.
+ * Encrypts the secret with an AES-GCM key held in the Android Keystore.
  *
  * The key never leaves the Keystore; only ciphertext and IV sit in SharedPreferences. That
  * matters because the app allows backup: preferences can be restored onto another device,
- * but the Keystore key does not travel with them, so a restored token simply fails to
- * decrypt and is discarded - the person reconnects rather than the token leaking.
+ * but the Keystore key does not travel with them, so a restored secret simply fails to
+ * decrypt and is discarded - the person re-enters it rather than the secret leaking.
+ *
+ * Each secret gets its own Keystore alias, so clearing one cannot strand another.
  */
-class KeystoreGatewayTokenStore(context: Context) : GatewayTokenStore {
+class KeystoreSecretStore(
+    context: Context,
+    private val keyAlias: String,
+    private val prefKey: String,
+) : SecretStore {
 
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val ivKey = prefKey + "_iv"
     // Presence of ciphertext, not a decrypt: this is read when Settings first composes, and
     // a Keystore round-trip does not belong on the main thread. A token that turns out to be
     // undecryptable is cleared by the first real get(), which flips this back to false.
-    private val _isConfigured = MutableStateFlow(prefs.contains(KEY_TOKEN))
+    private val _isConfigured = MutableStateFlow(prefs.contains(prefKey))
     override val isConfigured: StateFlow<Boolean> = _isConfigured.asStateFlow()
 
     override fun get(): String? {
-        val stored = prefs.getString(KEY_TOKEN, null) ?: return null
-        val iv = prefs.getString(KEY_IV, null) ?: return null
+        val stored = prefs.getString(prefKey, null) ?: return null
+        val iv = prefs.getString(ivKey, null) ?: return null
         return try {
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, decode(iv)))
@@ -64,32 +71,32 @@ class KeystoreGatewayTokenStore(context: Context) : GatewayTokenStore {
         }
     }
 
-    override fun set(token: String) {
-        val trimmed = token.trim()
-        require(trimmed.isNotEmpty()) { "Token is empty" }
+    override fun set(value: String) {
+        val trimmed = value.trim()
+        require(trimmed.isNotEmpty()) { "Secret is empty" }
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, key())
         val encrypted = cipher.doFinal(trimmed.toByteArray(Charsets.UTF_8))
         prefs.edit()
-            .putString(KEY_TOKEN, encode(encrypted))
-            .putString(KEY_IV, encode(cipher.iv))
+            .putString(prefKey, encode(encrypted))
+            .putString(ivKey, encode(cipher.iv))
             .apply()
         _isConfigured.value = true
     }
 
     override fun clear() {
-        prefs.edit().remove(KEY_TOKEN).remove(KEY_IV).apply()
+        prefs.edit().remove(prefKey).remove(ivKey).apply()
         _isConfigured.value = false
     }
 
     private fun key(): SecretKey {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-        (keyStore.getEntry(KEY_ALIAS, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }
+        (keyStore.getEntry(keyAlias, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }
 
         val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
         generator.init(
             KeyGenParameterSpec.Builder(
-                KEY_ALIAS,
+                keyAlias,
                 KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
             )
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
@@ -105,10 +112,21 @@ class KeystoreGatewayTokenStore(context: Context) : GatewayTokenStore {
 
     private companion object {
         const val ANDROID_KEYSTORE = "AndroidKeyStore"
-        const val KEY_ALIAS = "aurora_gateway_token"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
         const val PREFS = "aurora_secure"
-        const val KEY_TOKEN = "gateway_token"
-        const val KEY_IV = "gateway_token_iv"
     }
 }
+
+/** The AI gateway's access token. */
+fun gatewayTokenStore(context: Context): SecretStore =
+    KeystoreSecretStore(context, "aurora_gateway_token", "gateway_token")
+
+/**
+ * The YouTube Data API key.
+ *
+ * Per-install rather than per-build: the key used to be compiled into BuildConfig from
+ * local.properties, so every copy of the APK carried a working key that anyone could pull
+ * out of the file with `strings`. Discovery is simply unavailable until one is entered.
+ */
+fun youTubeKeyStore(context: Context): SecretStore =
+    KeystoreSecretStore(context, "aurora_youtube_key", "youtube_api_key")

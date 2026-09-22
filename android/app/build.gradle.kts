@@ -28,9 +28,10 @@ android {
         versionName = "0.2.0-beta1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
-        val youtubeApiKey = localProperties.getProperty("YOUTUBE_API_KEY") ?: ""
-        buildConfigField("String", "YOUTUBE_API_KEY", "\"$youtubeApiKey\"")
+
+        // No YouTube key here on purpose. A buildConfigField ships the key inside every
+        // copy of the APK, where `strings` finds it in seconds. It is entered in Settings
+        // instead and kept in the Keystore - see data/security/SecretStore.kt.
     }
 
 
@@ -192,6 +193,12 @@ tasks.withType<Test> {
     systemProperty(
         "aurora.gatewayToken",
         providers.gradleProperty("auroraGatewayToken").getOrElse("")
+    )
+    // The YouTube key is no longer in BuildConfig, so the live test takes it the same way
+    // the gateway token arrives: passed in for that run, never written into the artifact.
+    systemProperty(
+        "aurora.youtubeKey",
+        providers.gradleProperty("auroraYouTubeKey").getOrElse("")
     )
 }
 

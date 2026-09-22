@@ -31,7 +31,8 @@ interface AppContainer {
      * and restores the previous queue. Safe to call once from Application.onCreate.
      */
     fun startPlaybackPersistence()
-    val gatewayTokenStore: dev.aurora.player.data.security.GatewayTokenStore
+    val gatewayTokenStore: dev.aurora.player.data.security.SecretStore
+    val youTubeKeyStore: dev.aurora.player.data.security.SecretStore
     val youTubeDataApi: YouTubeDataApi
     val mediaResolver: dev.aurora.player.data.discovery.MediaResolver
     val latestReleasesRepository: dev.aurora.player.data.discovery.LatestReleasesRepository
@@ -79,7 +80,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val youtubeMusicProvider: YouTubeMusicProvider by lazy {
-        YouTubeMusicProvider(youTubeDataApi)
+        YouTubeMusicProvider(youTubeDataApi) { youTubeKeyStore.get().orEmpty() }
     }
 
     /*
@@ -100,7 +101,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         dev.aurora.player.data.discovery.MediaResolver(
             local = localLibraryProvider,
             api = youTubeDataApi,
-            apiKey = dev.aurora.player.BuildConfig.YOUTUBE_API_KEY,
+            apiKeyProvider = { youTubeKeyStore.get().orEmpty() },
             cache = discoveryCache
         )
     }
@@ -108,7 +109,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     override val latestReleasesRepository: dev.aurora.player.data.discovery.LatestReleasesRepository by lazy {
         dev.aurora.player.data.discovery.LatestReleasesRepository(
             api = youTubeDataApi,
-            apiKey = dev.aurora.player.BuildConfig.YOUTUBE_API_KEY,
+            apiKeyProvider = { youTubeKeyStore.get().orEmpty() },
             cache = discoveryCache
         )
     }
@@ -116,7 +117,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     override val trendingRepository: dev.aurora.player.data.discovery.TrendingRepository by lazy {
         dev.aurora.player.data.discovery.TrendingRepository(
             api = youTubeDataApi,
-            apiKey = dev.aurora.player.BuildConfig.YOUTUBE_API_KEY,
+            apiKeyProvider = { youTubeKeyStore.get().orEmpty() },
             cache = discoveryCache
         )
     }
@@ -166,8 +167,12 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         )
     }
 
-    override val gatewayTokenStore: dev.aurora.player.data.security.GatewayTokenStore by lazy {
-        dev.aurora.player.data.security.KeystoreGatewayTokenStore(context)
+    override val gatewayTokenStore: dev.aurora.player.data.security.SecretStore by lazy {
+        dev.aurora.player.data.security.gatewayTokenStore(context)
+    }
+
+    override val youTubeKeyStore: dev.aurora.player.data.security.SecretStore by lazy {
+        dev.aurora.player.data.security.youTubeKeyStore(context)
     }
 
     override val aiProvider: dev.aurora.player.domain.ai.AiProvider by lazy {

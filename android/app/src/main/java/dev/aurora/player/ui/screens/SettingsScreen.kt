@@ -39,12 +39,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import dev.aurora.player.data.security.GatewayTokenStore
+import dev.aurora.player.data.security.SecretStore
 import dev.aurora.player.domain.audio.LoudnessPreference
 import dev.aurora.player.domain.player.PlayerCommand
 import dev.aurora.player.ui.components.GlassButton
@@ -65,7 +66,8 @@ import dev.aurora.player.ui.theme.Aurora
 fun SettingsScreen(
     playerCoordinator: PlayerCoordinator? = null,
     privacyViewModel: PrivacyViewModel? = null,
-    gatewayTokenStore: GatewayTokenStore? = null,
+    gatewayTokenStore: SecretStore? = null,
+    youTubeKeyStore: SecretStore? = null,
     profileStore: dev.aurora.player.data.discovery.ProfileStore? = null,
     modifier: Modifier = Modifier
 ) {
@@ -251,7 +253,41 @@ fun SettingsScreen(
 
         if (gatewayTokenStore != null) {
             Spacer(modifier = Modifier.height(spacing.space6))
-            AiGatewaySection(gatewayTokenStore, haptics)
+            SecretSection(
+                sectionTitle = "AI",
+                icon = Icons.Outlined.AutoAwesome,
+                name = "AI gateway",
+                setText = "Connected",
+                unsetText = "Not connected",
+                explanation = "Paste the access token set as AURORA_GATEWAY_TOKEN on your gateway. " +
+                    "It's encrypted on this device.",
+                placeholder = "Gateway token",
+                clearLabel = "Disconnect",
+                saveLabel = "Connect",
+                savingLabel = "Connecting…",
+                store = gatewayTokenStore,
+                haptics = haptics
+            )
+        }
+
+        if (youTubeKeyStore != null) {
+            Spacer(modifier = Modifier.height(spacing.space6))
+            SecretSection(
+                sectionTitle = "YouTube",
+                icon = Icons.Outlined.PlayCircle,
+                name = "Data API key",
+                setText = "Saved",
+                unsetText = "Not set",
+                explanation = "Search, the Home feed and new releases need a YouTube Data API v3 key " +
+                    "from your own Google Cloud project. It's encrypted on this device and never " +
+                    "built into the app.",
+                placeholder = "API key",
+                clearLabel = "Remove",
+                saveLabel = "Save",
+                savingLabel = "Saving…",
+                store = youTubeKeyStore,
+                haptics = haptics
+            )
         }
 
         if (privacyViewModel != null) {
@@ -352,15 +388,25 @@ private fun PrivacySection(
 }
 
 /**
- * Connects this device to the AURORA AI gateway.
+ * One secret the person supplies: the AI gateway token, or the YouTube Data API key.
  *
- * The gateway refuses requests without its access token, so AI features stay off until one
- * is entered here. It is stored encrypted with a Keystore key and never shown back: once
- * saved, the only actions are replacing it or disconnecting.
+ * Neither is compiled into the app, so the matching feature stays off until a value is
+ * entered here. It is stored encrypted with a Keystore key and never shown back: once
+ * saved, the only actions are replacing it or removing it.
  */
 @Composable
-private fun AiGatewaySection(
-    store: GatewayTokenStore,
+private fun SecretSection(
+    sectionTitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    name: String,
+    setText: String,
+    unsetText: String,
+    explanation: String,
+    placeholder: String,
+    clearLabel: String,
+    saveLabel: String,
+    savingLabel: String,
+    store: SecretStore,
     haptics: dev.aurora.player.ui.haptics.HapticEngine
 ) {
     val spacing = Aurora.spacing
@@ -373,7 +419,7 @@ private fun AiGatewaySection(
     val scope = rememberCoroutineScope()
 
     Text(
-        text = "AI",
+        text = sectionTitle,
         style = typography.headline,
         color = colors.textPrimary,
         modifier = Modifier.padding(bottom = spacing.space3)
@@ -383,16 +429,16 @@ private fun AiGatewaySection(
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Outlined.AutoAwesome,
+                    imageVector = icon,
                     contentDescription = null,
                     tint = colors.accentPrimary,
                     modifier = Modifier.padding(end = spacing.space3)
                 )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "AI gateway", style = typography.title, color = colors.textPrimary)
+                    Text(text = name, style = typography.title, color = colors.textPrimary)
                     // Status in words, not only colour.
                     Text(
-                        text = if (connected) "Connected" else "Not connected",
+                        text = if (connected) setText else unsetText,
                         style = typography.body,
                         color = colors.textSecondary
                     )
@@ -403,7 +449,7 @@ private fun AiGatewaySection(
 
             if (connected) {
                 GlassButton(
-                    text = "Disconnect",
+                    text = clearLabel,
                     style = GlassButtonStyle.Secondary,
                     onClick = {
                         haptics.fire(HapticEvent.Tap)
@@ -412,8 +458,7 @@ private fun AiGatewaySection(
                 )
             } else {
                 Text(
-                    text = "Paste the access token set as AURORA_GATEWAY_TOKEN on your gateway. " +
-                        "It's encrypted on this device.",
+                    text = explanation,
                     style = typography.body,
                     color = colors.textSecondary,
                     modifier = Modifier.padding(bottom = spacing.space3)
@@ -426,7 +471,7 @@ private fun AiGatewaySection(
                             failed = false
                         },
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Gateway token", color = colors.textTertiary) },
+                        placeholder = { Text(placeholder, color = colors.textTertiary) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
@@ -446,7 +491,7 @@ private fun AiGatewaySection(
                     )
                     Spacer(modifier = Modifier.width(spacing.space3))
                     GlassButton(
-                        text = if (saving) "Connecting…" else "Connect",
+                        text = if (saving) savingLabel else saveLabel,
                         enabled = draft.isNotBlank() && !saving,
                         onClick = {
                             val token = draft
@@ -476,7 +521,7 @@ private fun AiGatewaySection(
                 }
                 if (failed) {
                     Text(
-                        text = "This device couldn't store the token securely.",
+                        text = "This device couldn't store it securely.",
                         style = typography.label,
                         color = colors.textPrimary,
                         modifier = Modifier.padding(top = spacing.space2)

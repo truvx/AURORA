@@ -20,11 +20,15 @@ Provider credentials are isolated per adapter and never exposed to presentation.
 
 As implemented (`web/app/api/ai/intent/route.ts`, `web/lib/ai/guard.ts`): every request needs `Authorization: Bearer <AURORA_GATEWAY_TOKEN>`, and with no token configured the gateway refuses everything rather than running open. Requests are capped at 16 KB and 20 per minute across the gateway (in memory, so per server process). Client `context` is a map of at most 20 short strings and travels in the user turn marked as data, never in the system instruction. Failures return a stable `error.code`. The Android client stores the token encrypted with an Android Keystore key, entered in Settings; it is never compiled into the app.
 
+As implemented (`android/.../data/security/SecretStore.kt`): both client-held secrets - the gateway token and the YouTube Data API key - are entered in Settings and stored as AES-GCM ciphertext under a per-secret Android Keystore alias. Neither is a `buildConfigField`. A key compiled into `BuildConfig` is a plaintext string in `classes.dex`, readable from the APK with `grep`, and no amount of restricting it in the Cloud console changes the fact that it shipped. Where a feature needs a key that is not set, it fails with a typed reason (`DiscoveryUnavailable.Reason.NO_API_KEY`) rather than silently returning nothing. The key is read per call, not captured at construction, so entering one in Settings takes effect without a restart.
+
 ## Local data
 
 Respect URI permissions and ownership. Minimize cloud sharing of local-library metadata/history. Redact telemetry. Keep sensitive processing local by default and make optional sharing explicit.
 
 Listening history, playlists, local paths/URIs, technical metadata, conversations, and account state are sensitive. Define retention, deletion/export, backup, and opt-in sharing behavior before implementing sync or AI context. Do not put raw local paths or full history into analytics. Local imports validate type/size/ownership and avoid unsafe path construction; original media is not rewritten by normalization.
+
+As implemented (`android/app/src/main/res/xml/backup_rules.xml`, `data_extraction_rules.xml`): the app allows backup, so settings survive a reinstall, but `aurora-database` and its write-ahead log are excluded from cloud backup on every API level. Listening history, completions and skips do not reach a Google account. Device transfer is treated as a separate decision and keeps the library, because it is a direct person-initiated move to their next phone with nothing left on a server. The encrypted secrets are excluded from both: the Keystore key that decrypts them does not travel, so the ciphertext would restore useless. Measured with the local backup transport: 592,896 bytes leave the device without these rules, 219,136 bytes with them.
 
 ## Logging and observability
 

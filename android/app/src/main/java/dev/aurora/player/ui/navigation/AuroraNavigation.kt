@@ -275,6 +275,7 @@ fun AuroraNavigation(
                     playerCoordinator = container.playerCoordinator,
                     privacyViewModel = privacyViewModel,
                     gatewayTokenStore = container.gatewayTokenStore,
+                    youTubeKeyStore = container.youTubeKeyStore,
                     profileStore = container.profileStore
                 )
             }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Auto Backup on Android 11 and below.
+
+  What is kept out of Google Drive, and why:
+
+  - aurora-database holds listening history, completions and skips. AGENTS.md makes that
+    private by default, and copying it to a cloud account is not a choice the person made.
+  - aurora_secure holds the gateway token and the YouTube key. They are encrypted with a
+    Keystore key that does not travel with a backup, so a restored copy is undecryptable
+    anyway - shipping the ciphertext off the device buys nothing.
+  - aurora_discovery is a YouTube response cache. It would be stale on restore and costs
+    nothing to rebuild.
+  - profile_photo.jpg is the person's own picture, which Settings describes as staying on
+    this device.
+
+  Settings and library organisation are not excluded: they are preferences, and having
+  them survive a reinstall is the point of backup.
+-->
+<full-backup-content>
+    <exclude domain="database" path="aurora-database" />
+    <exclude domain="database" path="aurora-database-wal" />
+    <exclude domain="database" path="aurora-database-shm" />
+    <exclude domain="sharedpref" path="aurora_secure.xml" />
+    <exclude domain="sharedpref" path="aurora_discovery.xml" />
+    <exclude domain="file" path="profile_photo.jpg" />
+</full-backup-content>

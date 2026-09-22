@@ -3,7 +3,7 @@ package dev.aurora.player.data
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import dev.aurora.player.data.security.KeystoreGatewayTokenStore
+import dev.aurora.player.data.security.gatewayTokenStore
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,7 +21,7 @@ import org.junit.runner.RunWith
 class GatewayTokenStoreTest {
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
-    private fun store() = KeystoreGatewayTokenStore(context)
+    private fun store() = gatewayTokenStore(context)
 
     @Before
     @After

@@ -181,14 +181,14 @@ class YouTubeMusicProviderContractTest : MusicProviderContractTest() {
     }
 
     override fun providerWithKnownTrack(): MusicProvider =
-        YouTubeMusicProvider(FakeApi(), apiKey = "test-key")
+        YouTubeMusicProvider(FakeApi()) { "test-key" }
 
     override fun providerThatFails(): MusicProvider =
-        YouTubeMusicProvider(FakeApi(java.io.IOException("offline")), apiKey = "test-key")
+        YouTubeMusicProvider(FakeApi(java.io.IOException("offline"))) { "test-key" }
 
     @Test
     fun `a missing api key fails cleanly rather than calling the network`() = runBlocking {
-        val provider = YouTubeMusicProvider(FakeApi(), apiKey = "")
+        val provider = YouTubeMusicProvider(FakeApi()) { "" }
 
         // CI has no local.properties, so an unconfigured key must be an ordinary typed
         // failure rather than an exception or a silent empty result.

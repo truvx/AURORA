@@ -27,12 +27,36 @@ class ArtworkLoader(
     private val decodeSize: Int = DEFAULT_DECODE_SIZE,
 ) {
 
-    private companion object {
+    internal companion object {
         /** Big enough to display at mini-player size and to sample honestly. */
         const val DEFAULT_DECODE_SIZE = 256
 
         /** Bounded so a long listening session cannot grow this without limit. */
         const val CACHE_LIMIT = 48
+
+        /** A YouTube thumbnail is ~30 KB; anything past this is not a thumbnail. */
+        const val MAX_REMOTE_BYTES = 2 * 1024 * 1024
+
+        /**
+         * Remote artwork is fetched only from YouTube's image hosts. The URLs arrive in API
+         * responses, which docs/SECURITY.md treats as untrusted until validated - an open
+         * fetcher would load whatever URL a response contained.
+         */
+        private val REMOTE_HOSTS = listOf("ytimg.com", "ggpht.com", "googleusercontent.com")
+
+        fun isAllowedRemote(url: String): Boolean {
+            val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return false
+            if (uri.scheme != "https") return false
+            val host = uri.host?.lowercase() ?: return false
+            return REMOTE_HOSTS.any { host == it || host.endsWith(".$it") }
+        }
+    }
+
+    private val http by lazy {
+        okhttp3.OkHttpClient.Builder()
+            .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
     }
 
     /**
@@ -66,6 +90,46 @@ class ArtworkLoader(
     }
 
     private fun decode(artworkUri: String): Bitmap? = try {
+        if (artworkUri.startsWith("http")) decodeRemote(artworkUri) else decodeLocal(artworkUri)
+    } catch (_: Exception) {
+        // Missing, unreadable, revoked, offline, or not an image. Artwork is decoration: the
+        // caller falls back to the placeholder and nothing about playback is affected.
+        null
+    }
+
+    /** YouTube thumbnails. Before this, every YouTube track showed the placeholder. */
+    private fun decodeRemote(url: String): Bitmap? {
+        if (!isAllowedRemote(url)) return null
+        val request = okhttp3.Request.Builder().url(url).build()
+        val bytes = http.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) return null
+            val body = response.body() ?: return null
+            if (body.contentLength() > MAX_REMOTE_BYTES) return null
+            // Read by hand, capped: InputStream.readNBytes is API 33 and minSdk is 26, and
+            // Content-Length can be absent, so the cap has to be enforced while reading.
+            body.byteStream().use { stream ->
+                val out = java.io.ByteArrayOutputStream()
+                val buffer = ByteArray(16 * 1024)
+                while (out.size() <= MAX_REMOTE_BYTES) {
+                    val read = stream.read(buffer)
+                    if (read < 0) break
+                    out.write(buffer, 0, read)
+                }
+                out.toByteArray()
+            }
+        }
+        if (bytes.size > MAX_REMOTE_BYTES) return null
+
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        val largestEdge = maxOf(bounds.outWidth, bounds.outHeight)
+        if (largestEdge <= 0) return null
+        var sampleSize = 1
+        while (largestEdge / (sampleSize * 2) >= decodeSize) sampleSize *= 2
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sampleSize })
+    }
+
+    private fun decodeLocal(artworkUri: String): Bitmap? = run {
         val uri = Uri.parse(artworkUri)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // The supported route to MediaStore album art. Reading the old
@@ -77,10 +141,6 @@ class ArtworkLoader(
             // the stream themselves.
             decodeStream(uri)
         }
-    } catch (_: Exception) {
-        // Missing, unreadable, revoked, or not an image. Artwork is decoration: the caller
-        // falls back to the placeholder and nothing about playback is affected.
-        null
     }
 
     /**

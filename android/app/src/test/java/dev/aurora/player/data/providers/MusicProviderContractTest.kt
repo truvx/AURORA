@@ -118,6 +118,17 @@ class YouTubeMusicProviderContractTest : MusicProviderContractTest() {
     override val knownTrackId = "youtube:$KNOWN_VIDEO_ID"
 
     private class FakeApi(private val failure: Throwable? = null) : YouTubeDataApi {
+        // Discovery endpoints are outside the provider contract; failing loudly means a
+        // provider change that starts calling them is noticed here, not silently faked.
+        override suspend fun getChart(part: String, chart: String, categoryId: String, regionCode: String, maxResults: Int, apiKey: String) =
+            throw UnsupportedOperationException("not part of the provider contract")
+        override suspend fun searchChannels(part: String, type: String, query: String, maxResults: Int, apiKey: String) =
+            throw UnsupportedOperationException("not part of the provider contract")
+        override suspend fun getChannels(part: String, id: String, apiKey: String) =
+            throw UnsupportedOperationException("not part of the provider contract")
+        override suspend fun getPlaylistItems(part: String, playlistId: String, maxResults: Int, apiKey: String) =
+            throw UnsupportedOperationException("not part of the provider contract")
+
         override suspend fun search(
             part: String,
             type: String,

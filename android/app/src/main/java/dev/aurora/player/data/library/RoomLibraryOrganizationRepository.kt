@@ -170,6 +170,18 @@ class RoomLibraryOrganizationRepository(
                 .toList()
         }
 
+    override fun observeRecentHistory(limit: Int): Flow<List<ListeningHistoryRecord>> =
+        organizationDao.observeRecentEvents(limit).map { events ->
+            events.mapNotNull { event ->
+                val kind = runCatching { ListeningEventKind.valueOf(event.kind) }.getOrNull()
+                    ?: return@mapNotNull null
+                ListeningHistoryRecord(event.mediaId, event.provider, event.timestamp, kind, event.progressMs)
+            }
+        }
+
+    override fun observeFavoriteIds(): Flow<List<String>> =
+        organizationDao.observeFavorites().map { entries -> entries.map { it.mediaId } }
+
     override suspend fun saveResumePoint(point: ResumePoint) {
         organizationDao.upsertResumePosition(
             ResumePositionEntity(

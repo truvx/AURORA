@@ -31,6 +31,13 @@ interface AppContainer {
      * and restores the previous queue. Safe to call once from Application.onCreate.
      */
     fun startPlaybackPersistence()
+    val gatewayTokenStore: dev.aurora.player.data.security.GatewayTokenStore
+    val youTubeDataApi: YouTubeDataApi
+    val mediaResolver: dev.aurora.player.data.discovery.MediaResolver
+    val latestReleasesRepository: dev.aurora.player.data.discovery.LatestReleasesRepository
+    val trendingRepository: dev.aurora.player.data.discovery.TrendingRepository
+    val whatsNewStore: dev.aurora.player.data.discovery.WhatsNewStore
+    val profileStore: dev.aurora.player.data.discovery.ProfileStore
     val aiProvider: dev.aurora.player.domain.ai.AiProvider
     val recommendationEngine: dev.aurora.player.domain.recommendations.RecommendationEngine
     val aiToolExecutor: AiToolExecutor
@@ -61,15 +68,69 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         AuroraTrackResolver(localLibraryDao)
     }
 
-    override val youtubeMusicProvider: YouTubeMusicProvider by lazy {
+    override val youTubeDataApi: YouTubeDataApi by lazy {
         val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
         val contentType = okhttp3.MediaType.get("application/json")
-        val retrofit = retrofit2.Retrofit.Builder()
+        retrofit2.Retrofit.Builder()
             .baseUrl("https://www.googleapis.com/youtube/v3/")
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
-        
-        YouTubeMusicProvider(retrofit.create(YouTubeDataApi::class.java))
+            .create(YouTubeDataApi::class.java)
+    }
+
+    override val youtubeMusicProvider: YouTubeMusicProvider by lazy {
+        YouTubeMusicProvider(youTubeDataApi)
+    }
+
+    /*
+     * Discovery: the Home feed, Explore and the release notifications.
+     *
+     * All of it shares one cache, because all of it spends the same YouTube quota - 10,000
+     * units a day, of which a single search is 100.
+     */
+    private val discoveryCache by lazy {
+        dev.aurora.player.data.discovery.DiscoveryCache(
+            dev.aurora.player.data.discovery.SharedPreferencesStore(
+                context.getSharedPreferences("aurora_discovery", Context.MODE_PRIVATE)
+            )
+        )
+    }
+
+    override val mediaResolver: dev.aurora.player.data.discovery.MediaResolver by lazy {
+        dev.aurora.player.data.discovery.MediaResolver(
+            local = localLibraryProvider,
+            api = youTubeDataApi,
+            apiKey = dev.aurora.player.BuildConfig.YOUTUBE_API_KEY,
+            cache = discoveryCache
+        )
+    }
+
+    override val latestReleasesRepository: dev.aurora.player.data.discovery.LatestReleasesRepository by lazy {
+        dev.aurora.player.data.discovery.LatestReleasesRepository(
+            api = youTubeDataApi,
+            apiKey = dev.aurora.player.BuildConfig.YOUTUBE_API_KEY,
+            cache = discoveryCache
+        )
+    }
+
+    override val trendingRepository: dev.aurora.player.data.discovery.TrendingRepository by lazy {
+        dev.aurora.player.data.discovery.TrendingRepository(
+            api = youTubeDataApi,
+            apiKey = dev.aurora.player.BuildConfig.YOUTUBE_API_KEY,
+            cache = discoveryCache
+        )
+    }
+
+    override val whatsNewStore: dev.aurora.player.data.discovery.WhatsNewStore by lazy {
+        dev.aurora.player.data.discovery.WhatsNewStore(
+            dev.aurora.player.data.discovery.SharedPreferencesStore(
+                context.getSharedPreferences("aurora_discovery", Context.MODE_PRIVATE)
+            )
+        )
+    }
+
+    override val profileStore: dev.aurora.player.data.discovery.ProfileStore by lazy {
+        dev.aurora.player.data.discovery.ProfileStore(context)
     }
 
     override val media3PlayerAdapter: PlayerAdapter by lazy {
@@ -105,6 +166,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         )
     }
 
+    override val gatewayTokenStore: dev.aurora.player.data.security.GatewayTokenStore by lazy {
+        dev.aurora.player.data.security.KeystoreGatewayTokenStore(context)
+    }
+
     override val aiProvider: dev.aurora.player.domain.ai.AiProvider by lazy {
         val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
         val contentType = okhttp3.MediaType.get("application/json")
@@ -114,6 +179,9 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .addInterceptor(
+                dev.aurora.player.data.api.GatewayAuthInterceptor { gatewayTokenStore.get() }
+            )
             .build()
         // Use 10.0.2.2 for Android emulator -> localhost
         val retrofit = retrofit2.Retrofit.Builder()

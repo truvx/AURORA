@@ -73,7 +73,13 @@ class AiE2ETest {
         val contentType = MediaType.get("application/json")
         
         // 1. Setup real Gemini AI Provider hitting localhost:3000
-        val okHttpClient = okhttp3.OkHttpClient.Builder().readTimeout(120, java.util.concurrent.TimeUnit.SECONDS).build()
+        // The gateway refuses unauthenticated requests; pass its token with
+        // -PauroraGatewayToken=... alongside -PauroraLiveAi=true.
+        val gatewayToken = System.getProperty("aurora.gatewayToken")
+        val okHttpClient = okhttp3.OkHttpClient.Builder()
+            .readTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
+            .addInterceptor(dev.aurora.player.data.api.GatewayAuthInterceptor { gatewayToken })
+            .build()
         val aiRetrofit = Retrofit.Builder().client(okHttpClient)
             .baseUrl("http://localhost:3000/")
             .addConverterFactory(json.asConverterFactory(contentType))

@@ -189,5 +189,9 @@ tasks.withType<Test> {
         "aurora.liveAi",
         providers.gradleProperty("auroraLiveAi").getOrElse("false")
     )
+    systemProperty(
+        "aurora.gatewayToken",
+        providers.gradleProperty("auroraGatewayToken").getOrElse("")
+    )
 }
 

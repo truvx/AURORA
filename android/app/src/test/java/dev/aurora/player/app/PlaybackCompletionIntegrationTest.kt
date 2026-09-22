@@ -54,6 +54,8 @@ class PlaybackCompletionIntegrationTest {
         override suspend fun removeFromPlaylist(playlistId: String, entryId: String) {}
         override suspend fun movePlaylistEntry(playlistId: String, fromPosition: Int, toPosition: Int) {}
         override fun observeRecentlyPlayed(limit: Int): Flow<List<MediaItem>> = flowOf(emptyList())
+override fun observeRecentHistory(limit: Int) = kotlinx.coroutines.flow.flowOf(emptyList<dev.aurora.player.domain.library.ListeningHistoryRecord>())
+override fun observeFavoriteIds() = kotlinx.coroutines.flow.flowOf(emptyList<String>())
         override suspend fun getResumePoint(provider: String, mediaId: String): ResumePoint? = null
         override suspend fun loadQueueSnapshot(): QueueSnapshot? = null
         override suspend fun pruneHistory(maxAgeMs: Long, now: Long) {}

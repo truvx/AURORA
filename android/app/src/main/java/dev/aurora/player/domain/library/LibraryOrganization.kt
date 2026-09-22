@@ -72,6 +72,18 @@ interface LibraryOrganizationRepository {
     )
     fun observeRecentlyPlayed(limit: Int): Flow<List<MediaItem>>
 
+    /**
+     * Raw recent listening, newest first, for every provider.
+     *
+     * [observeRecentlyPlayed] resolves ids against the local database only, so a YouTube
+     * play - which has no local row - silently drops out of it. Callers that need every
+     * provider resolve these ids themselves.
+     */
+    fun observeRecentHistory(limit: Int): Flow<List<ListeningHistoryRecord>>
+
+    /** Favorite ids for every provider, newest first. Same reason as observeRecentHistory. */
+    fun observeFavoriteIds(): Flow<List<String>>
+
     suspend fun saveResumePoint(point: ResumePoint)
     suspend fun getResumePoint(provider: String, mediaId: String): ResumePoint?
 

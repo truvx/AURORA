@@ -11,13 +11,13 @@
 :root {
   /* ──────────────── Color Primitives (Light) ──────────────── */
   --aurora-neutral-0: #ffffff;
-  --aurora-neutral-10: #f7f8fa;
-  --aurora-neutral-20: #eceef2;
-  --aurora-neutral-40: #d2d6de;
-  --aurora-neutral-70: #606875;
-  --aurora-neutral-90: #252a33;
-  --aurora-accent-cyan: #087e9b;
-  --aurora-accent-violet: #6c51c9;
+  --aurora-neutral-10: #f6f6f8;
+  --aurora-neutral-20: #ececef;
+  --aurora-neutral-40: #d2d2d8;
+  --aurora-neutral-70: #5a5a63;
+  --aurora-neutral-90: #17171a;
+  --aurora-accent-blue: #2458d6;
+  --aurora-favorite: #d7263d;
   --aurora-semantic-success: #197a4a;
   --aurora-semantic-warning: #8b5a00;
   --aurora-semantic-error: #b3261e;
@@ -33,11 +33,12 @@
   --aurora-text-secondary: var(--aurora-neutral-70);
   --aurora-text-tertiary: rgba(96, 104, 117, 0.72);
   --aurora-text-inverse: var(--aurora-neutral-0);
-  --aurora-accent-primary: var(--aurora-accent-cyan);
-  --aurora-accent-secondary: var(--aurora-accent-violet);
-  --aurora-control-primary: var(--aurora-accent-cyan);
+  --aurora-accent-primary: var(--aurora-accent-blue);
+  --aurora-accent-secondary: var(--aurora-accent-blue);
+  /* The primary action is a solid pill carrying the theme's strongest contrast. */
+  --aurora-control-primary: var(--aurora-neutral-90);
   --aurora-control-on-primary: var(--aurora-neutral-0);
-  --aurora-focus-ring: rgba(8, 126, 155, 0.56);
+  --aurora-focus-ring: rgba(36, 88, 214, 0.56);
   --aurora-divider-subtle: rgba(210, 214, 222, 0.24);
   /*
    * Control outlines, not decoration: a row or input whose only boundary is this line
@@ -46,7 +47,7 @@
   --aurora-border-control: rgba(96, 104, 117, 0.42);
   --aurora-player-bg: var(--aurora-neutral-10);
   --aurora-player-control: var(--aurora-neutral-90);
-  --aurora-player-progress: var(--aurora-accent-cyan);
+  --aurora-player-progress: var(--aurora-accent-blue);
   --aurora-status-success: var(--aurora-semantic-success);
   --aurora-status-warning: var(--aurora-semantic-warning);
   --aurora-status-error: var(--aurora-semantic-error);
@@ -169,38 +170,45 @@
 
 /* ──────────────── Dark Theme ──────────────── */
 [data-theme="dark"] {
-  --aurora-neutral-0: #000000;
-  --aurora-neutral-10: #111318;
-  --aurora-neutral-20: #1b1e25;
-  --aurora-neutral-40: #363b46;
-  --aurora-neutral-70: #a7afbd;
-  --aurora-neutral-90: #f0f2f6;
-  --aurora-accent-cyan: #66d9f2;
-  --aurora-accent-violet: #bba8ff;
+  --aurora-neutral-0: #0e0e0f;
+  --aurora-neutral-10: #151517;
+  --aurora-neutral-20: #1f1f22;
+  --aurora-neutral-40: #3a3a3f;
+  --aurora-neutral-70: #ababb2;
+  --aurora-neutral-90: #f5f5f7;
+  --aurora-accent-blue: #6a98ff;
+  --aurora-favorite: #f9555b;
   --aurora-semantic-success: #67d49a;
   --aurora-semantic-warning: #f2c66d;
   --aurora-semantic-error: #ff9f99;
 
   --aurora-bg-primary: var(--aurora-neutral-0);
   --aurora-bg-secondary: var(--aurora-neutral-10);
-  --aurora-surface-glass-primary: rgba(27, 30, 37, 0.72);
-  --aurora-surface-glass-secondary: rgba(27, 30, 37, 0.56);
-  --aurora-surface-glass-elevated: rgba(27, 30, 37, 0.84);
+  /*
+   * White, not a dark tint: these materials lighten what is behind them, the way the
+   * reference bars read about 22% white over near-black content. A dark tint darkens
+   * instead and never reads as glass. Bright artwork behind them is handled by the
+   * contrast scrim in AmbientArtworkLayer, not by making the glass opaque.
+   */
+  --aurora-surface-glass-primary: rgba(255, 255, 255, 0.12);
+  --aurora-surface-glass-secondary: rgba(255, 255, 255, 0.07);
+  --aurora-surface-glass-elevated: rgba(255, 255, 255, 0.18);
   --aurora-surface-opaque-fallback: var(--aurora-neutral-20);
   --aurora-text-primary: var(--aurora-neutral-90);
   --aurora-text-secondary: var(--aurora-neutral-70);
   --aurora-text-tertiary: rgba(167, 175, 189, 0.72);
   --aurora-text-inverse: var(--aurora-neutral-0);
-  --aurora-accent-primary: var(--aurora-accent-cyan);
-  --aurora-accent-secondary: var(--aurora-accent-violet);
-  --aurora-control-primary: var(--aurora-accent-cyan);
+  --aurora-accent-primary: var(--aurora-accent-blue);
+  --aurora-accent-secondary: var(--aurora-accent-blue);
+  /* The white "Play" pill from the references, with near-black content on it. */
+  --aurora-control-primary: #ffffff;
   --aurora-control-on-primary: var(--aurora-neutral-0);
-  --aurora-focus-ring: rgba(102, 217, 242, 0.56);
+  --aurora-focus-ring: rgba(106, 152, 255, 0.56);
   --aurora-divider-subtle: rgba(54, 59, 70, 0.24);
   --aurora-border-control: rgba(167, 175, 189, 0.44);
   --aurora-player-bg: var(--aurora-neutral-10);
   --aurora-player-control: var(--aurora-neutral-90);
-  --aurora-player-progress: var(--aurora-accent-cyan);
+  --aurora-player-progress: var(--aurora-accent-blue);
   --aurora-status-success: var(--aurora-semantic-success);
   --aurora-status-warning: var(--aurora-semantic-warning);
   --aurora-status-error: var(--aurora-semantic-error);

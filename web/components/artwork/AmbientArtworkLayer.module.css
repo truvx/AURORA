@@ -12,8 +12,19 @@
 
   /* No artwork: the plain canvas, which is what the app looked like before. */
   --aurora-atmosphere: transparent;
+  /* No scrim until measured: dark artwork needs none, and spending one would only mute it. */
+  --aurora-artwork-scrim: 0;
 
   background:
+    /*
+     * The contrast scrim, above the wash and below everything else. Its strength is
+     * computed from the real composite in AmbientArtworkLayer.tsx - raised only as far as
+     * text legibility over the glass requires.
+     */
+    linear-gradient(
+      rgb(0 0 0 / var(--aurora-artwork-scrim)),
+      rgb(0 0 0 / var(--aurora-artwork-scrim))
+    ),
     radial-gradient(
       120% 80% at 50% 0%,
       color-mix(in srgb, var(--aurora-atmosphere) 55%, transparent),

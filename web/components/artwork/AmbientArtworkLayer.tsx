@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useArtworkById } from "@/lib/artwork/useArtwork";
 import { toCss } from "@/lib/artwork/palette";
+import { parseCssColor, requiredAlpha } from "@/lib/artwork/contrast";
 import { usePlayerState } from "@/lib/player/PlayerProvider";
 import { PlayerState } from "@/lib/player/types";
 import styles from "./AmbientArtworkLayer.module.css";
@@ -21,9 +22,10 @@ const selectTrackId = (state: PlayerState) => state.currentTrack?.id;
  * and a full-screen colour change landing in one frame is exactly the abrupt brightness
  * jump reduced-motion guidance warns about.
  *
- * Contrast needs no scrim here, unlike Android: the web glass tokens are opaque enough that
- * even the brightest colour the palette can produce clears AA through them unaided. That is
- * asserted in lib/artwork/__tests__/contrast.test.ts rather than assumed.
+ * It also carries the contrast scrim. The glass tint is now a light one - these materials
+ * lighten what is behind them - so bright artwork can no longer be relied on to composite
+ * dark. The scrim is measured against the theme's own text and glass values and raised only
+ * as far as legibility needs, so dark artwork spends nothing.
  */
 export function AmbientArtworkLayer() {
   const trackId = usePlayerState(selectTrackId);
@@ -33,10 +35,28 @@ export function AmbientArtworkLayer() {
   useEffect(() => {
     const element = layer.current;
     if (!element) return;
+
     // Removed rather than set to a neutral when there is no artwork, so the stylesheet's own
     // fallback applies and the two definitions of "no atmosphere" cannot disagree.
-    if (palette) element.style.setProperty("--aurora-atmosphere", toCss(palette));
-    else element.style.removeProperty("--aurora-atmosphere");
+    if (!palette) {
+      element.style.removeProperty("--aurora-atmosphere");
+      element.style.removeProperty("--aurora-artwork-scrim");
+      return;
+    }
+
+    element.style.setProperty("--aurora-atmosphere", toCss(palette));
+
+    // Read the live theme rather than assuming: these values differ between light and dark,
+    // and hard-coding them here is how a palette change silently stops protecting text.
+    const root = getComputedStyle(document.documentElement);
+    const foreground = parseCssColor(root.getPropertyValue("--aurora-text-primary"));
+    const glass = parseCssColor(root.getPropertyValue("--aurora-surface-glass-primary"));
+    if (!foreground || !glass) return;
+
+    element.style.setProperty(
+      "--aurora-artwork-scrim",
+      String(requiredAlpha(foreground, palette, glass))
+    );
   }, [palette]);
 
   return <div ref={layer} className={styles.layer} aria-hidden="true" />;

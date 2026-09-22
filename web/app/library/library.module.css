@@ -138,3 +138,38 @@
   font-size: 1rem;
   font-weight: 500;
 }
+
+/* A row and its own actions, side by side. */
+.trackRowGroup {
+  display: flex;
+  align-items: stretch;
+  gap: var(--aurora-space-2);
+}
+
+.trackRowGroup .trackRow {
+  flex: 1;
+  min-width: 0;
+}
+
+.trackAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--aurora-target-min);
+  min-height: var(--aurora-target-min);
+  border: 1px solid var(--aurora-border-control);
+  border-radius: var(--aurora-radius-control);
+  background: var(--aurora-surface-glass-secondary);
+  color: var(--aurora-text-primary);
+  cursor: pointer;
+  transition: transform var(--aurora-duration-instant) var(--aurora-easing-standard);
+}
+
+.trackAction:active {
+  transform: scale(0.94);
+}
+
+.trackAction:focus-visible {
+  outline: 2px solid var(--aurora-focus-ring);
+  outline-offset: 2px;
+}

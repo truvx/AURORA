@@ -116,3 +116,155 @@
   outline: 2px solid var(--aurora-accent-primary);
   outline-offset: 2px;
 }
+
+/* ──────────────── Cover-flow stage ──────────────── */
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--aurora-space-4);
+  padding: var(--aurora-space-6) var(--aurora-space-4) var(--aurora-space-10);
+}
+
+/* The heading names the track for a screen reader; the covers say it visually. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * The transport: one floating pane of glass over the stage, as in the reference.
+ * Bigger surface, so a heavier blur and a deeper shadow than a chip.
+ */
+.transport {
+  position: sticky;
+  bottom: var(--aurora-space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--aurora-space-4);
+  width: min(52rem, 100%);
+  padding: var(--aurora-space-3) var(--aurora-space-4);
+  border-radius: 999px;
+  background: var(--aurora-surface-glass-elevated);
+  backdrop-filter: blur(var(--aurora-blur-floating)) saturate(var(--aurora-glass-saturation));
+  -webkit-backdrop-filter: blur(var(--aurora-blur-floating))
+    saturate(var(--aurora-glass-saturation));
+  /* The bright rim is light catching the edge of the material. */
+  border: 1px solid var(--aurora-glass-edge);
+  box-shadow: var(--aurora-shadow-floating);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--aurora-space-1);
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--aurora-target-min);
+  min-height: var(--aurora-target-min);
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--aurora-text-primary);
+  cursor: pointer;
+  /* Feedback belongs on the press, and it is instant. */
+  transition: transform var(--aurora-duration-instant) var(--aurora-easing-standard);
+}
+
+.control:active {
+  transform: scale(0.94);
+}
+
+.control:focus-visible {
+  outline: 2px solid var(--aurora-focus-ring);
+  outline-offset: 2px;
+}
+
+/* The one solid control on the bar, as the references have it. */
+.primary {
+  background: var(--aurora-control-primary);
+  color: var(--aurora-control-on-primary);
+  min-width: 3rem;
+  min-height: 3rem;
+}
+
+.nowPlaying {
+  display: flex;
+  align-items: center;
+  gap: var(--aurora-space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.nowPlayingText {
+  min-width: 0;
+  flex: 1;
+}
+
+.nowPlayingTitle,
+.nowPlayingArtist {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nowPlayingTitle {
+  font-size: var(--aurora-type-label-size);
+  font-weight: var(--aurora-vibrancy-weight-bump);
+  color: var(--aurora-text-primary);
+}
+
+.nowPlayingArtist {
+  font-size: var(--aurora-type-caption-size);
+  color: var(--aurora-text-secondary);
+}
+
+.progress {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  min-width: 4rem;
+  border-radius: 999px;
+  background: var(--aurora-surface-glass-secondary);
+  overflow: hidden;
+}
+
+.progressFill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  background: var(--aurora-player-progress);
+}
+
+.queuePanel {
+  width: min(52rem, 100%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .transport {
+    background: var(--aurora-surface-opaque-fallback);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  /* On a phone the bar stacks: the covers already say what is playing. */
+  .transport {
+    flex-wrap: wrap;
+    justify-content: center;
+    border-radius: var(--aurora-radius-card);
+  }
+}

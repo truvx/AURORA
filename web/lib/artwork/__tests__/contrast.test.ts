@@ -15,10 +15,16 @@ import { MAX_CHROMA, MAX_LIGHTNESS, MIN_LIGHTNESS, fromHsl } from "../palette";
  * guarantee the Android client has.
  */
 
-/** The dark theme's values from styles/tokens.css. */
-const TEXT_PRIMARY = { r: 0xf0 / 255, g: 0xf2 / 255, b: 0xf6 / 255 };
-const TEXT_SECONDARY = { r: 0xa7 / 255, g: 0xaf / 255, b: 0xbd / 255 };
-const GLASS_PRIMARY = { r: 27 / 255, g: 30 / 255, b: 37 / 255, a: 0.72 };
+/**
+ * The dark theme's values from styles/tokens.css.
+ *
+ * The glass is a *white* tint now: these materials lighten what is behind them, as the
+ * reference designs do. That is exactly why the scrim matters here - bright artwork can no
+ * longer be relied on to composite dark under an opaque panel.
+ */
+const TEXT_PRIMARY = { r: 0xf5 / 255, g: 0xf5 / 255, b: 0xf7 / 255 };
+const TEXT_SECONDARY = { r: 0xab / 255, g: 0xab / 255, b: 0xb2 / 255 };
+const GLASS_PRIMARY = { r: 1, g: 1, b: 1, a: 0.12 };
 
 /** Every colour the palette is allowed to produce. */
 function atmosphereColors() {
@@ -100,10 +106,9 @@ describe("contrastRatio", () => {
 
 describe("requiredAlpha", () => {
   it("returns the smallest scrim that works", () => {
-    // Measured against a thin glass, because the web's own primary glass is 72% opaque and
-    // never needs a scrim for this palette. The bisection still has to find the minimum -
-    // an over-strong scrim washes out the artwork the design system wants to keep - and it
-    // has to keep doing so if the opacity tokens are ever lightened.
+    // An over-strong scrim washes out the artwork the glass exists to show, so the value
+    // has to be the minimum, not merely a sufficient one. Measured here against a dark
+    // tint, so the assertion holds whatever the shipped glass tokens happen to be.
     const thinGlass = { r: 27 / 255, g: 30 / 255, b: 37 / 255, a: 0.2 };
     const white = { r: 1, g: 1, b: 1 };
     const alpha = requiredAlpha(TEXT_PRIMARY, white, thinGlass);
@@ -114,15 +119,13 @@ describe("requiredAlpha", () => {
     ).toBeLessThan(BODY_TEXT_TARGET);
   });
 
-  it("needs no scrim at all through the web's own glass", () => {
-    // Worth recording rather than assuming: the web tokens are opaque enough that even
-    // white artwork behind the primary surface clears AA unaided, which is why nothing in
-    // the UI has to dim the atmosphere. The Android client's 20% glass does need one.
+  it("the light glass tint is what makes a scrim necessary", () => {
+    // Recorded because it is the trade the reference material asks for: a white tint reads
+    // as glass, and the cost is that bright artwork has to be dimmed to stay readable.
     const white = { r: 1, g: 1, b: 1 };
 
-    expect(requiredAlpha(TEXT_PRIMARY, white, GLASS_PRIMARY)).toBe(0);
-    expect(contrastFor(0, TEXT_PRIMARY, white, GLASS_PRIMARY))
-      .toBeGreaterThanOrEqual(BODY_TEXT_TARGET);
+    expect(contrastFor(0, TEXT_PRIMARY, white, GLASS_PRIMARY)).toBeLessThan(BODY_TEXT_TARGET);
+    expect(requiredAlpha(TEXT_PRIMARY, white, GLASS_PRIMARY)).toBeGreaterThan(0);
   });
 
   it("demands the opaque fallback when the scrim colour matches the text", () => {

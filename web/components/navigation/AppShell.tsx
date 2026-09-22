@@ -62,7 +62,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className={styles.chrome} ref={chrome}>
         <YouTubeSurface />
-        <MiniPlayer />
+        {/*
+        Hidden on the player's own route: that screen has its own transport, and two of them
+        put every control in the accessibility tree twice.
+      */}
+      {pathname !== "/now-playing" && <MiniPlayer />}
 
         <nav className={styles.nav} aria-label="Primary navigation">
           {navItems.map((item) => {

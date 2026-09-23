@@ -41,10 +41,10 @@ Presentation renders immutable state and forwards typed intents. Domain owns pro
 Android and Web are separate implementations with separate composition roots:
 
 - Android: Kotlin, Jetpack Compose, AndroidX Media3, Room/SQLite, Android secure storage, Android lifecycle/media-session/haptic adapters.
-- Web: TypeScript, React 19.2.7, Next.js 16.3.4 App Router, browser media/Media Session, IndexedDB, Web secure session handling, and browser lifecycle adapters.
+- Web: TypeScript, React 19.3.0, Next.js 16.3.4 App Router, browser media/Media Session, IndexedDB, Web secure session handling, and browser lifecycle adapters.
 - Shared: versioned provider-neutral contracts/schemas, domain concepts, design-token definitions where useful, and deterministic fixtures. Kotlin Multiplatform executable sharing is not part of v1.
 
-Android toolchain baseline: `compileSdk 37`, `targetSdk 36`, `minSdk 26`, AGP `9.4.0`, Gradle Wrapper `9.6.0`, JDK 17, Kotlin `2.4.10`, Compose `1.12.0`, and Media3 `1.11.0`. Compose 1.12.0 requires compile SDK 37. Keep target SDK 36 until a separate Android 17 behavior and release review approves raising it; compile SDK and target SDK are independent. Web project/CI uses Node 24 LTS, React 19.2.7, Next.js 16.3.4, and TypeScript 5.16.1; retain the local Node 26 installation unless a documented requirement changes. See `docs/ADR-016-VERSION-MATRIX.md` and `docs/TOOLCHAIN_MATRIX.md`.
+Android toolchain baseline: `compileSdk 37`, `targetSdk 36`, `minSdk 26`, AGP `9.4.0`, Gradle Wrapper `9.6.0`, JDK 17, Kotlin `2.4.10`, Compose `1.12.0`, and Media3 `1.11.0`. Compose 1.12.0 requires compile SDK 37. Keep target SDK 36 until a separate Android 17 behavior and release review approves raising it; compile SDK and target SDK are independent. Web project/CI uses Node 24 LTS, React 19.3.0, Next.js 16.3.4, and TypeScript 5.16.1; retain the local Node 26 installation unless a documented requirement changes. See `docs/ADR-016-VERSION-MATRIX.md` and `docs/TOOLCHAIN_MATRIX.md`.
 
 Do not force Android playback, URI, storage, haptic, or lifecycle abstractions into Web. Provider DTOs, SDK types, and platform types must not leak into shared domain/UI contracts.
 

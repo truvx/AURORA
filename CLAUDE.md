@@ -8,7 +8,7 @@ AURORA is two separate clients in one repository - an Android app (`android/`) a
 
 - Stack:
   - Android: Kotlin 2.4.10 / Jetpack Compose / AndroidX Media3 1.11.0 / Room / AGP 9.4.0 / JDK 17 / compileSdk 37, targetSdk 36, minSdk 26
-  - Web: Next.js 16.3.4 (App Router) / React 19.2.7 / TypeScript / IndexedDB / Vitest / Playwright
+  - Web: Next.js 16.3.4 (App Router) / React 19.3.0 / TypeScript / IndexedDB / Vitest / Playwright
 - Package manager: npm (`web/`); Gradle wrapper (`android/`)
 - Build:
   - Web: `cd web && npm run build`

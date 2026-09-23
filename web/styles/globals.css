@@ -285,3 +285,64 @@ summary {
   border-radius: 3px;
 }
 
+
+/*
+ * View transitions.
+ *
+ * Durations and easings come from the motion tokens rather than being invented here, so
+ * navigation moves at the same speed as everything else in the app.
+ */
+::view-transition-group(.morph) {
+  animation-duration: var(--aurora-duration-emphasis);
+  animation-timing-function: var(--aurora-easing-emphasized);
+}
+
+/* Hides the pixel interpolation while a cover changes size mid-flight. */
+::view-transition-image-pair(.morph) {
+  animation-name: aurora-morph-blur;
+}
+
+@keyframes aurora-morph-blur {
+  30% {
+    filter: blur(3px);
+  }
+}
+
+/*
+ * Asymmetric on purpose: the page leaving goes quickly so it stops competing for
+ * attention, and the page arriving takes longer and waits for it, so there is never a
+ * moment with two pages at half opacity on top of each other.
+ */
+::view-transition-old(.route-content) {
+  animation: var(--aurora-duration-quick) var(--aurora-easing-accelerate) both aurora-route-out;
+}
+
+::view-transition-new(.route-content) {
+  animation: var(--aurora-duration-standard) var(--aurora-easing-decelerate)
+    var(--aurora-duration-quick) both aurora-route-in;
+}
+
+@keyframes aurora-route-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes aurora-route-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * Content swaps instantly, which is what the browser does with no view transition at
+   * all. The navigation still happens; only the movement is removed.
+   */
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}

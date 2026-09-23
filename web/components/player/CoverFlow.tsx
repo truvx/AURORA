@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { ViewTransition, useEffect, useRef } from "react";
 import { Artwork } from "@/components/artwork/Artwork";
 import { useArtworkById } from "@/lib/artwork/useArtwork";
 import { MediaItem } from "@/lib/player/types";
@@ -101,7 +101,10 @@ function Cover({
         zIndex: NEIGHBOURS - distance,
       } as React.CSSProperties}
     >
-      <Artwork url={artwork.url} title={item.title} size="player" />
+      {/* The other half of the mini-player's morph; see MiniPlayer. */}
+      <ViewTransition name={`cover-${item.id}`} share="morph" default="none">
+        <Artwork url={artwork.url} title={item.title} size="player" />
+      </ViewTransition>
       <div className={styles.meta}>
         <p className={styles.title}>{item.title}</p>
         <p className={styles.artist}>{item.artist ?? "Unknown artist"}</p>

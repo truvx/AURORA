@@ -10,7 +10,7 @@ Spotify and Apple Music are outside v1. YouTube extraction, separate audio strea
 
 ## Cross-platform architecture
 
-Android is Kotlin + Jetpack Compose + AndroidX Media3. Web is TypeScript + React 19.2.7 + Next.js 16.3.4 App Router. The clients are separate implementations with separate composition roots.
+Android is Kotlin + Jetpack Compose + AndroidX Media3. Web is TypeScript + React 19.3.0 + Next.js 16.3.4 App Router. The clients are separate implementations with separate composition roots.
 
 ```text
 Presentation -> Application/state holders -> Domain -> Data -> Infrastructure/Platform

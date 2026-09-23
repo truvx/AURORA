@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { ViewTransition } from "react";
 import { Artwork } from "@/components/artwork/Artwork";
 import { GlassSurface } from "@/components/glass/Glass";
 import { useArtworkById } from "@/lib/artwork/useArtwork";
@@ -158,7 +159,13 @@ export function MiniPlayer() {
           <span className={styles.grabber} aria-hidden="true" />
         </button>
 
-        <Artwork url={artwork.url} title={track.title} size="row" />
+        {/*
+          The same cover appears larger on the player. Naming both makes the browser move
+          this one into that one instead of swapping two unrelated squares.
+        */}
+        <ViewTransition name={`cover-${track.id}`} share="morph" default="none">
+          <Artwork url={artwork.url} title={track.title} size="row" />
+        </ViewTransition>
 
         <div className={styles.meta}>
           <p className={styles.title}>{track.title}</p>

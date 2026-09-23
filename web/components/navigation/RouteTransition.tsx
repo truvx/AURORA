@@ -1,30 +1,29 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { ReactNode } from "react";
-import styles from "./RouteTransition.module.css";
+import { ReactNode, ViewTransition } from "react";
 
 /**
- * Animates the page in when the route changes.
+ * Crossfades the page when the route changes.
  *
- * An arrival, not a directional slide: the six destinations are siblings, and a slide
- * would say "you went deeper" or "you came back" when there is no forward or back between
- * Listen and Library.
+ * A crossfade rather than a directional slide, because the six destinations are siblings.
+ * A slide says "you went deeper" or "you came back", and there is no forward or back
+ * between Listen and Library - claiming one would tell the user something untrue about
+ * where they are.
  *
- * Keyed by pathname, which is what replays the animation - React reuses the element
- * otherwise, and a CSS animation only runs when its element is created.
+ * Keyed by pathname: the key change is what makes React treat the old and new page as an
+ * exit/enter pair rather than an in-place update. Without it nothing animates, because
+ * this sits in the shell and a layout persists across navigation.
  *
- * Not React's <ViewTransition>: that needs react@canary, and the version matrix pins
- * React 19.2.7. This does the enter half on stable React. The shared-element morph
- * between the mini-player cover and the player - the part that genuinely needs the View
- * Transitions API - waits on that decision.
+ * Browsers without the View Transitions API, and anyone who has asked for reduced motion,
+ * get the navigation with no animation - which is the browser's own behaviour.
  */
 export function RouteTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div key={pathname} className={styles.route}>
+    <ViewTransition key={pathname} name="route-content" share="auto" enter="auto" default="none">
       {children}
-    </div>
+    </ViewTransition>
   );
 }

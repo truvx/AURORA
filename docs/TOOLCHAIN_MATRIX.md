@@ -19,7 +19,7 @@ Status: final preparation baseline, 2026-09-03. No application project or build 
 | targetSdk | `36` | Deliberately remains Android 16 for the initial release behavior baseline. Current Google Play policy requires API 36 or higher for new apps and updates from 2026-08-31; API 37 adoption requires a separate behavior and release review. |
 | minSdk | `26` | Conservative initial floor for modern media, storage, lifecycle, and testing support; revisit only with measured product demand. |
 | Web runtime | Node `24.20.0` LTS | Current official LTS line; local Node 26 is newer/current but CI should use the LTS line for reproducibility. |
-| Web framework | React `19.2.7`, Next.js `16.3.4` App Router | Latest React 19.2 release listed by the official versions page and current Next.js installation document; Next.js requires Node >=20.9. |
+| Web framework | React `19.3.0`, Next.js `16.3.4` App Router | Latest React 19.2 release listed by the official versions page and current Next.js installation document; Next.js requires Node >=20.9. |
 | TypeScript | `5.16.1` | Current stable release line consulted from the official download page. |
 | Package manager | npm 11 bundled with Node 24; `npm ci` in CI | Uses the existing npm workflow without adding another global package manager. |
 | CI runner | GitHub Actions `ubuntu-24.04` | Stable hosted Linux baseline for Android and Web jobs. |
@@ -45,7 +45,7 @@ Media3 `1.11.0` is the selected current stable AndroidX Media3 release. Its offi
 
 ## Web baseline decision
 
-The selected Web baseline is Node `24.20.0` LTS, React `19.2.7`, Next.js `16.3.4`, TypeScript `5.16.1`, and npm 11. The current official Next.js `16.3.4` installation documentation requires Node `>=20.9`; the selected Node 24 LTS line satisfies that requirement. The official React versions page lists the React `19.2` line and `19.2.7` release. Node `26` is a valid newer/current local runtime, but the project and CI use Node 24 LTS for the more conservative reproducible baseline. The installed Node `26.3.1` and npm `12.0.2` are not changed or downgraded by this task.
+The selected Web baseline is Node `24.20.0` LTS, React `19.3.0` (raised from `19.2.7` by ADR-018), Next.js `16.3.4`, TypeScript `5.16.1`, and npm 11. The current official Next.js `16.3.4` installation documentation requires Node `>=20.9`; the selected Node 24 LTS line satisfies that requirement. The official React versions page lists the React `19.3` line and `19.3.0` release. Node `26` is a valid newer/current local runtime, but the project and CI use Node 24 LTS for the more conservative reproducible baseline. The installed Node `26.3.1` and npm `12.0.2` are not changed or downgraded by this task.
 
 ## Observed local environment
 

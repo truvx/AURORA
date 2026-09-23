@@ -15,7 +15,7 @@ Spotify and Apple Music are not v1 providers. YouTube extraction, separate audio
 
 ## 2. Cross-platform architecture
 
-Android is Kotlin + Jetpack Compose. Web is TypeScript + React 19.2.7 + Next.js 16.3.4 App Router. They are separate implementations with separate composition roots.
+Android is Kotlin + Jetpack Compose. Web is TypeScript + React 19.3.0 + Next.js 16.3.4 App Router. They are separate implementations with separate composition roots.
 
 The dependency direction is:
 

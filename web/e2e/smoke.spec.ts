@@ -167,25 +167,31 @@ test("the queue survives a reload", async ({ page }) => {
   await expect(page.getByText("Nothing is playing")).toBeVisible();
 });
 
-test("the page animates in on a route change", async ({ page }) => {
+test("navigation runs a view transition", async ({ page }) => {
   await page.goto("/");
 
-  // React's <ViewTransition> needs react@canary, which the version matrix rules out, so
-  // this is a keyed CSS animation. What matters is that it actually runs on navigation
-  // rather than being declared and never replaying.
-  await page.getByRole("link", { name: "Library" }).click();
-  await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
+  const supported = await page.evaluate(() => "startViewTransition" in document);
+  test.skip(!supported, "this browser has no View Transitions API");
 
-  const animated = await page.evaluate(() => {
-    const wrapper = document.querySelector("main > div");
-    if (!wrapper) return { name: "no route wrapper", count: 0 };
-    return {
-      name: getComputedStyle(wrapper).animationName,
-      // getAnimations() is empty once it has finished, so this only says it was created
-      // with an animation attached, which is the part that regresses silently.
-      count: wrapper.getAnimations().length,
+  // React's <ViewTransition> falls back to rendering children where the API or the React
+  // build is missing, which would be silent. Watching for the browser call it drives is
+  // what says the transition is actually wired up rather than merely declared.
+  await page.evaluate(() => {
+    const counted = document as Document & { __transitions?: number };
+    counted.__transitions = 0;
+    const original = counted.startViewTransition;
+    if (!original) return;
+    counted.startViewTransition = function (this: Document, ...args) {
+      counted.__transitions = (counted.__transitions ?? 0) + 1;
+      return original.apply(this, args);
     };
   });
 
-  expect(animated.name, "the route wrapper has no animation").toContain("route-in");
+  await page.getByRole("link", { name: "Library" }).click();
+  await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
+
+  const count = await page.evaluate(
+    () => (document as Document & { __transitions?: number }).__transitions ?? 0
+  );
+  expect(count, "navigating did not start a view transition").toBeGreaterThan(0);
 });

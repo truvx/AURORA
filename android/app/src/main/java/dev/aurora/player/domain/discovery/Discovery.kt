@@ -1,5 +1,7 @@
 package dev.aurora.player.domain.discovery
 
+import dev.aurora.player.domain.library.ListeningEventKind
+import dev.aurora.player.domain.library.ListeningHistoryRecord
 import dev.aurora.player.domain.models.MediaItem
 import kotlin.math.pow
 
@@ -144,5 +146,58 @@ object MixCatalog {
                 mood = mood
             )
         }
+    }
+}
+
+/**
+ * What an artist's page is made of, decided without a screen.
+ *
+ * The page shows the artist's own tracks, most-played first. "Top" has to mean something
+ * measurable: it is this listener's play count, not a chart position AURORA has no way to
+ * know.
+ */
+object ArtistPage {
+
+    /**
+     * The artist's tracks from a library.
+     *
+     * Matched on the written name because that is the only identity shared across
+     * providers - a local file and a YouTube video have unrelated ids but the same artist.
+     * Case and surrounding space vary between taggers and are ignored.
+     */
+    fun tracksBy(artist: String, library: List<MediaItem>): List<MediaItem> {
+        val wanted = artist.trim()
+        if (wanted.isEmpty()) return emptyList()
+        return library.filter { it.artist?.trim().equals(wanted, ignoreCase = true) }
+    }
+
+    /**
+     * Most played first, then alphabetical.
+     *
+     * Alphabetical rather than library order for the tail, so tracks nobody has played yet
+     * are in a predictable place instead of whatever order the scan produced.
+     */
+    fun topSongs(tracks: List<MediaItem>, playsById: Map<String, Int>, limit: Int = 20): List<MediaItem> =
+        tracks
+            .sortedWith(
+                compareByDescending<MediaItem> { playsById[it.id] ?: 0 }
+                    .thenBy { it.title.lowercase() }
+            )
+            .take(limit)
+
+    /**
+     * How often each track was actually listened to.
+     *
+     * Skips do not count. A track started and abandoned eleven times is not this person's
+     * favourite, and counting it as one is how "top songs" turns into "songs you keep
+     * skipping".
+     */
+    fun playCounts(history: List<ListeningHistoryRecord>): Map<String, Int> {
+        val counts = mutableMapOf<String, Int>()
+        for (record in history) {
+            if (record.kind == ListeningEventKind.SKIP) continue
+            counts[record.mediaId] = (counts[record.mediaId] ?: 0) + 1
+        }
+        return counts
     }
 }

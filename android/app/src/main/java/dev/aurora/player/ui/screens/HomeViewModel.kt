@@ -37,15 +37,16 @@ sealed class ReleasesState {
 /**
  * The Home feed: recent listening, the artists behind it, and what those artists released.
  *
- * Everything here is derived on the device from the listener's own history. Nothing is
- * fetched until there is a reason to: with no plays recorded there are no artists to follow
- * and no releases to ask YouTube about.
+ * Everything here is derived on the device from the listener's own history and from the
+ * artists they followed by hand. Nothing is fetched until there is a reason to: with no
+ * plays recorded and nobody followed there is nothing to ask YouTube about.
  */
 class HomeViewModel(
     private val organization: LibraryOrganizationRepository,
     private val resolver: MediaResolver,
     private val releasesRepository: LatestReleasesRepository,
     private val whatsNew: WhatsNewStore,
+    private val followedArtists: dev.aurora.player.data.discovery.FollowedArtistsStore? = null,
     private val now: () -> Long = System::currentTimeMillis
 ) : ViewModel() {
 
@@ -101,7 +102,20 @@ class HomeViewModel(
                         items[id]?.artist?.let { ArtistSignal(it, SignalKind.FAVORITE, now()) }
                     }
 
-                    val artists = ArtistAffinity.topArtists(signals, now())
+                    /*
+                     * Followed artists first, then the ones inferred from listening.
+                     *
+                     * An explicit follow is a stated choice and outranks a guess, and it
+                     * is the only way to watch an artist you have just discovered and have
+                     * not played yet. The list stays bounded because each artist costs a
+                     * YouTube lookup.
+                     */
+                    val inferred = ArtistAffinity.topArtists(signals, now())
+                    val followed = followedArtists?.followed?.value.orEmpty()
+                    val artists = (followed + inferred)
+                        .distinctBy { it.lowercase() }
+                        .take(ARTIST_LIMIT)
+
                     _topArtists.value = artists
                     loadReleases(artists)
                 }
@@ -135,6 +149,9 @@ class HomeViewModel(
     }
 
     private companion object {
+        /** Each artist is a separate YouTube lookup, so the feed asks about a few. */
+        const val ARTIST_LIMIT = 8
+
         /** Enough history for a fair ranking without reading the whole table. */
         const val HISTORY_DEPTH = 200
         const val RECENT_LIMIT = 8

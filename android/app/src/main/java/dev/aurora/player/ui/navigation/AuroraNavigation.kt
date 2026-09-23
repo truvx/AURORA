@@ -38,6 +38,16 @@ import androidx.compose.foundation.layout.Column
 private const val WHATS_NEW_ROUTE = "whats_new"
 
 /**
+ * An artist, reached from a track rather than from the pill.
+ *
+ * Keyed by the written name: it is the only identity a local file and a YouTube video
+ * share, and it is encoded because artist names contain slashes and question marks.
+ */
+private const val ARTIST_ROUTE = "artist/{name}"
+
+private fun artistRoute(artist: String): String = "artist/" + android.net.Uri.encode(artist)
+
+/**
  * Play a whole list: the first track loads and starts, the rest queue behind it.
  *
  * Shuffling happens here rather than by turning shuffle mode on, so "Shuffle" plays these
@@ -125,7 +135,8 @@ fun AuroraNavigation(
             organization = container.libraryOrganizationRepository,
             resolver = container.mediaResolver,
             releasesRepository = container.latestReleasesRepository,
-            whatsNew = container.whatsNewStore
+            whatsNew = container.whatsNewStore,
+            followedArtists = container.followedArtists
         )
     }
 
@@ -195,6 +206,44 @@ fun AuroraNavigation(
                     }
                 )
             }
+            composable(
+                ARTIST_ROUTE,
+                arguments = listOf(
+                    androidx.navigation.navArgument("name") {
+                        type = androidx.navigation.NavType.StringType
+                    }
+                )
+            ) { entry ->
+                val artist = entry.arguments?.getString("name").orEmpty()
+                val artistViewModel = androidx.compose.runtime.remember(artist) {
+                    dev.aurora.player.ui.artist.ArtistViewModel(
+                        artist = artist,
+                        library = container.localLibraryProvider,
+                        organization = container.libraryOrganizationRepository,
+                        followedArtists = container.followedArtists,
+                    )
+                }
+                val topSongs by artistViewModel.topSongs.collectAsState()
+                val isFollowed by artistViewModel.isFollowed.collectAsState()
+
+                dev.aurora.player.ui.artist.ArtistScreen(
+                    artist = artist,
+                    topSongs = topSongs,
+                    isFollowed = isFollowed,
+                    onBack = { navController.popBackStack() },
+                    onFollow = artistViewModel::setFollowed,
+                    onPlayTracks = { tracks, shuffled -> playAll(container, tracks, shuffled) },
+                    onQueueTracks = { tracks ->
+                        tracks.forEach { track ->
+                            container.playerCoordinator.dispatch(
+                                dev.aurora.player.domain.player.PlayerCommand.AddToQueue(track)
+                            )
+                        }
+                    },
+                    onSearchOnline = { navigateToTab(AuroraDestination.Search) },
+                )
+            }
+
             composable(WHATS_NEW_ROUTE) {
                 val releasesState by homeViewModel.releases.collectAsState()
                 val ready = releasesState as? dev.aurora.player.ui.screens.ReleasesState.Ready
@@ -333,7 +382,13 @@ fun AuroraNavigation(
     ) {
         dev.aurora.player.ui.screens.NowPlayingScreen(
             onClose = { playerExpanded = false },
-            onOpenQueue = { queueVisible = true }
+            onOpenQueue = { queueVisible = true },
+            // The player is an overlay, not a destination, so it has to step aside before
+            // the artist can be shown underneath it.
+            onOpenArtist = { artist ->
+                playerExpanded = false
+                navController.navigate(artistRoute(artist))
+            },
         )
     }
 

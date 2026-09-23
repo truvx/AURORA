@@ -17,13 +17,15 @@ import dev.aurora.player.domain.player.*
 import dev.aurora.player.ui.components.*
 import dev.aurora.player.ui.haptics.HapticEvent
 import dev.aurora.player.ui.haptics.LocalHapticEngine
+import androidx.compose.foundation.clickable
 import dev.aurora.player.ui.theme.Aurora
 
 @Composable
 fun NowPlayingScreen(
     onClose: () -> Unit,
     onOpenQueue: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOpenArtist: (String) -> Unit = {},
 ) {
     val coordinator = LocalPlayerCoordinator.current
     val haptics = LocalHapticEngine.current
@@ -119,13 +121,32 @@ fun NowPlayingScreen(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            /*
+             * The artist's name is the way into their page - the one thing on this screen
+             * that is about someone rather than about this track. Only tappable when there
+             * is a name: "Unknown artist" leads nowhere, and a control that does nothing is
+             * worse than none.
+             */
+            val artistName = currentTrack?.artist?.takeIf { it.isNotBlank() }
             Text(
-                text = currentTrack?.artist ?: "",
+                text = artistName ?: "",
                 style = Aurora.typography.title,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 color = Aurora.colors.textSecondary,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = if (artistName == null) {
+                    Modifier
+                } else {
+                    Modifier
+                        .clickable(
+                            onClickLabel = "Open $artistName"
+                        ) {
+                            haptics.fire(HapticEvent.Selection)
+                            onOpenArtist(artistName)
+                        }
+                        .padding(horizontal = Aurora.spacing.space4, vertical = Aurora.spacing.space2)
+                }
             )
         }
 

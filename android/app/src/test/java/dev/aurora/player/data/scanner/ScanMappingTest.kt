@@ -91,6 +91,17 @@ class ScanMappingTest {
     }
 
     @Test
+    fun `MediaStore's own placeholder is treated as a missing tag`() {
+        // Not null and not blank: MediaStore stores the literal string "<unknown>", and it
+        // was reaching the library screen and being shown under a track exactly like that.
+        val track = scanned(row.copy(title = "<unknown>", artist = "<unknown>", album = "<unknown>"))
+
+        assertEquals("Unknown Title", track.item.title)
+        assertEquals("Unknown Artist", track.artists.single().name)
+        assertEquals("Unknown Album", track.album?.title)
+    }
+
+    @Test
     fun `the album artist follows the track artist, including when it is unknown`() {
         assertEquals("Ikimonogakari", scanned().album?.albumArtist)
         assertEquals("Unknown Artist", scanned(row.copy(artist = null)).album?.albumArtist)

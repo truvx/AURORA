@@ -33,6 +33,7 @@ interface AppContainer {
     fun startPlaybackPersistence()
     val gatewayTokenStore: dev.aurora.player.data.security.SecretStore
     val youTubeKeyStore: dev.aurora.player.data.security.SecretStore
+    val followedArtists: dev.aurora.player.data.discovery.FollowedArtistsStore
     val youTubeDataApi: YouTubeDataApi
     val mediaResolver: dev.aurora.player.data.discovery.MediaResolver
     val latestReleasesRepository: dev.aurora.player.data.discovery.LatestReleasesRepository
@@ -119,6 +120,14 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             api = youTubeDataApi,
             apiKeyProvider = { youTubeKeyStore.get().orEmpty() },
             cache = discoveryCache
+        )
+    }
+
+    override val followedArtists: dev.aurora.player.data.discovery.FollowedArtistsStore by lazy {
+        dev.aurora.player.data.discovery.FollowedArtistsStore(
+            dev.aurora.player.data.discovery.SharedPreferencesStore(
+                context.getSharedPreferences("aurora_discovery", Context.MODE_PRIVATE)
+            )
         )
     }
 

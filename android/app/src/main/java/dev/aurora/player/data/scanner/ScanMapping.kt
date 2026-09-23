@@ -55,12 +55,23 @@ internal object ScanMapping {
         return mime.contains("flac") || mime.contains("wav") || mime.contains("alac")
     }
 
-    /** A title, artist or album the file did not carry. Shown, so it is worded for people. */
-    fun titleOr(value: String?): String = value?.takeIf { it.isNotBlank() } ?: "Unknown Title"
+    /**
+     * A title, artist or album the file did not carry.
+     *
+     * MediaStore does not only use null for this: it stores the literal string "<unknown>",
+     * which AURORA was showing to people verbatim under a track. It means the same thing as
+     * a missing tag and is treated the same way.
+     */
+    private val MISSING = setOf("<unknown>", "unknown")
 
-    fun artistOr(value: String?): String = value?.takeIf { it.isNotBlank() } ?: "Unknown Artist"
+    private fun given(value: String?): String? =
+        value?.trim()?.takeIf { it.isNotEmpty() && it.lowercase() !in MISSING }
 
-    fun albumOr(value: String?): String = value?.takeIf { it.isNotBlank() } ?: "Unknown Album"
+    fun titleOr(value: String?): String = given(value) ?: "Unknown Title"
+
+    fun artistOr(value: String?): String = given(value) ?: "Unknown Artist"
+
+    fun albumOr(value: String?): String = given(value) ?: "Unknown Album"
 
     fun scannedTrack(
         row: ScannedRow,

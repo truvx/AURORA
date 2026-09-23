@@ -96,3 +96,61 @@ class ProfileStore(private val context: Context) {
         const val PHOTO_EDGE = 256
     }
 }
+
+/**
+ * Artists the listener has explicitly followed.
+ *
+ * Not a social feature - AURORA has no accounts and nothing is sent anywhere. Following an
+ * artist means one concrete thing: they are watched for new releases on the Home feed,
+ * whether or not enough has been played for them to be inferred. Inference alone cannot
+ * cover an artist you have just discovered and have not listened to yet.
+ *
+ * Names are matched case-insensitively but stored as they were written, so the feed can
+ * show them the way the person saw them.
+ */
+class FollowedArtistsStore(private val store: KeyValueStore) {
+
+    private val _followed = MutableStateFlow(read())
+    val followed: StateFlow<List<String>> = _followed.asStateFlow()
+
+    fun isFollowed(artist: String): Boolean =
+        _followed.value.any { it.equals(artist.trim(), ignoreCase = true) }
+
+    fun setFollowed(artist: String, followed: Boolean) {
+        val name = artist.trim()
+        if (name.isEmpty()) return
+
+        val current = _followed.value
+        // Following someone already followed changes nothing. Otherwise a second tap from
+        // a differently-tagged track would rewrite their name in the list and move them,
+        // for no reason the person could see.
+        if (followed && current.any { it.equals(name, ignoreCase = true) }) return
+
+        val without = current.filterNot { it.equals(name, ignoreCase = true) }
+        val next = when {
+            // Newest first: the Home feed takes a bounded number of artists, and the one
+            // just followed is the one there is a reason to check.
+            followed -> (listOf(name) + without).take(LIMIT)
+            else -> without
+        }
+        if (next == current) return
+
+        store.put(KEY, next.joinToString(SEPARATOR))
+        _followed.value = next
+    }
+
+    private fun read(): List<String> =
+        store.get(KEY)
+            ?.split(SEPARATOR)
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.take(LIMIT)
+            .orEmpty()
+
+    private companion object {
+        const val KEY = "followed_artists"
+        /** A newline cannot appear in a MediaStore artist tag the way a comma can. */
+        const val SEPARATOR = "\n"
+        const val LIMIT = 50
+    }
+}

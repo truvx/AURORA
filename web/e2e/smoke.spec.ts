@@ -105,9 +105,13 @@ test("primary navigation is labelled and links to every route", async ({ page })
   const nav = page.getByRole("navigation", { name: "Primary navigation" });
   await expect(nav).toBeVisible();
 
-  for (const label of ["Listen", "Search", "Library", "Playing", "AI", "Settings"]) {
+  for (const label of ["Listen", "Library", "AI", "Settings"]) {
     await expect(nav.getByRole("link", { name: label })).toBeVisible();
   }
+
+  // Search is its own control beside the pill rather than one of its four destinations,
+  // and the player is reached from the mini-player, so both are checked outside the nav.
+  await expect(page.getByRole("link", { name: "Search", exact: true })).toBeVisible();
 });
 
 test("navigation and transport are present on every route", async ({ page }) => {

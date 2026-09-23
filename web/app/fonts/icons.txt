@@ -19,7 +19,6 @@ close
 delete
 favorite
 favorite_border
-graphic_eq
 library_music
 pause
 play_arrow

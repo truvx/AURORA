@@ -19,12 +19,14 @@ interface NavItem {
  * Named for what is actually on them. "Home" is an umbrella that tells you nothing about
  * what you will find, where "Listen" says it: resume, and what to play next. Specific
  * labels are what make a destination predictable before you tap it.
+ *
+ * Four, as on Android. Search sits outside the pill as its own circle - it is reached far
+ * more often than the rest and does not belong in a list you scan - and the player is
+ * reached from the mini-player above, which is where the thing it opens already is.
  */
 const navItems: NavItem[] = [
   { href: "/", label: "Listen", icon: "play_circle" },
-  { href: "/search", label: "Search", icon: "search" },
   { href: "/library", label: "Library", icon: "library_music" },
-  { href: "/now-playing", label: "Playing", icon: "graphic_eq" },
   { href: "/ai", label: "AI", icon: "auto_awesome" },
   { href: "/settings", label: "Settings", icon: "settings" },
 ];
@@ -71,23 +73,42 @@ export function AppShell({ children }: { children: ReactNode }) {
       */}
       {pathname !== "/now-playing" && <MiniPlayer />}
 
-        <nav className={styles.nav} aria-label="Primary navigation">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`${styles.navLink} ${isActive ? styles.active : ""}`}
-                aria-current={isActive ? "page" : undefined}
-              >
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  {item.icon}
-                </span>
-                <span className={styles.navLabel}>{item.label}</span>
-              </Link>
-            );
-          })}
+        {/*
+          A pill and a circle floating over the page, not a bar across it. The row is what
+          keeps them beside each other; each is its own piece of glass.
+        */}
+        <nav className={styles.chromeRow} aria-label="Primary navigation">
+          {/* The pill is a piece of glass inside the landmark, not the landmark itself:
+              search is navigation too, and a link outside it belongs to nothing. */}
+          <div className={styles.nav}>
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`${styles.navLink} ${isActive ? styles.active : ""}`}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">
+                    {item.icon}
+                  </span>
+                  <span className={styles.navLabel}>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+
+          <Link
+            href="/search"
+            className={`${styles.searchButton} ${pathname === "/search" ? styles.active : ""}`}
+            aria-label="Search"
+            aria-current={pathname === "/search" ? "page" : undefined}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">
+              search
+            </span>
+          </Link>
         </nav>
       </div>
     </div>

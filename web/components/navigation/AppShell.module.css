@@ -38,11 +38,28 @@
   right: 0;
   bottom: 0;
   z-index: 100;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Floating, so it is inset from the edges rather than flush against them. */
+  padding: 0 var(--aurora-space-3)
+    calc(var(--aurora-space-3) + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--aurora-space-2);
   pointer-events: none;
+}
+
+/*
+ * The pill and the search circle, side by side.
+ *
+ * Capped rather than stretched: a navigation pill the width of a desktop window puts its
+ * four destinations an inch apart from each other and a foot from the pointer.
+ */
+.chromeRow {
+  display: flex;
+  align-items: center;
+  gap: var(--aurora-space-3);
+  width: 100%;
+  max-width: 32rem;
 }
 
 .chrome > * {
@@ -75,10 +92,14 @@
 /* ──────── Bottom Navigation ──────── */
 
 .nav {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: var(--aurora-space-2) 0;
+  /* The pill: a fixed height and a fully rounded end, matching the Android chrome. */
+  height: 3.75rem;
+  border-radius: 999px;
+  overflow: hidden;
   /*
    * The structural layer, so it carries the heavier material: a stronger blur and more
    * saturation than the cards that float above the page, which is what makes it read as
@@ -88,17 +109,53 @@
   backdrop-filter: blur(var(--aurora-blur-floating)) saturate(var(--aurora-glass-saturation));
   -webkit-backdrop-filter: blur(var(--aurora-blur-floating))
     saturate(var(--aurora-glass-saturation));
-  /* Light catching the top edge, the way it would on a real pane. */
-  border-top: 1px solid var(--aurora-glass-edge);
+  /* Light catching the edge, the way it would on a real pane. */
+  border: 1px solid var(--aurora-glass-edge);
   box-shadow: var(--aurora-shadow-floating);
+}
+
+/*
+ * Search, on its own.
+ *
+ * Its own circle because it is reached far more often than the four destinations beside
+ * it, and because a control that opens a text field is not the same kind of thing as a
+ * list of places.
+ */
+.searchButton {
+  flex: 0 0 3.75rem;
+  width: 3.75rem;
+  height: 3.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  text-decoration: none;
+  color: var(--aurora-text-primary);
+  background-color: var(--aurora-surface-glass-elevated);
+  backdrop-filter: blur(var(--aurora-blur-floating)) saturate(var(--aurora-glass-saturation));
+  -webkit-backdrop-filter: blur(var(--aurora-blur-floating))
+    saturate(var(--aurora-glass-saturation));
+  border: 1px solid var(--aurora-glass-edge);
+  box-shadow: var(--aurora-shadow-floating);
+  transition:
+    transform var(--aurora-duration-instant) var(--aurora-easing-standard),
+    color var(--aurora-duration-quick) var(--aurora-easing-standard);
+}
+
+.searchButton:active {
+  transform: scale(0.94);
+}
+
+.searchButton.active {
+  color: var(--aurora-accent-primary);
 }
 
 .navLink {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--aurora-space-1);
-  padding: var(--aurora-space-2) var(--aurora-space-3);
+  gap: 2px;
+  padding: 0 var(--aurora-space-2);
   min-width: var(--aurora-target-min);
   min-height: var(--aurora-target-min);
   justify-content: center;
@@ -130,50 +187,20 @@
   font-weight: var(--aurora-vibrancy-weight-bump);
 }
 
-/* ──────── Desktop: sidebar navigation ──────── */
+/* ──────── Desktop ──────── */
 
 @media (min-width: 768px) {
-  .shell {
-    flex-direction: row;
-  }
-
   .main {
     padding: var(--aurora-space-8) var(--aurora-space-6);
-    padding-left: calc(5rem + var(--aurora-space-6));
     padding-bottom: calc(var(--aurora-chrome-height) + var(--aurora-space-6));
-  }
-
-  .chrome {
-    /* Clear of the rail, so the two translucent layers sit beside each other rather than
-       one on top of the other - stacked glass is where legibility collapses. */
-    left: 5rem;
-  }
-
-  .chrome::before {
-    left: 0;
-  }
-
-  .nav {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    flex-direction: column;
-    justify-content: flex-start;
-    gap: var(--aurora-space-1);
-    padding: var(--aurora-space-6) var(--aurora-space-3);
-    border-top: none;
-    border-right: 1px solid var(--aurora-glass-edge);
-    height: 100dvh;
-    width: 5rem;
-    z-index: 101;
   }
 }
 
 /* ──────── Reduced transparency fallback ──────── */
 
 @media (prefers-reduced-transparency: reduce) {
-  .nav {
+  .nav,
+  .searchButton {
     background-color: var(--aurora-surface-opaque-fallback);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;

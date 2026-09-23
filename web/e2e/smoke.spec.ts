@@ -122,3 +122,43 @@ test("navigation and transport are present on every route", async ({ page }) => 
     ).toBeVisible();
   }
 });
+
+test("the queue survives a reload", async ({ page }) => {
+  await page.goto("/now-playing");
+
+  // Seeded straight into IndexedDB rather than played: the CI browser has no music files
+  // and no YouTube key, and what is under test is the restore path, not the picker.
+  await page.evaluate(async () => {
+    const open = indexedDB.open("aurora", 4);
+    const db: IDBDatabase = await new Promise((resolve, reject) => {
+      open.onsuccess = () => resolve(open.result);
+      open.onerror = () => reject(open.error);
+    });
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction("queueSnapshot", "readwrite");
+      transaction.objectStore("queueSnapshot").put({
+        key: "current",
+        items: [
+          { id: "youtube:aaaaaaaaaaa", provider: "YOUTUBE", title: "First restored", artist: "A" },
+          { id: "youtube:bbbbbbbbbbb", provider: "YOUTUBE", title: "Second restored", artist: "B" },
+        ],
+        currentIndex: 0,
+        repeatMode: "Off",
+        shuffleMode: "Off",
+        updatedAt: Date.now(),
+      });
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+    db.close();
+  });
+
+  await page.reload();
+
+  await expect(page.getByRole("button", { name: /Play First restored/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Play Second restored/ })).toBeVisible();
+
+  // Silently: a page that starts playing on its own after a refresh is a worse surprise
+  // than an empty player.
+  await expect(page.getByText("Nothing is playing")).toBeVisible();
+});

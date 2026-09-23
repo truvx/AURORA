@@ -1,9 +1,15 @@
 package dev.aurora.player.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.ui.semantics.contentDescription
@@ -16,12 +22,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import dev.aurora.player.domain.player.PlaybackPosition
 import dev.aurora.player.ui.haptics.HapticEvent
 import dev.aurora.player.ui.haptics.LocalHapticEngine
 import dev.aurora.player.ui.theme.Aurora
 import kotlin.math.roundToLong
 
+// The thumb and track slots are still experimental in Material3 1.4, and they are the
+// documented way to restyle a slider. The alternative is hand-written drag handling, which
+// would mean re-implementing focus, keyboard stepping and the accessibility actions that
+// Slider already gets right.
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScrubber(
     position: PlaybackPosition,
@@ -71,7 +83,43 @@ fun PlayerScrubber(
                 thumbColor = Aurora.colors.textPrimary,
                 activeTrackColor = Aurora.colors.textPrimary,
                 inactiveTrackColor = Aurora.colors.surfaceGlassElevated
-            )
+            ),
+            /*
+             * Drawn rather than taking the Material default.
+             *
+             * Material3 1.4's slider is the expressive one: a wide pill thumb, a gap cut
+             * out of the track around it, and a stop indicator at the far end. Three
+             * shapes where this design has one, and on a dark player it read as a stray
+             * white tab floating beside a broken bar. The gesture handling, focus and
+             * accessibility all still come from Slider - only the two drawing slots are
+             * replaced.
+             */
+            thumb = {
+                Box(
+                    modifier = Modifier
+                        .size(THUMB_SIZE)
+                        .background(Aurora.colors.textPrimary, CircleShape)
+                )
+            },
+            track = { state ->
+                val fraction = with(state) {
+                    val span = valueRange.endInclusive - valueRange.start
+                    if (span <= 0f) 0f else ((value - valueRange.start) / span).coerceIn(0f, 1f)
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(TRACK_HEIGHT)
+                        .background(Aurora.colors.surfaceGlassElevated, CircleShape)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction)
+                            .fillMaxHeight()
+                            .background(Aurora.colors.textPrimary, CircleShape)
+                    )
+                }
+            }
         )
 
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -89,6 +137,10 @@ fun PlayerScrubber(
         }
     }
 }
+
+/** Small enough to sit on the line rather than straddle it, large enough to drag. */
+private val THUMB_SIZE = 14.dp
+private val TRACK_HEIGHT = 4.dp
 
 private fun formatTime(millis: Long): String {
     val totalSeconds = millis / 1000

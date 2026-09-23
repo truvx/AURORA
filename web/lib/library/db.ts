@@ -7,7 +7,7 @@
  */
 
 export const DB_NAME = "aurora";
-export const DB_VERSION = 3;
+export const DB_VERSION = 4;
 
 export const STORE_TRACKS = "tracks";
 export const STORE_HANDLES = "handles";
@@ -17,6 +17,7 @@ export const STORE_PLAYLISTS = "playlists";
 export const STORE_PLAYLIST_ENTRIES = "playlistEntries";
 export const STORE_HISTORY = "listeningEvents";
 export const STORE_RESUME = "resumePositions";
+export const STORE_QUEUE = "queueSnapshot";
 
 export interface StoredTrack {
   /** Stable within a library: the file's path relative to the chosen directory. */
@@ -78,6 +79,39 @@ export interface ResumePosition {
   updatedAt: number;
 }
 
+/**
+ * The queue as it stood, so a reload does not empty it.
+ *
+ * One record, under a fixed key: there is one queue. Only what the queue is made of is
+ * kept - where playback had got to already lives in resumePositions, keyed per track.
+ */
+export interface StoredQueueSnapshot {
+  key: typeof QUEUE_SNAPSHOT_KEY;
+  items: readonly StoredQueueItem[];
+  currentIndex: number;
+  repeatMode: string;
+  shuffleMode: string;
+  updatedAt: number;
+}
+
+/**
+ * A queue entry, flattened.
+ *
+ * Deliberately not the domain MediaItem: this crosses a version boundary, and a snapshot
+ * written by an older build must still be readable by a newer one. Anything missing is
+ * treated as absent rather than trusted.
+ */
+export interface StoredQueueItem {
+  id: string;
+  provider: string;
+  title: string;
+  artist?: string;
+  album?: string;
+  artworkUrl?: string;
+}
+
+export const QUEUE_SNAPSHOT_KEY = "current";
+
 export function resumeKey(provider: string, mediaId: string): string {
   return `${provider}::${mediaId}`;
 }
@@ -133,6 +167,11 @@ export function openDatabase(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORE_RESUME)) {
         db.createObjectStore(STORE_RESUME, { keyPath: "key" });
+      }
+      // v4: the queue snapshot, matching the Android contract. Additive; an existing
+      // library upgrades with nothing to migrate.
+      if (!db.objectStoreNames.contains(STORE_QUEUE)) {
+        db.createObjectStore(STORE_QUEUE, { keyPath: "key" });
       }
     };
 

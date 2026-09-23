@@ -22,6 +22,11 @@ import { LibraryRepository } from "../library/repository";
 import { PlayerCoordinator } from "./coordinator";
 import { HtmlAudioAdapter } from "./htmlAudioAdapter";
 import { bindMediaSession } from "./mediaSession";
+import {
+  QueueSnapshotRepository,
+  queueSignature,
+  restorableQueue,
+} from "./queueSnapshot";
 import { MediaItem, PlayerCommand, PlayerState, initialPlayerState } from "./types";
 
 interface PlayerContextValue {
@@ -57,6 +62,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [repository] = useState(() => new LibraryRepository());
   const [organization] = useState(() => new OrganizationRepository());
   const [history] = useState(() => new HistoryRepository());
+  const [queueSnapshots] = useState(() => new QueueSnapshotRepository());
 
   // Built in an effect rather than during render: it owns an audio element and reads a ref,
   // neither of which belongs in a render pass, and there is no player on the server.
@@ -85,14 +91,56 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       });
     });
 
+    /*
+     * Keep the queue across reloads.
+     *
+     * Written only when the queue itself changes - its tracks, its pointer or its modes.
+     * Subscribers hear from the coordinator four times a second while a track plays, and
+     * a database write per position tick would be absurd. Where playback had reached is
+     * already saved per track in resumePositions.
+     */
+    let lastSignature = queueSignature(created.getState());
+    const unsubscribeQueue = created.subscribe((state) => {
+      const signature = queueSignature(state);
+      if (signature === lastSignature) return;
+      lastSignature = signature;
+      void queueSnapshots.save(state.queue).catch(() => {
+        // A queue that cannot be saved is a queue that will not come back, which is worth
+        // no more than the playback it must not interrupt.
+      });
+    });
+
+    let cancelled = false;
+    void (async () => {
+      const snapshot = await queueSnapshots.load().catch(() => undefined);
+      if (cancelled || !snapshot) return;
+
+      // A local track whose file has left the library cannot play, so it does not go back.
+      const stored = await repository.getAll().catch(() => []);
+      const known = new Set(stored.map((track) => track.id));
+      const { items } = restorableQueue(snapshot, (item) =>
+        item.provider === "LOCAL" ? known.has(item.id) : true
+      );
+      if (cancelled || items.length === 0) return;
+
+      // Silently: a page that starts making noise on its own after a refresh is a worse
+      // surprise than an empty player, and autoplay would be blocked anyway.
+      for (const item of items) {
+        await created.dispatch({ type: "addToQueue", track: item });
+      }
+      lastSignature = queueSignature(created.getState());
+    })();
+
     setCoordinator(created);
 
     return () => {
+      cancelled = true;
+      unsubscribeQueue();
       unsubscribeHistory();
       unbind();
       created.release();
     };
-  }, [repository, history]);
+  }, [repository, history, queueSnapshots]);
 
   // Re-open the previously chosen folder so the library survives a reload.
   useEffect(() => {

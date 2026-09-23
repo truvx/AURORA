@@ -31,8 +31,60 @@ export default function NowPlayingPage() {
         <h1>Now playing</h1>
         <GlassCard>
           <h2>Nothing is playing</h2>
-          <p>Choose a track from your library to start listening.</p>
+          <p>
+            {queue.items.length > 0
+              ? "Your queue is waiting below."
+              : "Choose a track from your library to start listening."}
+          </p>
         </GlassCard>
+
+        {/*
+          A queue restored from the last session arrives before anything is loaded, and
+          without this it had nowhere to appear: the transport, and the only control that
+          opens the queue, live on the branch below. A queue you cannot see or reach is
+          the same as a queue that was lost.
+        */}
+        {queue.items.length > 0 && (
+          <section aria-labelledby="waiting-queue-heading" className={styles.queuePanel}>
+            <h2 id="waiting-queue-heading">Queue</h2>
+            <ol className={styles.queue}>
+              {queue.items.map((item, index) => (
+                <li key={`${item.id}-${index}`}>
+                  <div className={styles.queueRow}>
+                    <button
+                      type="button"
+                      className={styles.queueButton}
+                      onClick={() =>
+                        dispatch({ type: "load", track: item, playWhenReady: true })
+                      }
+                      aria-label={`Play ${item.title}, track ${index + 1} of ${
+                        queue.items.length
+                      }`}
+                    >
+                      <span aria-hidden="true" className={styles.queueIndex}>
+                        {index + 1}
+                      </span>
+                      <span className={styles.queueTitle}>{item.title}</span>
+                      <span className={styles.secondary}>
+                        {item.artist ?? "Unknown artist"}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.removeButton}
+                      onClick={() => dispatch({ type: "removeFromQueue", trackId: item.id })}
+                      aria-label={`Remove ${item.title} from the queue`}
+                    >
+                      <span className="material-symbols-outlined" aria-hidden="true">
+                        close
+                      </span>
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
       </div>
     );
   }

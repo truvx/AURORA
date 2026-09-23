@@ -142,7 +142,7 @@ fun HomeScreen(
                     ReleasesState.NoHistory ->
                         Explainer("Play something first, and new releases from those artists appear here.")
                     ReleasesState.NotConfigured ->
-                        Explainer("New releases need a YouTube API key in local.properties.")
+                        Explainer("New releases need a YouTube Data API key. Add one in Settings.")
                     ReleasesState.Unavailable ->
                         Explainer("Couldn't reach YouTube for new releases. It'll retry later.")
                 }

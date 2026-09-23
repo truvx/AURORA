@@ -118,6 +118,10 @@ class YouTubeMusicProviderContractTest : MusicProviderContractTest() {
     override val knownTrackId = "youtube:$KNOWN_VIDEO_ID"
 
     private class FakeApi(private val failure: Throwable? = null) : YouTubeDataApi {
+        /** What the provider last asked YouTube for, so the query itself can be asserted. */
+        var lastCategoryId: String? = null
+        var lastEmbeddable: String? = null
+
         // Discovery endpoints are outside the provider contract; failing loudly means a
         // provider change that starts calling them is noticed here, not silently faked.
         override suspend fun getChart(part: String, chart: String, categoryId: String, regionCode: String, maxResults: Int, apiKey: String) =
@@ -135,8 +139,11 @@ class YouTubeMusicProviderContractTest : MusicProviderContractTest() {
             query: String,
             apiKey: String,
             videoEmbeddable: String?,
+            videoCategoryId: String,
             maxResults: Int
         ): YouTubeSearchResponse {
+            lastCategoryId = videoCategoryId
+            lastEmbeddable = videoEmbeddable
             failure?.let { throw it }
             return YouTubeSearchResponse(
                 items = listOf(
@@ -178,6 +185,19 @@ class YouTubeMusicProviderContractTest : MusicProviderContractTest() {
                 )
             )
         }
+    }
+
+    @Test
+    fun `searches music, not all of YouTube`() = runBlocking {
+        val api = FakeApi()
+
+        YouTubeMusicProvider(api) { "test-key" }.search("keshi")
+
+        // Category 10 is Music. Without it a search for an artist comes back with news
+        // clips that happen to share their name, and the app plays one.
+        assertEquals("10", api.lastCategoryId)
+        // And only what AURORA is allowed to play in its own visible player.
+        assertEquals("true", api.lastEmbeddable)
     }
 
     override fun providerWithKnownTrack(): MusicProvider =

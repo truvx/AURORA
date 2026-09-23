@@ -55,7 +55,7 @@ Initial providers are exactly:
 1. YouTube
 2. Local/user-owned music
 
-Do not add Spotify or Apple Music in v1. `MusicProvider` is capability-based; the UI and AI executor query capability snapshots before rendering or executing actions.
+Do not add Spotify or Apple Music in v1. MusicBrainz and the Cover Art Archive are not providers and do not change that list: nothing is played, browsed or recommended from them. They answer one question - what record is this, and what does its sleeve look like - because a YouTube thumbnail is a still from a video and a video title is not a song. Open data, no key, and cached; a lookup that fails leaves the video's own title and thumbnail in place. `MusicProvider` is capability-based; the UI and AI executor query capability snapshots before rendering or executing actions.
 
 YouTube discovery/metadata use bounded public YouTube Data API v3 requests. Playback uses a visible official YouTube IFrame Player API player on Web and a visible Android WebView surface. Preserve attribution, branding, user controls, required origin/client identity, and current policy behavior. Autoplay is opt-in and may be blocked.
 

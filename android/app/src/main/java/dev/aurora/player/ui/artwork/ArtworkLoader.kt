@@ -38,11 +38,23 @@ class ArtworkLoader(
         const val MAX_REMOTE_BYTES = 2 * 1024 * 1024
 
         /**
-         * Remote artwork is fetched only from YouTube's image hosts. The URLs arrive in API
+         * Remote artwork is fetched only from these hosts. Thumbnail URLs arrive inside API
          * responses, which docs/SECURITY.md treats as untrusted until validated - an open
          * fetcher would load whatever URL a response contained.
+         *
+         * The Cover Art Archive is here for a different reason: AURORA builds those URLs
+         * itself from a MusicBrainz release id rather than reading them out of a response,
+         * so the host is one this app chose. It answers with a redirect to archive.org and
+         * from there to whichever of its nodes holds the file, so the storage domains have
+         * to be allowed too or the image is refused at the last hop.
          */
-        private val REMOTE_HOSTS = listOf("ytimg.com", "ggpht.com", "googleusercontent.com")
+        private val REMOTE_HOSTS = listOf(
+            "ytimg.com",
+            "ggpht.com",
+            "googleusercontent.com",
+            "coverartarchive.org",
+            "archive.org",
+        )
 
         fun isAllowedRemote(url: String): Boolean {
             val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return false

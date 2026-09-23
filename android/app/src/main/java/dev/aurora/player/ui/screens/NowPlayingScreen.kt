@@ -44,6 +44,7 @@ import dev.aurora.player.domain.player.PlayerCommand
 import dev.aurora.player.domain.player.RepeatMode
 import dev.aurora.player.domain.player.ShuffleMode
 import dev.aurora.player.ui.artwork.rememberArtworkBitmap
+import dev.aurora.player.ui.artwork.rememberAlbumArtwork
 import dev.aurora.player.ui.artwork.rememberArtworkPalette
 import dev.aurora.player.ui.components.AmbientArtworkLayer
 import dev.aurora.player.ui.components.GlassIconButton
@@ -82,14 +83,24 @@ fun NowPlayingScreen(
     val spacing = Aurora.spacing
 
     val currentTrack = state.currentTrack
-    val palette by rememberArtworkPalette(currentTrack?.artworkUri)
+    /*
+     * A video title is not a song and a thumbnail is not a cover.
+     *
+     * For a YouTube track this reads the artist and the song out of the upload's title and
+     * finds the sleeve of the record it came from, so the player shows what is playing
+     * rather than how it was uploaded. A local file already carries its own tags, and this
+     * leaves them alone.
+     */
+    val artwork by rememberAlbumArtwork(currentTrack)
+    val palette by rememberArtworkPalette(artwork.artworkUri)
     val isYouTube = currentTrack?.provider == ProviderKind.YOUTUBE
 
     AmbientArtworkLayer(modifier = modifier.fillMaxSize(), artworkColor = palette) {
         Box(modifier = Modifier.fillMaxSize()) {
-            if (!isYouTube) {
-                FullBleedArtwork(artworkUri = currentTrack?.artworkUri)
-            }
+            // The sleeve fills the screen for everything, including YouTube: its player
+            // still appears below, visible and unobstructed, but it no longer has to be
+            // the only thing on screen.
+            FullBleedArtwork(artworkUri = artwork.artworkUri)
 
             Column(
                 modifier = Modifier
@@ -145,14 +156,14 @@ fun NowPlayingScreen(
                 ) {
                     Column(modifier = Modifier.fillMaxWidth().padding(spacing.space4)) {
                         Text(
-                            text = currentTrack?.title ?: "Nothing is playing",
+                            text = artwork.title ?: currentTrack?.title ?: "Nothing is playing",
                             style = Aurora.typography.trackTitleLarge,
                             color = colors.textPrimary,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
 
-                        val artistName = currentTrack?.artist?.takeIf { it.isNotBlank() }
+                        val artistName = artwork.artist?.takeIf { it.isNotBlank() }
                         if (artistName != null) {
                             Text(
                                 text = artistName,
@@ -178,7 +189,7 @@ fun NowPlayingScreen(
                             onSeek = { coordinator.dispatch(PlayerCommand.Seek(it)) }
                         )
 
-                        val (left, right) = trackFacts(currentTrack)
+                        val (left, right) = trackFacts(currentTrack, artwork.album)
                         if (left != null || right != null) {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(top = spacing.space2),
@@ -267,9 +278,11 @@ private fun FullBleedArtwork(artworkUri: String?) {
  * the capability matrix makes its quality provider-determined and unknown, and a bitrate
  * printed here would be invented.
  */
-internal fun trackFacts(track: MediaItem?): Pair<String?, String?> {
+internal fun trackFacts(track: MediaItem?, album: String? = null): Pair<String?, String?> {
     if (track == null) return null to null
-    if (track.provider == ProviderKind.YOUTUBE) return "YouTube" to track.album
+    // The album, once it is known, is worth more than the word YouTube - but the quality
+    // stays unsaid, because the capability matrix makes it provider-determined.
+    if (track.provider == ProviderKind.YOUTUBE) return "YouTube" to (album ?: track.album)
 
     val metadata = track.technicalMetadata
     val left = listOfNotNull(

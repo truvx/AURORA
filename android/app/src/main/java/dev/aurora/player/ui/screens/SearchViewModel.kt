@@ -19,6 +19,15 @@ sealed class RemoteSearchState {
     object Searching : RemoteSearchState()
     data class Results(val items: List<MediaItem>) : RemoteSearchState()
     object NotConfigured : RemoteSearchState()
+
+    /**
+     * The key is set but YouTube would not accept it - wrong key, the wrong API enabled
+     * for the project, or the day's quota spent.
+     *
+     * Its own state because "check your connection" sent someone looking at their wifi
+     * for a problem that was in their Cloud console.
+     */
+    object Rejected : RemoteSearchState()
     object Unavailable : RemoteSearchState()
 }
 
@@ -87,6 +96,10 @@ class SearchViewModel(
                             DiscoveryUnavailable.Reason.NO_API_KEY -> RemoteSearchState.NotConfigured
                         error.message?.contains("API key", ignoreCase = true) == true ->
                             RemoteSearchState.NotConfigured
+                        // 400 and 403 are YouTube answering: a bad key, an API that is not
+                        // enabled, or the quota gone. The connection was fine.
+                        (error as? retrofit2.HttpException)?.code() in setOf(400, 403) ->
+                            RemoteSearchState.Rejected
                         else -> RemoteSearchState.Unavailable
                     }
                 }

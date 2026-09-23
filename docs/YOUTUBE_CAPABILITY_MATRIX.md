@@ -29,6 +29,18 @@ Status: final v1 contract, 2026-09-03.
 
 Public search and public metadata do not require a user's YouTube login. OAuth 2 is required only for authorized user data or actions that need it; service-account authentication is not used. AURORA never asks for or stores YouTube credentials. The project must monitor quota, with the current default quota and per-method costs verified at implementation time from the official quota documentation.
 
+## Metadata shown for a YouTube track
+
+A video title is not a song and a thumbnail is not a cover. AURORA reads an artist and a
+title out of the upload - "keshi - Soft Spot (Official Music Video)" becomes keshi and Soft
+Spot - and looks the record up in MusicBrainz for its name and its sleeve from the Cover
+Art Archive.
+
+This changes what is displayed, never what is played or claimed. Playback stays on the
+visible official player. Quality stays provider-determined and unstated. When the lookup
+finds nothing, or is not confident enough to ask, the video's own title and thumbnail are
+shown rather than a guess.
+
 ## Policy links
 
 - [IFrame Player API Reference](https://developers.google.com/youtube/iframe_api_reference)

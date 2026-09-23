@@ -124,6 +124,14 @@ data class YouTubePlaylistItemDetails(
  * resolve an artist's channel once with a search and then read it with list calls.
  */
 interface YouTubeDataApi {
+    /**
+     * Music, not video.
+     *
+     * Without a category this searches all of YouTube, and a search for an artist comes
+     * back with news clips that happen to share their name - which is how a query for
+     * "keshi" returned a segment about a Nigerian diplomat, ahead of the songs. Category
+     * 10 is Music.
+     */
     @GET("search")
     suspend fun search(
         @Query("part") part: String = "snippet",
@@ -131,6 +139,7 @@ interface YouTubeDataApi {
         @Query("q") query: String,
         @Query("key") apiKey: String,
         @Query("videoEmbeddable") videoEmbeddable: String? = null,
+        @Query("videoCategoryId") videoCategoryId: String = "10",
         @Query("maxResults") maxResults: Int = 20
     ): YouTubeSearchResponse
 

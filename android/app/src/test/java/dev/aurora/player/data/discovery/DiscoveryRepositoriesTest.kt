@@ -47,7 +47,7 @@ private class FakeYouTube(
         if (failAll) throw IOException("offline")
     }
 
-    override suspend fun search(part: String, type: String, query: String, apiKey: String, videoEmbeddable: String?, maxResults: Int) =
+    override suspend fun search(part: String, type: String, query: String, apiKey: String, videoEmbeddable: String?, videoCategoryId: String, maxResults: Int) =
         YouTubeSearchResponse(emptyList()).also { count("search") }
 
     override suspend fun getVideos(part: String, id: String, apiKey: String): YouTubeVideosResponse {

@@ -12,6 +12,12 @@ class RemoteArtworkPolicyTest {
         assertTrue(ArtworkLoader.isAllowedRemote("https://i.ytimg.com/vi/abc/hqdefault.jpg"))
         assertTrue(ArtworkLoader.isAllowedRemote("https://yt3.ggpht.com/a/photo.jpg"))
         assertTrue(ArtworkLoader.isAllowedRemote("https://lh3.googleusercontent.com/x"))
+        // Album covers. AURORA builds these URLs from a MusicBrainz release id rather than
+        // reading them out of a response, and the archive redirects through its own
+        // storage nodes before the image arrives.
+        assertTrue(ArtworkLoader.isAllowedRemote("https://coverartarchive.org/release/abc/front-500"))
+        assertTrue(ArtworkLoader.isAllowedRemote("https://archive.org/download/mbid-abc/front.jpg"))
+        assertTrue(ArtworkLoader.isAllowedRemote("https://dn710208.ca.archive.org/0/items/mbid-abc/front.jpg"))
     }
 
     @Test

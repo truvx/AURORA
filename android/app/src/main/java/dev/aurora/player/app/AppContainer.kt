@@ -35,6 +35,7 @@ interface AppContainer {
     val youTubeKeyStore: dev.aurora.player.data.security.SecretStore
     val followedArtists: dev.aurora.player.data.discovery.FollowedArtistsStore
     val youTubeDataApi: YouTubeDataApi
+    val coverArtRepository: dev.aurora.player.data.discovery.CoverArtRepository
     val mediaResolver: dev.aurora.player.data.discovery.MediaResolver
     val latestReleasesRepository: dev.aurora.player.data.discovery.LatestReleasesRepository
     val trendingRepository: dev.aurora.player.data.discovery.TrendingRepository
@@ -78,6 +79,52 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
             .create(YouTubeDataApi::class.java)
+    }
+
+    /**
+     * MusicBrainz, for the cover of the record behind a YouTube video.
+     *
+     * The service asks every client to identify itself with an application, a version and
+     * a contact, and blocks the ones that do not. It is a condition of using open data for
+     * free, so it is sent on every request rather than left to chance.
+     */
+    override val coverArtRepository: dev.aurora.player.data.discovery.CoverArtRepository by lazy {
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        val contentType = okhttp3.MediaType.get("application/json")
+        val client = okhttp3.OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header(
+                            "User-Agent",
+                            "AURORA/${dev.aurora.player.BuildConfig.VERSION_NAME} " +
+                                "( https://github.com/t6ux/AURORA )"
+                        )
+                        .build()
+                )
+            }
+            .build()
+        val api = retrofit2.Retrofit.Builder()
+            .baseUrl("https://musicbrainz.org/")
+            .client(client)
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            .create(dev.aurora.player.data.api.MusicBrainzApi::class.java)
+
+        dev.aurora.player.data.discovery.CoverArtRepository(
+            musicBrainz = api,
+            cache = discoveryCache,
+            // A HEAD to the archive, which has no rate limit of its own. Asking costs one
+            // small request and saves handing the image loader a URL that does not exist.
+            coverExists = { url ->
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    runCatching {
+                        val request = okhttp3.Request.Builder().url(url).head().build()
+                        client.newCall(request).execute().use { it.isSuccessful }
+                    }.getOrDefault(false)
+                }
+            },
+        )
     }
 
     override val youtubeMusicProvider: YouTubeMusicProvider by lazy {

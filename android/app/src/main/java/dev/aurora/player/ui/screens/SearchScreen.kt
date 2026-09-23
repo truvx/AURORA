@@ -149,7 +149,9 @@ fun SearchScreen(
                     item { TrackList(state.items, onPlay, onAddToQueue) }
                 }
             RemoteSearchState.NotConfigured ->
-                item { Hint("YouTube search needs an API key in local.properties.") }
+                item { Hint("Searching YouTube needs a Data API key. Add one in Settings.") }
+            RemoteSearchState.Rejected ->
+                item { Hint("YouTube turned the request down. Check the key in Settings, that YouTube Data API v3 is enabled for it, and that today's quota isn't spent.") }
             RemoteSearchState.Unavailable ->
                 item { Hint("Couldn't reach YouTube. Check your connection.") }
         }

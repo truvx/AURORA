@@ -6,6 +6,7 @@ import { ReactNode, useEffect, useRef } from "react";
 import styles from "./AppShell.module.css";
 import { AmbientArtworkLayer } from "@/components/artwork/AmbientArtworkLayer";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
+import { RouteTransition } from "@/components/navigation/RouteTransition";
 import { YouTubeSurface } from "@/components/player/YouTubeSurface";
 
 interface NavItem {
@@ -58,7 +59,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Behind everything, so the glass above it has something to refract. */}
       <AmbientArtworkLayer />
 
-      <main className={styles.main}>{children}</main>
+      <main className={styles.main}>
+        <RouteTransition>{children}</RouteTransition>
+      </main>
 
       <div className={styles.chrome} ref={chrome}>
         <YouTubeSurface />

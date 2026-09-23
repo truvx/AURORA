@@ -162,3 +162,26 @@ test("the queue survives a reload", async ({ page }) => {
   // than an empty player.
   await expect(page.getByText("Nothing is playing")).toBeVisible();
 });
+
+test("the page animates in on a route change", async ({ page }) => {
+  await page.goto("/");
+
+  // React's <ViewTransition> needs react@canary, which the version matrix rules out, so
+  // this is a keyed CSS animation. What matters is that it actually runs on navigation
+  // rather than being declared and never replaying.
+  await page.getByRole("link", { name: "Library" }).click();
+  await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
+
+  const animated = await page.evaluate(() => {
+    const wrapper = document.querySelector("main > div");
+    if (!wrapper) return { name: "no route wrapper", count: 0 };
+    return {
+      name: getComputedStyle(wrapper).animationName,
+      // getAnimations() is empty once it has finished, so this only says it was created
+      // with an animation attached, which is the part that regresses silently.
+      count: wrapper.getAnimations().length,
+    };
+  });
+
+  expect(animated.name, "the route wrapper has no animation").toContain("route-in");
+});

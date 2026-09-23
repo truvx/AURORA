@@ -45,7 +45,11 @@
 }
 
 .status {
-  margin: var(--aurora-space-3) 0 0;
+  margin: 0;
+  /* First line in the card, full width in both arrangements. */
+  order: 0;
+  width: 100%;
+  font-size: var(--aurora-type-caption-size);
   color: var(--aurora-text-secondary);
 }
 
@@ -143,15 +147,29 @@
  * The transport: one floating pane of glass over the stage, as in the reference.
  * Bigger surface, so a heavier blur and a deeper shadow than a chip.
  */
+/*
+ * Stacked on a phone, one bar on a desktop.
+ *
+ * The single row comes from `ui demo/player desktop ui.jpg` and needs the width to hold
+ * controls, the track, a scrubber and the queue button side by side. At 390px it had them
+ * overlapping and the times wrapping onto three lines, so the phone gets the arrangement
+ * from `music palyer ui.png` instead: what is playing, then the position, then the
+ * transport.
+ */
 .transport {
   position: sticky;
-  bottom: var(--aurora-space-4);
+  /*
+   * Clear of the app's own floating chrome, whose height the shell measures at runtime.
+   * At the plain space-4 the controls sat behind the navigation pill.
+   */
+  bottom: calc(var(--aurora-chrome-height, 4.5rem) + var(--aurora-space-3));
   display: flex;
-  align-items: center;
-  gap: var(--aurora-space-4);
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--aurora-space-3);
   width: min(52rem, 100%);
-  padding: var(--aurora-space-3) var(--aurora-space-4);
-  border-radius: 999px;
+  padding: var(--aurora-space-4);
+  border-radius: var(--aurora-radius-card);
   background: var(--aurora-surface-glass-elevated);
   backdrop-filter: blur(var(--aurora-blur-floating)) saturate(var(--aurora-glass-saturation));
   -webkit-backdrop-filter: blur(var(--aurora-blur-floating))
@@ -164,7 +182,10 @@
 .controls {
   display: flex;
   align-items: center;
-  gap: var(--aurora-space-1);
+  justify-content: center;
+  gap: var(--aurora-space-4);
+  /* Last in the stack on a phone: the transport is what the thumb reaches for. */
+  order: 3;
 }
 
 .control {
@@ -201,10 +222,69 @@
 
 .nowPlaying {
   display: flex;
-  align-items: center;
-  gap: var(--aurora-space-3);
+  flex-direction: column;
+  gap: var(--aurora-space-2);
   flex: 1;
   min-width: 0;
+  order: 1;
+}
+
+/*
+ * The scrubber takes whatever width is left.
+ *
+ * Without it the bars were squeezed into their content width on a desktop and the two
+ * times collided into "00:00--:--".
+ */
+.scrubberSlot {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Top-right of the card on a phone, as on Android, rather than first in the stack. */
+.queueToggle {
+  position: absolute;
+  top: var(--aurora-space-3);
+  right: var(--aurora-space-3);
+}
+
+/* The cover and the words, side by side above the position. */
+.nowPlayingHead {
+  display: flex;
+  align-items: center;
+  gap: var(--aurora-space-3);
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .transport {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--aurora-space-4);
+    padding: var(--aurora-space-3) var(--aurora-space-4);
+    border-radius: 999px;
+  }
+
+  .controls {
+    order: 0;
+    gap: var(--aurora-space-1);
+  }
+
+  .nowPlaying {
+    order: 0;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .queueToggle {
+    position: static;
+  }
+
+  /* Back to one line: cover, words, then the position taking the remaining width. */
+  .nowPlayingHead {
+    flex: 0 1 auto;
+    max-width: 14rem;
+  }
 }
 
 .nowPlayingText {
@@ -229,23 +309,6 @@
 .nowPlayingArtist {
   font-size: var(--aurora-type-caption-size);
   color: var(--aurora-text-secondary);
-}
-
-.progress {
-  position: relative;
-  flex: 1;
-  height: 4px;
-  min-width: 4rem;
-  border-radius: 999px;
-  background: var(--aurora-surface-glass-secondary);
-  overflow: hidden;
-}
-
-.progressFill {
-  position: absolute;
-  inset: 0;
-  transform-origin: left center;
-  background: var(--aurora-player-progress);
 }
 
 .queuePanel {

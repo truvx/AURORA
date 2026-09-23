@@ -1,0 +1,76 @@
+/*
+ * The position, drawn as a row of bars.
+ *
+ * The bars are all one height. They are a scrubber, not a waveform: the web client never
+ * sees the audio - a YouTube track's bytes are the provider's, and a local file is decoded
+ * by the browser, not analysed - so bars that rose and fell would be a picture of a sound
+ * nobody measured. What is real is where playback has reached.
+ *
+ * Two layers of the same repeating gradient rather than a hundred elements: the played one
+ * is clipped to the position, which is one paint instead of one node per bar.
+ */
+.scrubber {
+  position: relative;
+  width: 100%;
+  /* 44px is the pointer target; the bars are shorter and sit in the middle of it. */
+  height: 44px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.scrubber:focus-visible {
+  outline: 2px solid var(--aurora-focus-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.bars,
+.played {
+  position: absolute;
+  inset: 50% 0 auto 0;
+  height: 18px;
+  transform: translateY(-50%);
+  background-image: repeating-linear-gradient(
+    to right,
+    currentColor 0,
+    currentColor 3px,
+    transparent 3px,
+    transparent 6px
+  );
+}
+
+.bars {
+  color: var(--aurora-text-primary);
+  opacity: 0.28;
+}
+
+.played {
+  color: var(--aurora-player-progress);
+  /* Clipped rather than resized, so the bars stay on the same grid as the unplayed ones. */
+  overflow: hidden;
+}
+
+/* One taller bar marks the playhead - a position, not a louder moment in the audio. */
+.playhead {
+  position: absolute;
+  top: 50%;
+  width: 3px;
+  height: 28px;
+  transform: translate(-3px, -50%);
+  border-radius: 999px;
+  background: var(--aurora-player-progress);
+}
+
+.times {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--aurora-type-caption-size);
+  color: var(--aurora-text-secondary);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .played,
+  .playhead {
+    transition: width var(--aurora-duration-quick) linear, left var(--aurora-duration-quick) linear;
+  }
+}

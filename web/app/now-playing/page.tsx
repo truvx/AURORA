@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Artwork } from "@/components/artwork/Artwork";
 import { GlassCard } from "@/components/glass/Glass";
+import { BarScrubber } from "@/components/player/BarScrubber";
 import { CoverFlow } from "@/components/player/CoverFlow";
 import { useArtworkById } from "@/lib/artwork/useArtwork";
 import { usePlayerCommands, usePlayerState } from "@/lib/player/PlayerProvider";
@@ -92,7 +93,6 @@ export default function NowPlayingPage() {
   const playing = status === "Playing" || status === "Buffering";
   const elapsed = position.elapsedMs;
   const duration = position.durationMs;
-  const progress = duration && duration > 0 ? Math.min(elapsed / duration, 1) : 0;
 
   return (
     <div className={styles.stage}>
@@ -108,13 +108,17 @@ export default function NowPlayingPage() {
         onSelect={(item) => dispatch({ type: "load", track: item, playWhenReady: true })}
       />
 
-      {/* Status stays in words, never a colour or an icon alone. */}
-      <p className={styles.status} role="status">
-        {error ? `⚠ ${error}` : statusLabel(status)}
-      </p>
-
       {/* The floating transport: one glass bar over the stage, as in the reference. */}
       <div className={styles.transport}>
+        {/*
+          Inside the card rather than loose on the stage: the transport is what the status
+          is about, and as a sticky bar over a short page the card was rising over it.
+          Status stays in words, never a colour or an icon alone.
+        */}
+        <p className={styles.status} role="status">
+          {error ? `⚠ ${error}` : statusLabel(status)}
+        </p>
+
         <div className={styles.controls}>
           <button
             type="button"
@@ -145,31 +149,28 @@ export default function NowPlayingPage() {
         </div>
 
         <div className={styles.nowPlaying}>
-          <Artwork url={artwork.url} title={track.title} size="row" />
-          <div className={styles.nowPlayingText}>
-            <p className={styles.nowPlayingTitle}>{track.title}</p>
-            <p className={styles.nowPlayingArtist}>{track.artist ?? "Unknown artist"}</p>
+          <div className={styles.nowPlayingHead}>
+            <Artwork url={artwork.url} title={track.title} size="row" />
+            <div className={styles.nowPlayingText}>
+              <p className={styles.nowPlayingTitle}>{track.title}</p>
+              <p className={styles.nowPlayingArtist}>{track.artist ?? "Unknown artist"}</p>
+            </div>
           </div>
           {/*
-            A progress indication, not a scrubber: it reports, it does not accept input, so
-            it is a progressbar rather than a slider pretending to be one.
+            A scrubber now, not a read-only bar: the position could be seen but not
+            changed, so the only way through a track was to start it again.
           */}
-          <div
-            className={styles.progress}
-            role="progressbar"
-            aria-label="Playback position"
-            aria-valuemin={0}
-            aria-valuemax={duration ?? 0}
-            aria-valuenow={elapsed}
-            aria-valuetext={`${formatTime(elapsed)}${duration ? ` of ${formatTime(duration)}` : ""}`}
-          >
-            <span className={styles.progressFill} style={{ transform: `scaleX(${progress})` }} />
-          </div>
+          <BarScrubber
+            className={styles.scrubberSlot}
+            elapsedMs={elapsed}
+            durationMs={duration}
+            onSeek={(positionMs) => dispatch({ type: "seek", positionMs })}
+          />
         </div>
 
         <button
           type="button"
-          className={styles.control}
+          className={`${styles.control} ${styles.queueToggle}`}
           onClick={() => setQueueOpen((open) => !open)}
           aria-expanded={queueOpen}
           aria-controls="queue-panel"
@@ -236,10 +237,6 @@ export default function NowPlayingPage() {
   );
 }
 
-function formatTime(ms: number): string {
-  const total = Math.max(0, Math.round(ms / 1000));
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
-}
 
 function statusLabel(status: PlayerState["status"]): string {
   switch (status) {

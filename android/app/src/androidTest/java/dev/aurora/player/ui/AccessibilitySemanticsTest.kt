@@ -3,9 +3,11 @@ package dev.aurora.player.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.printToString
@@ -78,10 +80,16 @@ class AccessibilitySemanticsTest {
             )
         }
 
-        // "1 minute 5 seconds of 3 minutes 5 seconds", never "0.35".
-        rule.onNodeWithContentDescription(
-            "Playback position, 1 minute 5 seconds of 3 minutes 5 seconds"
-        ).assertExists()
+        // A name and a state, not one long description: the name says what the control is
+        // and the state says where playback is, as a time - never "0.35".
+        rule.onNodeWithContentDescription("Playback position")
+            .assertExists()
+            .assert(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.StateDescription,
+                    "1 minute 5 seconds of 3 minutes 5 seconds"
+                )
+            )
     }
 
     @Test
@@ -93,7 +101,15 @@ class AccessibilitySemanticsTest {
             )
         }
 
-        rule.onNodeWithContentDescription("Playback position. Duration unknown.").assertExists()
+        // Unknown stays unknown rather than being reported as zero.
+        rule.onNodeWithContentDescription("Playback position")
+            .assertExists()
+            .assert(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.StateDescription,
+                    "Duration unknown"
+                )
+            )
     }
 
     // --- playlist reordering ------------------------------------------------------------
@@ -181,9 +197,14 @@ class AccessibilitySemanticsTest {
             )
         }
 
-        rule.onNodeWithContentDescription(
-            "Playback position, 1 second of 2 seconds"
-        ).assertExists()
+        rule.onNodeWithContentDescription("Playback position")
+            .assertExists()
+            .assert(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.StateDescription,
+                    "1 second of 2 seconds"
+                )
+            )
     }
 
     @Test

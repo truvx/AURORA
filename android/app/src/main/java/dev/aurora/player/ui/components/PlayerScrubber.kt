@@ -14,6 +14,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -70,13 +71,22 @@ fun PlayerScrubber(
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics {
-                    // Without this a screen reader reads the raw float ("0.42"). The spec
-                    // asks for values, and a position is only meaningful as a time.
-                    contentDescription = if (isUnknownDuration) {
-                        "Playback position. Duration unknown."
+                    /*
+                     * A name and a state, not a description.
+                     *
+                     * Material3 1.4 keeps the slider's own semantics on an inner node that modifier
+                     * semantics do not reach, so this names a sibling node rather than the
+                     * seek bar itself - checked in the node tree, including with
+                     * mergeDescendants, which does not change it. The seek bar is still
+                     * focusable and adjustable, and the elapsed and total times are read
+                     * from the labels beneath it, so the position is reachable; it is
+                     * announced as a percentage rather than as a time.
+                     */
+                    contentDescription = "Playback position"
+                    stateDescription = if (isUnknownDuration) {
+                        "Duration unknown"
                     } else {
-                        "Playback position, ${spokenTime(currentElapsed)} of " +
-                            spokenTime(duration)
+                        "${spokenTime(currentElapsed)} of ${spokenTime(duration)}"
                     }
                 },
             colors = SliderDefaults.colors(

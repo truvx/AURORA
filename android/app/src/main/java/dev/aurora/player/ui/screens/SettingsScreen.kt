@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -22,6 +25,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -117,14 +121,27 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth(),
             level = GlassLevel.Primary
         ) {
+            var hapticEnabled by remember { mutableStateOf(haptics.isEnabled) }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
-                        val newState = !haptics.isEnabled
-                        haptics.setEnabled(newState)
-                        if (newState) haptics.fire(HapticEvent.Toggle)
-                    }
+                    /*
+                     * One control, one state.
+                     *
+                     * The row and the switch each held their own idea of whether haptics
+                     * were on: tapping the row turned the engine on or off without moving
+                     * the switch next to it. toggleable makes the row the control, carries
+                     * the state a screen reader announces, and leaves the switch to draw it.
+                     */
+                    .toggleable(
+                        value = hapticEnabled,
+                        role = Role.Switch,
+                        onValueChange = { checked ->
+                            hapticEnabled = checked
+                            haptics.setEnabled(checked)
+                            if (checked) haptics.fire(HapticEvent.Toggle)
+                        }
+                    )
                     .padding(vertical = spacing.space2),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -146,14 +163,11 @@ fun SettingsScreen(
                         color = colors.textSecondary,
                     )
                 }
-                var hapticEnabled by remember { mutableStateOf(haptics.isEnabled) }
                 Switch(
                     checked = hapticEnabled,
-                    onCheckedChange = { checked ->
-                        hapticEnabled = checked
-                        haptics.setEnabled(checked)
-                        if (checked) haptics.fire(HapticEvent.Toggle)
-                    },
+                    // Same as the radio buttons: the row already carries the toggle, and
+                    // an independently focusable switch here was a second, silent stop.
+                    onCheckedChange = null,
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = colors.accentPrimary,
                         checkedTrackColor = colors.accentPrimary.copy(alpha = 0.3f),
@@ -218,19 +232,36 @@ fun SettingsScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
-                                        haptics.fire(HapticEvent.Selection)
-                                        playerCoordinator.dispatch(PlayerCommand.SetLoudnessPreference(pref))
-                                    }
+                                    /*
+                                     * The row is the control, not the little circle.
+                                     *
+                                     * With both clickable, a screen reader stopped twice
+                                     * per option: once on the row, which reads "Quiet",
+                                     * and once on an unlabelled radio button that said
+                                     * nothing at all. selectable also gives the row its
+                                     * role and its selected state, so it is announced as
+                                     * "Quiet, radio button, selected" rather than just
+                                     * as a word.
+                                     */
+                                    .selectable(
+                                        selected = currentPref == pref,
+                                        role = Role.RadioButton,
+                                        onClick = {
+                                            haptics.fire(HapticEvent.Selection)
+                                            playerCoordinator.dispatch(PlayerCommand.SetLoudnessPreference(pref))
+                                        }
+                                    )
+                                    // 46dp with the padding alone, and the radio button
+                                    // is no longer its own target to make up the
+                                    // difference. 48dp is the floor in ACCESSIBILITY_SPEC.
+                                    .heightIn(min = 48.dp)
                                     .padding(vertical = spacing.space2),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 RadioButton(
                                     selected = currentPref == pref,
-                                    onClick = {
-                                        haptics.fire(HapticEvent.Selection)
-                                        playerCoordinator.dispatch(PlayerCommand.SetLoudnessPreference(pref))
-                                    },
+                                    // Drawn, not operated: the row above handles the click.
+                                    onClick = null,
                                     colors = RadioButtonDefaults.colors(
                                         selectedColor = colors.accentPrimary,
                                         unselectedColor = colors.textSecondary

@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import dev.aurora.player.ui.artwork.rememberArtworkBitmap
@@ -46,7 +47,19 @@ fun ArtworkSurface(
             .aspectRatio(1f)
             .clip(shapes.artwork)
             .background(colors.surfaceGlassSecondary)
-            .semantics { contentDescription = altText },
+            /*
+             * A blank altText means decorative, and decorative means out of the tree.
+             * Setting an empty contentDescription still leaves a node for a screen reader
+             * to stop on, which is how the mini-player's cover ended up announcing itself
+             * immediately before the title it duplicates.
+             */
+            .then(
+                if (altText.isBlank()) {
+                    Modifier.clearAndSetSemantics {}
+                } else {
+                    Modifier.semantics { contentDescription = altText }
+                }
+            ),
         contentAlignment = Alignment.Center,
     ) {
         val loaded = artwork

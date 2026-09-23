@@ -23,6 +23,10 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -166,13 +170,27 @@ fun MiniPlayer(
                             }
                         }
                     )
-                    .clickable {
+                    /*
+                     * One node, with its description and its action declared together.
+                     *
+                     * A separate `semantics { contentDescription = ... }` beside
+                     * `clickable` produced two nodes in the tree: a clickable one that
+                     * announced nothing, and the carefully written "Now playing... Open
+                     * full player." on a node TalkBack could neither focus nor activate.
+                     * Reordering did not help, and clearing the descendants took the play
+                     * and next buttons out of the tree with them. Merging leaves those two
+                     * as their own stops and folds the title and artist into this row, so
+                     * it is one stop rather than three. The phrasing that has to reach the
+                     * node carrying the action - "Open full player" - is the click label
+                     * on `clickable`, which does land there.
+                     *
+                     * Verified in the node tree with TalkBack running.
+                     */
+                    .clickable(onClickLabel = "Open full player") {
                         haptics.fire(HapticEvent.Tap)
                         onExpand()
                     }
                     .semantics(mergeDescendants = true) {
-                        // Merged so the row announces as one control with the track name,
-                        // rather than as loose fragments of text and buttons.
                         contentDescription = buildString {
                             if (hasError) {
                                 append("Playback error: ")
@@ -182,7 +200,12 @@ fun MiniPlayer(
                             append("Now playing: ")
                             append(currentTrack.title)
                             currentTrack.artist?.let { append(" by ").append(it) }
-                            append(". Open full player.")
+                        }
+                        role = Role.Button
+                        onClick(label = "Open full player") {
+                            haptics.fire(HapticEvent.Tap)
+                            onExpand()
+                            true
                         }
                         // Assertive so a failure interrupts rather than waiting for the
                         // user to navigate back to this row.
@@ -197,7 +220,10 @@ fun MiniPlayer(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     ArtworkSurface(
-                        altText = "${currentTrack.title} artwork",
+                        // Decorative here: the row announces the title right beside it,
+                        // and a cover that says "<title> artwork" first is the same words
+                        // twice.
+                        altText = "",
                         artworkUri = currentTrack.artworkUri,
                         modifier = Modifier.size(44.dp),
                         // Only YouTube supplies its own surface. Passing a lambda

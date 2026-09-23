@@ -10,6 +10,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.semantics
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -149,7 +151,24 @@ fun AuroraNavigation(
                 Modifier.layerBackdrop(contentBackdrop)
             } else {
                 Modifier
-            }).fillMaxSize()
+            })
+                .fillMaxSize()
+                /*
+                 * While the full player covers the screen, everything under it leaves the
+                 * accessibility tree.
+                 *
+                 * It is still drawn - the player is an overlay, not a destination - so
+                 * without this a screen reader kept swiping into the Home feed behind it,
+                 * reading cards nobody could see and activating them. Sighted users get
+                 * that boundary from the player being opaque; this is the same boundary.
+                 */
+                .then(
+                    if (playerExpanded) {
+                        Modifier.semantics { hideFromAccessibility() }
+                    } else {
+                        Modifier
+                    }
+                )
         ) {
         NavHost(
             navController = navController,

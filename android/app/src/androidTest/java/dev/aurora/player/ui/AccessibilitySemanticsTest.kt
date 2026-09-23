@@ -2,6 +2,8 @@ package dev.aurora.player.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -90,6 +92,30 @@ class AccessibilitySemanticsTest {
                     "1 minute 5 seconds of 3 minutes 5 seconds"
                 )
             )
+    }
+
+    @Test
+    fun scrubberIsOneAdjustableControl() {
+        setAuroraContent {
+            PlayerScrubber(
+                position = PlaybackPosition(elapsed = 65_000L, duration = 185_000L, buffered = null),
+                onSeek = {}
+            )
+        }
+
+        // The Material slider kept its semantics on an inner node, so the name landed on a
+        // sibling and a screen reader got an unnamed seek bar announcing a percentage.
+        // This scrubber owns its node: one control, named, carrying its range in
+        // milliseconds so the spoken state and the seek action agree.
+        rule.onNodeWithContentDescription("Playback position")
+            .assertExists()
+            .assert(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.ProgressBarRangeInfo,
+                    ProgressBarRangeInfo(current = 65_000f, range = 0f..185_000f)
+                )
+            )
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress))
     }
 
     @Test

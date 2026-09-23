@@ -99,7 +99,8 @@
 }
 
 .queueTitle {
-  font-weight: 500;
+  /* A song's name in the queue. */
+  font-weight: var(--aurora-type-track-title-weight);
 }
 
 .removeButton {
@@ -302,12 +303,13 @@
 
 .nowPlayingTitle {
   font-size: var(--aurora-type-label-size);
-  font-weight: var(--aurora-vibrancy-weight-bump);
+  font-weight: var(--aurora-type-track-title-weight);
   color: var(--aurora-text-primary);
 }
 
 .nowPlayingArtist {
   font-size: var(--aurora-type-caption-size);
+  font-weight: var(--aurora-type-track-artist-compact-weight);
   color: var(--aurora-text-secondary);
 }
 

@@ -371,7 +371,7 @@ private fun PlaylistTrackRow(
                     // A track whose file is gone still holds its place rather than vanishing
                     // from the user's playlist.
                     text = entry.item?.title ?: "Unavailable track",
-                    style = typography.title,
+                    style = typography.trackTitle,
                     color = if (entry.item != null) colors.textPrimary else colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

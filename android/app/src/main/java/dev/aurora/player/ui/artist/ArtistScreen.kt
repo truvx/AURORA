@@ -204,7 +204,7 @@ fun ArtistScreen(
             item {
                 Text(
                     text = "TOP SONGS",
-                    style = typography.label,
+                    style = typography.section,
                     color = colors.textSecondary,
                     modifier = Modifier.fillMaxWidth().padding(bottom = spacing.space3),
                 )
@@ -264,7 +264,7 @@ private fun ArtistTrackRow(
         ) {
             Text(
                 text = track.title,
-                style = typography.title,
+                style = typography.trackTitle,
                 color = colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

@@ -13,7 +13,7 @@
 .sectionTitle {
   margin: 0 0 var(--aurora-space-3);
   font-size: var(--aurora-type-label-size);
-  font-weight: var(--aurora-type-label-weight);
+  font-weight: var(--aurora-type-section-weight);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--aurora-text-secondary);
@@ -68,6 +68,7 @@
 .cardTitle {
   margin: 0;
   font-size: var(--aurora-type-body-size);
+  font-weight: var(--aurora-type-track-title-weight);
   color: var(--aurora-text-primary);
   /* Two lines, then ellipsis: a long video title must not push the shelf out of line. */
   display: -webkit-box;

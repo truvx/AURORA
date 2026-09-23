@@ -79,17 +79,17 @@
    */
   --aurora-type-display-size: 2.5rem;     /* 40px */
   --aurora-type-display-line: 2.875rem;   /* 46px */
-  --aurora-type-display-weight: 700;
+  --aurora-type-display-weight: 900;
   --aurora-type-display-tracking: -0.022em;
 
   --aurora-type-headline-size: 1.875rem;  /* 30px */
   --aurora-type-headline-line: 2.25rem;   /* 36px */
-  --aurora-type-headline-weight: 700;
+  --aurora-type-headline-weight: 900;
   --aurora-type-headline-tracking: -0.016em;
 
   --aurora-type-title-size: 1.375rem;     /* 22px */
   --aurora-type-title-line: 1.75rem;      /* 28px */
-  --aurora-type-title-weight: 600;
+  --aurora-type-title-weight: 900;
   --aurora-type-title-tracking: -0.009em;
 
   --aurora-type-body-size: 1rem;          /* 16px */
@@ -99,7 +99,12 @@
 
   --aurora-type-label-size: 0.875rem;     /* 14px */
   --aurora-type-label-line: 1.25rem;      /* 20px */
-  --aurora-type-label-weight: 600;
+  /*
+   * Regular, not semibold. The family ships three weights - Light, Regular, Black -
+   * because those are the three that mean something here, and asking for a 600 the
+   * browser does not have makes it synthesise one, which is a smeared Regular.
+   */
+  --aurora-type-label-weight: 400;
   --aurora-type-label-tracking: 0.006em;
 
   --aurora-type-caption-size: 0.75rem;    /* 12px */
@@ -108,10 +113,40 @@
   --aurora-type-caption-tracking: 0.014em;
 
   /*
+   * A song, and whoever made it.
+   *
+   * Their own tokens because the weights carry meaning rather than decoration: headings
+   * are Black, and a track's name and artist are Light to Regular. A title set as heavily
+   * as the heading above it competes with it, and a screen of uniformly heavy type has no
+   * hierarchy at all - only volume.
+   *
+   * Light is used at 16px and above. Below that a 300 weight over glass starts to
+   * disappear, so the compact artist line is Regular instead.
+   */
+  --aurora-type-track-title-size: 1.375rem;   /* 22px */
+  --aurora-type-track-title-line: 1.75rem;    /* 28px */
+  --aurora-type-track-title-weight: 400;
+
+  --aurora-type-track-artist-size: 1rem;      /* 16px */
+  --aurora-type-track-artist-line: 1.5rem;    /* 24px */
+  --aurora-type-track-artist-weight: 300;
+
+  --aurora-type-track-artist-compact-size: 0.875rem; /* 14px */
+  --aurora-type-track-artist-compact-weight: 400;
+
+  /* Small-caps section labels are headings, and take the heading weight. */
+  --aurora-type-section-weight: 900;
+
+  /*
    * Text sitting on a translucent surface loses definition against whatever moves behind
    * it. A touch more weight and tracking buys that definition back without a heavier scrim.
    */
-  --aurora-vibrancy-weight-bump: 500;
+  /*
+   * The bump is now from Light to Regular rather than Regular to Medium: with three
+   * weights, that is the step available, and it is the one that matters - it is the
+   * Light artist lines that thin out over a bright backdrop.
+   */
+  --aurora-vibrancy-weight-bump: 400;
   --aurora-vibrancy-tracking-bump: 0.008em;
 
   /*

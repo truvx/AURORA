@@ -146,7 +146,7 @@ fun NowPlayingScreen(
                     Column(modifier = Modifier.fillMaxWidth().padding(spacing.space4)) {
                         Text(
                             text = currentTrack?.title ?: "Nothing is playing",
-                            style = Aurora.typography.headline,
+                            style = Aurora.typography.trackTitleLarge,
                             color = colors.textPrimary,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
@@ -156,7 +156,7 @@ fun NowPlayingScreen(
                         if (artistName != null) {
                             Text(
                                 text = artistName,
-                                style = Aurora.typography.title,
+                                style = Aurora.typography.trackArtist,
                                 color = colors.textSecondary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,

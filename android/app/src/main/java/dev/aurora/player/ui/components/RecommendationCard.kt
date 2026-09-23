@@ -32,7 +32,7 @@ fun RecommendationCard(
                 Spacer(modifier = Modifier.height(spacing.space1))
                 Text(
                     text = candidate.item.artist,
-                    style = typography.caption,
+                    style = typography.trackArtistCompact,
                     color = colors.textSecondary,
                     maxLines = 1
                 )

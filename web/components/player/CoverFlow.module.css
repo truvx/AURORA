@@ -62,15 +62,16 @@
 
 .title {
   margin: 0;
-  font-size: var(--aurora-type-title-size);
-  font-weight: var(--aurora-type-title-weight);
+  font-size: var(--aurora-type-track-title-size);
+  font-weight: var(--aurora-type-track-title-weight);
   letter-spacing: var(--aurora-type-title-tracking);
   color: var(--aurora-text-primary);
 }
 
 .artist {
   margin: 0;
-  font-size: var(--aurora-type-body-size);
+  font-size: var(--aurora-type-track-artist-size);
+  font-weight: var(--aurora-type-track-artist-weight);
   color: var(--aurora-text-secondary);
 }
 

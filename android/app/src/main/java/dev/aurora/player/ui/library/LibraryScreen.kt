@@ -303,12 +303,12 @@ fun LibraryScreen(
                                 ) {
                                     Text(
                                         text = item.title,
-                                        style = typography.title,
+                                        style = typography.trackTitle,
                                         color = if (item.isAvailable) colors.textPrimary else colors.textSecondary
                                     )
                                     Text(
                                         text = item.artist ?: "Unknown Artist",
-                                        style = typography.label,
+                                        style = typography.trackArtistCompact,
                                         color = colors.textSecondary
                                     )
                                 }

@@ -86,11 +86,13 @@
 }
 
 .trackTitle {
-  font-weight: var(--aurora-vibrancy-weight-bump);
+  /* A song's name, not a heading: Regular, and the heavier one only over glass. */
+  font-weight: var(--aurora-type-track-title-weight);
 }
 
 .trackArtist {
-  font-size: 0.875rem;
+  font-size: var(--aurora-type-track-artist-compact-size);
+  font-weight: var(--aurora-type-track-artist-compact-weight);
   color: var(--aurora-text-secondary);
 }
 
@@ -137,7 +139,8 @@
 .pickerTitle {
   margin: 0 0 var(--aurora-space-2);
   font-size: 1rem;
-  font-weight: 500;
+  /* A heading over the picker, so it takes the heading weight. */
+  font-weight: var(--aurora-type-section-weight);
 }
 
 /* A row and its own actions, side by side. */

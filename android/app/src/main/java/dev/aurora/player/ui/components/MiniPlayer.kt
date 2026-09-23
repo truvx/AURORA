@@ -245,7 +245,7 @@ fun MiniPlayer(
                     ) {
                         Text(
                             text = currentTrack.title,
-                            style = Aurora.typography.title,
+                            style = Aurora.typography.trackTitle,
                             color = Aurora.colors.textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -255,7 +255,7 @@ fun MiniPlayer(
                             // is perceivable without colour vision.
                             text = if (hasError) "⚠  $errorText" else currentTrack.artist
                                 ?: "Unknown Artist",
-                            style = Aurora.typography.body,
+                            style = Aurora.typography.trackArtistCompact,
                             color = Aurora.colors.textSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis

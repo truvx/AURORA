@@ -5,7 +5,17 @@
 
 ## Decision
 
-AURORA uses Inter as its primary type family across Android and Web. The family is used as a variable or appropriately subsetted font where platform support permits, with system sans-serif fallback. One primary family keeps the bundle and rendering behavior predictable while providing strong display, metadata, numeric, and multilingual coverage.
+AURORA uses Montserrat as its primary type family across Android and Web (raised from Inter, 2026-09-23). It is licensed under the SIL Open Font License, which permits bundling; the licence ships with the app in `res/raw/montserrat_ofl.txt` and at `docs/licenses/Montserrat-OFL.txt`. The family is used as a variable or appropriately subsetted font where platform support permits, with system sans-serif fallback. One primary family keeps the bundle and rendering behavior predictable while providing strong display, metadata, numeric, and multilingual coverage.
+
+Weights carry meaning rather than decoration. Headings, lyrics and small-caps section
+labels are Black; a song's name is Regular; whoever made it is Light. Light is used at
+16sp/16px and above - below that a 300 weight over glass starts to disappear, so compact
+artist lines are Regular instead. The family ships exactly those three, so no role asks
+for a weight that would have to be synthesised.
+
+One variable file carries all three on both clients, which is one download and one
+resource rather than three.
+
 
 Material Symbols Outlined is the primary icon family. It is used through platform-supported vector/font delivery rather than copied Apple assets or hand-drawn replacements. Icons are semantic, not decorative; icon-only controls require accessible names and tooltips where appropriate.
 
@@ -13,9 +23,10 @@ Material Symbols Outlined is the primary icon family. It is used through platfor
 
 | Candidate | Decision | Reason |
 | --- | --- | --- |
-| Inter | Chosen | Open Font License, broad language coverage, strong readability, variable weights, and reliable Android/Web rendering. |
+| Montserrat | Chosen | Open Font License, variable weights, and a geometric face whose Black is heavy enough to carry a heading against artwork while its Light stays legible under it. |
+| Inter | Superseded | Was chosen for readability and coverage; never actually loaded on Android, where the app ran on the system sans until Montserrat shipped. |
 | Manrope | Not primary | Strong display voice, but an extra family would increase delivery and coverage cost without a clear product benefit. |
-| Plus Jakarta Sans | Not primary | Good UI family, but Inter has a stronger existing system fit and broad ecosystem support here. |
+| Plus Jakarta Sans | Not primary | Good UI family, but without the weight range this design leans on. |
 | Geist | Not primary | Good web display family, but platform parity and language coverage are less predictable for the initial cross-platform baseline. |
 | Apple proprietary fonts/assets | Rejected | Licensing and platform-copy concerns; not required for the AURORA identity. |
 | Material Symbols | Chosen | Apache 2.0, broad action coverage, Android/Web availability, and consistent outlined optical style. |
@@ -23,7 +34,7 @@ Material Symbols Outlined is the primary icon family. It is used through platfor
 
 ## Consequences
 
-Font files are not added in the foundation phase. At implementation, use licensed Inter assets or the approved platform delivery route, subset only after language requirements are known, reserve layout space, and test fallback rendering. Do not use emoji as UI icons. If a Material Symbol is unavailable, use a named Lucide fallback or text label; never invent a visually similar Apple asset.
+The font ships with the app: one variable file at `android/app/src/main/res/font/montserrat.ttf` (727 KB) and, on Web, self-hosted at build time by next/font so nothing is fetched from Google at runtime. Subset only after language requirements are known, reserve layout space, and test fallback rendering. Do not use emoji as UI icons. If a Material Symbol is unavailable, use a named Lucide fallback or text label; never invent a visually similar Apple asset.
 
 Confidence: high for the license and cross-platform role fit; medium for final glyph subset and language coverage until the product's actual language set is measured.
 

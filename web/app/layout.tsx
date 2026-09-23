@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import localFont from "next/font/local";
 import { AppShell } from "@/components/navigation/AppShell";
 import { ArtworkProvider } from "@/lib/artwork/useArtwork";
@@ -18,10 +18,14 @@ import "@/styles/globals.css";
  * `display: swap` keeps text visible while the face loads, so a slow font delays the look
  * of the page rather than its content.
  */
-const inter = Inter({
+const montserrat = Montserrat({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-aurora-sans",
+  // Three weights, because three carry meaning: Black for headings, Regular for a song's
+  // name, Light for whoever made it. Every weight shipped is bytes on the wire, so the
+  // ones nothing uses are not requested.
+  weight: ["300", "400", "900"],
 });
 
 /*
@@ -58,7 +62,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${materialSymbols.variable}`}
+      className={`${montserrat.variable} ${materialSymbols.variable}`}
     >
       <body>
         <ThemeProvider>

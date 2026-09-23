@@ -131,7 +131,7 @@ fun QueueItemRow(
                 )
                 Text(
                     text = item.artist ?: "Unknown Artist",
-                    style = Aurora.typography.label,
+                    style = Aurora.typography.trackArtistCompact,
                     color = Aurora.colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

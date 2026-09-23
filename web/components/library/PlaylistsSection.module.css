@@ -83,7 +83,8 @@
 .rowTitle {
   margin: 0;
   font-size: 1rem;
-  font-weight: 500;
+  /* A playlist's name is a heading for the rows under it. */
+  font-weight: var(--aurora-type-section-weight);
 }
 
 .status {

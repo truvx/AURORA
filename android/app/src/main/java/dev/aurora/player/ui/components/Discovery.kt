@@ -81,7 +81,7 @@ fun SectionHeader(
         // competing with the artwork and titles inside it.
         Text(
             text = title.uppercase(),
-            style = Aurora.typography.label.copy(letterSpacing = 1.2.sp),
+            style = Aurora.typography.section,
             color = colors.textSecondary,
             modifier = Modifier.weight(1f)
         )
@@ -174,14 +174,14 @@ fun ReleaseCard(
         Spacer(modifier = Modifier.height(Aurora.spacing.space2))
         Text(
             text = item.title,
-            style = Aurora.typography.title,
+            style = Aurora.typography.trackTitle,
             color = colors.textPrimary,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
         Text(
             text = item.artist ?: "Unknown artist",
-            style = Aurora.typography.body,
+            style = Aurora.typography.trackArtist,
             color = colors.textSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -294,14 +294,14 @@ fun TrackRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.title,
-                    style = Aurora.typography.title,
+                    style = Aurora.typography.trackTitle,
                     color = colors.textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = listOfNotNull(item.artist ?: "Unknown artist", trailingLabel).joinToString(" · "),
-                    style = Aurora.typography.body,
+                    style = Aurora.typography.trackArtist,
                     color = colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

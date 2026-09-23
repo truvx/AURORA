@@ -23,13 +23,14 @@ data class YouTubeVideoId(
 
 @Serializable
 data class YouTubeSnippet(
-    val title: String,
-    val channelTitle: String = "",
+    // Escaped on the wire; see HtmlText.kt.
+    @Serializable(with = HtmlTextSerializer::class) val title: String,
+    @Serializable(with = HtmlTextSerializer::class) val channelTitle: String = "",
     val thumbnails: YouTubeThumbnails,
     /** ISO-8601. Present on search results, videos and playlist items. */
     val publishedAt: String? = null,
     /** Playlist items only: the channel that published the video, not the playlist owner. */
-    val videoOwnerChannelTitle: String? = null,
+    @Serializable(with = HtmlTextSerializer::class) val videoOwnerChannelTitle: String? = null,
     /** Playlist items only. */
     val resourceId: YouTubeResourceId? = null
 )

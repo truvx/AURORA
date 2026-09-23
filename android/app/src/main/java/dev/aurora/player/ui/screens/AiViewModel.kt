@@ -38,6 +38,10 @@ internal fun errorFor(reason: AiFailureReason): AiUiState.Error = when (reason) 
         AiUiState.Error("The AI service is busy right now. Try again shortly.")
     AiFailureReason.Unreachable ->
         AiUiState.Error("Couldn't reach the AI gateway. Check your connection.")
+    AiFailureReason.RefusedByGateway ->
+        AiUiState.Error("The assistant's answer wasn't something AURORA could use. Try asking again.")
+    AiFailureReason.RequestRejected ->
+        AiUiState.Error("The gateway turned that request down. Try a shorter message.")
     AiFailureReason.Unexpected ->
         AiUiState.Error("Something went wrong with that request. Try again.")
 }

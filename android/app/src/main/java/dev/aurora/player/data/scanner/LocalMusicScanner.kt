@@ -69,88 +69,60 @@ open class LocalMusicScanner(private val context: Context) {
                 
                 while (c.moveToNext()) {
                     try {
-                        val id = c.getLong(idCol)
-                        val title = c.getString(titleCol) ?: "Unknown Title"
-                        val artistName = c.getString(artistCol) ?: "Unknown Artist"
-                        val artistIdRaw = c.getLong(artistIdCol)
-                        val albumName = c.getString(albumCol) ?: "Unknown Album"
-                        val albumIdRaw = c.getLong(albumIdCol)
-                        
-                        val durationMs = c.getLong(durationCol)
-                        val size = c.getLong(sizeCol)
-                        val mimeType = c.getString(mimeTypeCol) ?: "audio/*"
-                        val dateModified = c.getLong(dateModifiedCol)
-                        
-                        val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)
-                        val artworkUri = ContentUris.withAppendedId(MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI, albumIdRaw).toString()
-                        
-                        val mediaId = "local_$id"
-                        val albumId = "local_album_$albumIdRaw"
-                        val artistId = "local_artist_$artistIdRaw"
-                        val provider = ProviderKind.LOCAL.name
-                        
-                        val albumEntity = AlbumEntity(
-                            id = albumId,
-                            provider = provider,
-                            title = albumName,
-                            albumArtist = artistName,
-                            year = null,
-                            artworkRef = artworkUri
+                        val row = ScannedRow(
+                            id = c.getLong(idCol),
+                            title = c.getString(titleCol),
+                            artist = c.getString(artistCol),
+                            artistId = c.getLong(artistIdCol),
+                            album = c.getString(albumCol),
+                            albumId = c.getLong(albumIdCol),
+                            durationMs = c.getLong(durationCol),
+                            size = c.getLong(sizeCol),
+                            mimeType = c.getString(mimeTypeCol),
+                            dateModified = c.getLong(dateModifiedCol),
                         )
-                        
-                        val artistEntity = ArtistEntity(
-                            id = artistId,
-                            provider = provider,
-                            name = artistName,
-                            artworkRef = null
-                        )
-                        
-                        val artworkEntity = ArtworkEntity(
-                            sourceRef = artworkUri,
-                            width = null,
-                            height = null,
-                            paletteVersion = 1,
-                            cacheMetadata = null
-                        )
-                        
-                        val mediaItem = MediaItemEntity(
-                            id = mediaId,
-                            provider = provider,
-                            kind = "TRACK",
-                            title = title,
-                            provenance = "LOCAL",
-                            isAvailable = true,
-                            albumId = albumId
-                        )
-                        
-                        val fileEntity = LocalFileEntity(
-                            uri = uri.toString(),
-                            mediaId = mediaId,
-                            permissionStatus = "GRANTED",
-                            size = size,
-                            dateModified = dateModified,
-                            importState = "SCANNED"
-                        )
-                        
-                        val extractedTechMeta = extractTechnicalMetadata(context, uri, mediaId, mimeType, durationMs)
-                        val loudnessEntity = extractLoudness(context, uri, mediaId)
 
-                        tracks.add(ScannedTrack(mediaItem, fileEntity, extractedTechMeta, albumEntity, listOf(artistEntity), artworkEntity, loudnessEntity))
+                        val uri = ContentUris.withAppendedId(
+                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                            row.id
+                        )
+                        val artworkUri = ContentUris.withAppendedId(
+                            MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI,
+                            row.albumId
+                        ).toString()
+
+                        val mediaId = ScanMapping.mediaId(row.id)
+                        tracks.add(
+                            ScanMapping.scannedTrack(
+                                row = row,
+                                uri = uri.toString(),
+                                artworkUri = artworkUri,
+                                metadata = extractTechnicalMetadata(
+                                    context,
+                                    uri,
+                                    mediaId,
+                                    row.mimeType ?: "audio/*",
+                                    row.durationMs
+                                ),
+                                loudness = extractLoudness(context, uri, mediaId),
+                            )
+                        )
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
-                        // Log and skip individual bad row
+                        // One unreadable row must not end the scan; the rest of the library
+                        // is still worth having.
                     }
                 }
             }
-            
+
             return@withContext LocalScanResult.Success(tracks)
             
         } catch (e: CancellationException) {
             // Propagate cancellation
             throw e
-        } catch (e: SecurityException) {
-            return@withContext LocalScanResult.PermissionDenied("SecurityException: ${e.message}")
         } catch (e: Exception) {
-            return@withContext LocalScanResult.Failed("Exception during scan: ${e.message}", e)
+            return@withContext ScanMapping.failureFor(e)
         }
     }
     
@@ -191,7 +163,7 @@ open class LocalMusicScanner(private val context: Context) {
         var channels: Int? = null
         var bitDepth: Int? = null
         var duration: Long = fallbackDuration
-        var isLossless = fallbackMimeType.contains("flac") || fallbackMimeType.contains("wav") || fallbackMimeType.contains("alac")
+        var isLossless = ScanMapping.isLossless(fallbackMimeType)
         
         val retriever = MediaMetadataRetriever()
         try {
@@ -204,9 +176,7 @@ open class LocalMusicScanner(private val context: Context) {
             }
             retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE)?.let {
                 container = it
-                if (it.contains("flac") || it.contains("wav") || it.contains("alac")) {
-                    isLossless = true
-                }
+                if (ScanMapping.isLossless(it)) isLossless = true
             }
         } catch (e: Exception) {
         } finally {

@@ -26,6 +26,18 @@ enum class AiFailureReason {
     /** The gateway could not be reached at all. */
     Unreachable,
 
+    /**
+     * The model answered with something the gateway would not pass on: a tool it was never
+     * offered, arguments of the wrong shape, or no text at all.
+     *
+     * Its own category because it is not a fault the person can do anything about, and it
+     * is the one failure that means the allowlist did its job.
+     */
+    RefusedByGateway,
+
+    /** The request was rejected before it reached a provider: too large, or malformed. */
+    RequestRejected,
+
     /** Anything else: a malformed response, an outage, a bug. */
     Unexpected;
 
@@ -37,6 +49,10 @@ enum class AiFailureReason {
             "ai_not_configured" -> AiNotConfigured
             "rate_limited" -> RateLimited
             "provider_busy" -> ProviderBusy
+            "provider_unavailable" -> ProviderBusy
+            "invalid_provider_response" -> RefusedByGateway
+            "payload_too_large" -> RequestRejected
+            "invalid_request" -> RequestRejected
             else -> Unexpected
         }
     }

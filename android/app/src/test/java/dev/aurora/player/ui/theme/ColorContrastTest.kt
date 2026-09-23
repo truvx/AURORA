@@ -64,4 +64,15 @@ class ColorContrastTest {
             assertContrast("$name accent on canvas", colors.accentPrimary, colors.backgroundPrimary, body)
         }
     }
+
+    @Test
+    fun `the accent stays legible on the floating chrome, where the selected tab lives`() {
+        // The canvas was the only backdrop being checked, and it is the darkest one. The
+        // selected tab label actually sits on elevated glass over the canvas, which is
+        // lighter - and that is where the web client's accent measured 4.15:1.
+        listOf("dark" to AuroraDarkColors, "light" to AuroraLightColors).forEach { (name, colors) ->
+            val chrome = ContrastScrim.composite(colors.surfaceGlassElevated, colors.backgroundPrimary)
+            assertContrast("$name accent on chrome", colors.accentPrimary, chrome, body)
+        }
+    }
 }

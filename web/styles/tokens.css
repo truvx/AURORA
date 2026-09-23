@@ -35,6 +35,11 @@
   --aurora-text-inverse: var(--aurora-neutral-0);
   --aurora-accent-primary: var(--aurora-accent-blue);
   --aurora-accent-secondary: var(--aurora-accent-blue);
+  /*
+   * What goes on top of an accent fill. Light's accent is a deep blue, so near-black text
+   * on it measured 3.23:1 - white is 6.10:1.
+   */
+  --aurora-accent-on-primary: #ffffff;
   /* The primary action is a solid pill carrying the theme's strongest contrast. */
   --aurora-control-primary: var(--aurora-neutral-90);
   --aurora-control-on-primary: var(--aurora-neutral-0);
@@ -176,7 +181,7 @@
   --aurora-neutral-40: #3a3a3f;
   --aurora-neutral-70: #ababb2;
   --aurora-neutral-90: #f5f5f7;
-  --aurora-accent-blue: #6a98ff;
+  --aurora-accent-blue: #7ea6ff;
   --aurora-favorite: #f9555b;
   --aurora-semantic-success: #67d49a;
   --aurora-semantic-warning: #f2c66d;
@@ -200,10 +205,12 @@
   --aurora-text-inverse: var(--aurora-neutral-0);
   --aurora-accent-primary: var(--aurora-accent-blue);
   --aurora-accent-secondary: var(--aurora-accent-blue);
+  /* Dark's accent is a light blue, so what sits on it stays near-black. */
+  --aurora-accent-on-primary: var(--aurora-neutral-0);
   /* The white "Play" pill from the references, with near-black content on it. */
   --aurora-control-primary: #ffffff;
   --aurora-control-on-primary: var(--aurora-neutral-0);
-  --aurora-focus-ring: rgba(106, 152, 255, 0.56);
+  --aurora-focus-ring: rgba(126, 166, 255, 0.56);
   --aurora-divider-subtle: rgba(54, 59, 70, 0.24);
   --aurora-border-control: rgba(167, 175, 189, 0.44);
   --aurora-player-bg: var(--aurora-neutral-10);

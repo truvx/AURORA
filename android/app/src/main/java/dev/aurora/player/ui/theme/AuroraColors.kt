@@ -106,7 +106,10 @@ private object DarkPrimitives {
     val neutral70 = Color(0xFFABABB2)
     val neutral90 = Color(0xFFF5F5F7)
     val white = Color(0xFFFFFFFF)
-    val accentBlue = Color(0xFF6A98FF)
+    // Measured, not picked: as a selected tab label on the floating chrome the previous
+    // #6A98FF came to 4.15:1 on web's lighter pill, below the 4.5 floor for body text.
+    // This is the same value on both clients so one accent does not mean two colours.
+    val accentBlue = Color(0xFF7EA6FF)
     val favorite = Color(0xFFF9555B)
     val success = Color(0xFF67D49A)
     val warning = Color(0xFFF2C66D)

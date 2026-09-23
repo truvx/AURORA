@@ -24,7 +24,8 @@
 .primaryButton {
   border: none;
   background: var(--aurora-accent-primary);
-  color: #0b0b0b;
+  /* Per theme: near-black on light's accent measured 3.23:1. */
+  color: var(--aurora-accent-on-primary);
 }
 
 .secondaryButton {

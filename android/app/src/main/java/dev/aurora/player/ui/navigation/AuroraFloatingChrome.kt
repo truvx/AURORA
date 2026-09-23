@@ -205,6 +205,9 @@ fun GlassCircleButton(
     )
 
     GlassSurface(
+        // The surface answers the finger too, not just the transform: the refraction
+        // deepens and the edge lifts under a press.
+        pressProgress = { press },
         modifier = modifier
             .size(size)
             .graphicsLayer {

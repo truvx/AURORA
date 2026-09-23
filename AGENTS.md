@@ -1,6 +1,6 @@
 # AURORA agent instructions
 
-AURORA is a personal-use music player for Android and Web. It combines high-quality playback of user-owned local files with legitimate YouTube discovery and visible foreground playback where permitted, a shared queue/player model, an original Liquid Glass-inspired interface, restrained motion and meaningful haptics, accessible cross-platform controls, and optional Gemini/OpenAI music assistance.
+AURORA is a personal-use music player for Android and Web. It combines high-quality playback of user-owned local files with legitimate YouTube discovery and visible foreground playback where permitted, a shared queue/player model, an interface that follows Apple's Liquid Glass, restrained motion and meaningful haptics, accessible cross-platform controls, and optional Gemini/OpenAI music assistance.
 
 ## Current repository phase
 
@@ -95,7 +95,7 @@ Never hardcode, bundle, commit, log, or expose secrets, tokens, cookies, credent
 
 ## Design, motion, haptics, accessibility
 
-Use the original AURORA Liquid Glass-inspired system only. It uses stable canvas, optional artwork atmosphere, contrast scrim, semantic glass, soft highlight, and readable content layers. Blur/transparency/dynamic theming are adaptive enhancements with opaque and reduced-transparency fallbacks. Do not copy Apple source, assets, proprietary fonts, or icons.
+AURORA's interface follows Apple's Liquid Glass as closely as it can. A visual language is not something a project can be forbidden from pursuing, and this one is the target: the material, the optics, the shapes and the motion. What stays out is Apple's property rather than Apple's aesthetic - do not ship SF Pro or SF Symbols, which are licensed for Apple platforms only, do not copy Apple source or image assets, and do not use their branding. Inter and Material Symbols stand in for the typefaces. It uses stable canvas, optional artwork atmosphere, contrast scrim, semantic glass, soft highlight, and readable content layers. Blur/transparency/dynamic theming are adaptive enhancements with opaque and reduced-transparency fallbacks.
 
 Use Inter with system fallback and Material Symbols Outlined with Lucide fallback only where explicitly needed. Do not use emoji as UI icons. Keep readable type, reserved layout dimensions, semantic colors, sufficient contrast after artwork, and no color-only status.
 

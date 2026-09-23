@@ -16,6 +16,7 @@ import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.highlight.HighlightStyle
 import com.kyant.backdrop.shadow.Shadow
 
 /**
@@ -48,6 +49,19 @@ fun GlassSurface(
     modifier: Modifier = Modifier,
     level: GlassLevel = GlassLevel.Primary,
     useOpaqueFallback: Boolean = false,
+    /*
+     * How hard the surface is being pressed, 0 to 1.
+     *
+     * Real glass answers a finger: the material bulges under it and the edge brightens.
+     * Both of those need something behind the surface to bend and something bright to
+     * catch, so the effect is invisible over a black background - which is every screen
+     * of the emulator with an empty library, and why this is not verified by a
+     * screenshot. Judge it on a device with artwork.
+     *
+     * At rest it multiplies by one, so a surface that is never pressed draws exactly as
+     * it did before.
+     */
+    pressProgress: () -> Float = { 0f },
     shape: androidx.compose.ui.graphics.Shape = Aurora.shapes.card,
     backdrop: Backdrop? = null,
     content: @Composable BoxScope.() -> Unit,
@@ -114,15 +128,28 @@ fun GlassSurface(
                         effects = {
                             vibrancy()
                             blur(blurRadius)
-                            if (refractionAmount > 0f) lens(refractionHeight, refractionAmount)
+                            if (refractionAmount > 0f) {
+                                // Pressing deepens the refraction, so what shows through
+                                // the surface swells under the finger and settles back.
+                                val press = pressProgress()
+                                lens(refractionHeight, refractionAmount * (1f + PRESS_REFRACTION * press))
+                            }
                         },
                         highlight = {
+                            val press = pressProgress()
                             when (level) {
-                                // Floating chrome catches the most light: a soft ambient rim.
-                                GlassLevel.Elevated -> Highlight.Ambient
-                                GlassLevel.Primary -> Highlight.Default
-                                // A plain hairline; anything stronger turns a list of cards
-                                // into a list of outlines.
+                                // Floating chrome catches the most light: a soft ambient
+                                // rim, lifted while a finger is on it.
+                                GlassLevel.Elevated -> Highlight(
+                                    alpha = 1f + PRESS_HIGHLIGHT * press,
+                                    style = HighlightStyle.Ambient
+                                )
+                                GlassLevel.Primary -> Highlight(
+                                    alpha = 1f + PRESS_HIGHLIGHT * press,
+                                    style = HighlightStyle.Default()
+                                )
+                                // A plain hairline; anything stronger turns a list of
+                                // cards into a list of outlines.
                                 GlassLevel.Secondary -> Highlight.Plain
                             }
                         },
@@ -145,3 +172,7 @@ fun GlassSurface(
         content = content,
     )
 }
+
+/** How much a press deepens the refraction and lifts the edge. */
+private const val PRESS_REFRACTION = 0.45f
+private const val PRESS_HIGHLIGHT = 0.6f

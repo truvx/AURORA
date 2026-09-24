@@ -13,6 +13,19 @@ class YouTubePlayerAdapter : PlayerAdapter {
     private val _events = MutableSharedFlow<EngineEvent>(extraBufferCapacity = 64)
     override val events: Flow<EngineEvent> = _events
 
+    /*
+     * The IFrame player takes a moment to exist.
+     *
+     * The page has to fetch YouTube's API and construct a player before any of the JS
+     * functions below do anything, and until then `loadVideo()` calls a method on an
+     * undefined object and silently does nothing. Every track chosen in the first seconds
+     * after a cold start was dropped that way: the transport said Pause, the position
+     * stayed empty and no audio was ever produced.
+     */
+    private var isPlayerReady = false
+    private var pendingVideoId: String? = null
+    private var pendingPlay = false
+
     private var _webView: android.webkit.WebView? = null
     val webView: android.webkit.WebView?
         get() = _webView
@@ -36,16 +49,43 @@ class YouTubePlayerAdapter : PlayerAdapter {
             settings.allowFileAccess = false
             settings.allowContentAccess = false
             settings.domStorageEnabled = true // Required for YouTube player
-            webChromeClient = android.webkit.WebChromeClient()
-            webViewClient = object : android.webkit.WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+            webChromeClient = object : android.webkit.WebChromeClient() {
+                // Without this the player fails in silence: a JavaScript error inside the
+                // page never reaches logcat, which is why a broken player looked exactly
+                // like a working one.
+                override fun onConsoleMessage(message: android.webkit.ConsoleMessage): Boolean {
+                    android.util.Log.d(
+                        "AuroraYouTube",
+                        "${message.messageLevel()}: ${message.message()} (line ${message.lineNumber()})"
+                    )
                     return true
+                }
+            }
+            webViewClient = object : android.webkit.WebViewClient() {
+                override fun shouldOverrideUrlLoading(
+                    view: android.webkit.WebView?,
+                    request: android.webkit.WebResourceRequest?
+                ): Boolean {
+                    // The player navigates within YouTube's own domains; anything else is
+                    // a link out of the app and is not followed here. Returning true for
+                    // everything also blocked the player's own frames.
+                    val host = request?.url?.host?.lowercase().orEmpty()
+                    val allowed = ALLOWED_HOSTS.any { host == it || host.endsWith(".$it") }
+                    return !allowed
                 }
             }
             addJavascriptInterface(object : Any() {
                 @android.webkit.JavascriptInterface
                 fun onReady() {
+                    isPlayerReady = true
                     onPrepared()
+                    // Whatever was chosen while the player was still loading.
+                    pendingVideoId?.let { queued ->
+                        pendingVideoId = null
+                        // Back to the main thread: this arrives on the JS bridge thread,
+                        // and WebView methods may only be called where it was created.
+                        _webView?.post { sendLoad(queued, pendingPlay) }
+                    }
                 }
 
                 @android.webkit.JavascriptInterface
@@ -63,7 +103,23 @@ class YouTubePlayerAdapter : PlayerAdapter {
 
                 @android.webkit.JavascriptInterface
                 fun onError(error: Int) {
-                    onError(Exception("YouTube Player Error: $error"))
+                    /*
+                     * The player's own codes, in words.
+                     *
+                     * 101 and 150 are a video whose owner does not allow it off YouTube,
+                     * and 152 behaves the same way. AURORA does not work around that - the
+                     * capability matrix rules it out - so the only honest thing left is to
+                     * say so. Reported as a number, this looked like a dead player.
+                     */
+                    val reason = when (error) {
+                        2 -> "YouTube rejected the video id."
+                        5 -> "YouTube's player could not play this video here."
+                        100 -> "That video is gone or private."
+                        101, 150, 152 ->
+                            "The owner of this video does not allow it to play outside YouTube."
+                        else -> "YouTube's player stopped with error $error."
+                    }
+                    onError(Exception(reason))
                 }
 
                 @android.webkit.JavascriptInterface
@@ -97,12 +153,12 @@ class YouTubePlayerAdapter : PlayerAdapter {
                           width: '100%',
                           playerVars: {
                             'playsinline': 1,
-                            'controls': 0,
-                            'disablekb': 1,
-                            'fs': 0,
+                            // YouTube's own controls, keyboard and fullscreen stay. The
+                            // capability matrix requires the player's controls to be
+                            // preserved, and these were all switched off.
+                            'controls': 1,
                             'rel': 0,
-                            'modestbranding': 1,
-                            'origin': 'https://aurora.dev'
+                            'origin': 'https://aurora.local'
                           },
                           events: {
                             'onReady': onPlayerReady,
@@ -170,7 +226,18 @@ class YouTubePlayerAdapter : PlayerAdapter {
                 </html>
             """.trimIndent()
             
-            loadDataWithBaseURL("https://aurora.dev", html, "text/html", "UTF-8", null)
+            /*
+             * A reserved origin, not a registrable domain.
+             *
+             * The page used to claim "https://aurora.dev", a domain this project does not
+             * own and anybody could buy. ".local" is reserved by RFC 6762 and can never be
+             * registered, so it names this page without pretending to be anyone.
+             *
+             * Not "https://www.youtube.com" either, which is the conventional choice and
+             * was tried: the IFrame player answers every load with error 152 when a page
+             * that is not YouTube claims to be YouTube. Measured, not guessed.
+             */
+            loadDataWithBaseURL("https://aurora.local", html, "text/html", "UTF-8", null)
         }
     }
 
@@ -182,7 +249,24 @@ class YouTubePlayerAdapter : PlayerAdapter {
             shouldPlay = playWhenReady,
             seekToMs = 0L
         )
-        _webView?.evaluateJavascript("loadVideo('$uri');", null)
+        if (isPlayerReady) {
+            sendLoad(uri, playWhenReady)
+        } else {
+            pendingVideoId = uri
+            pendingPlay = playWhenReady
+        }
+    }
+
+    /** Only ever called once the player exists. */
+    private fun sendLoad(videoId: String, playWhenReady: Boolean) {
+        // A video id is [A-Za-z0-9_-]{11}, but it arrives from a provider response, and
+        // docs/SECURITY.md treats those as untrusted until checked. Anything else would be
+        // going into a JavaScript string literal.
+        if (!VIDEO_ID.matches(videoId)) {
+            onError(IllegalArgumentException("Not a YouTube video id: $videoId"))
+            return
+        }
+        _webView?.evaluateJavascript("loadVideo('$videoId');", null)
         if (playWhenReady) {
             _webView?.evaluateJavascript("playVideo();", null)
         }
@@ -214,6 +298,8 @@ class YouTubePlayerAdapter : PlayerAdapter {
 
     override fun release() {
         _state.value = YouTubeState()
+        isPlayerReady = false
+        pendingVideoId = null
         _webView?.let {
             it.loadUrl("about:blank")
             it.clearHistory()
@@ -255,3 +341,7 @@ class YouTubePlayerAdapter : PlayerAdapter {
         _events.tryEmit(EngineEvent.Error(error))
     }
 }
+
+private val VIDEO_ID = Regex("^[A-Za-z0-9_-]{11}$")
+
+private val ALLOWED_HOSTS = listOf("youtube.com", "youtube-nocookie.com", "ytimg.com", "google.com", "gstatic.com")

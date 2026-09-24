@@ -68,6 +68,16 @@ fun MiniPlayer(
 
     // Failures were previously invisible: status went to Error and the UI kept showing a
     // player that simply never advanced.
+    /*
+     * The same identity the full player shows.
+     *
+     * The lookup is cached per track, so this costs nothing beyond the first resolution -
+     * and without it the row read "keshi - Soft Spot (Official Music Video) by KeshiVEVO"
+     * while the player above it said "Soft Spot" by "keshi", which is the app disagreeing
+     * with itself about what is playing.
+     */
+    val resolved by dev.aurora.player.ui.artwork.rememberAlbumArtwork(currentTrack)
+
     val hasError = state.status == PlaybackStatus.Error
     val errorText = state.lastError?.message?.takeIf { it.isNotBlank() }
         ?: "This track could not be played"
@@ -198,8 +208,8 @@ fun MiniPlayer(
                                 append(". ")
                             }
                             append("Now playing: ")
-                            append(currentTrack.title)
-                            currentTrack.artist?.let { append(" by ").append(it) }
+                            append(resolved.title ?: currentTrack.title)
+                            resolved.artist?.let { append(" by ").append(it) }
                         }
                         role = Role.Button
                         onClick(label = "Open full player") {
@@ -224,7 +234,7 @@ fun MiniPlayer(
                         // and a cover that says "<title> artwork" first is the same words
                         // twice.
                         altText = "",
-                        artworkUri = currentTrack.artworkUri,
+                        artworkUri = resolved.artworkUri,
                         modifier = Modifier.size(44.dp),
                         // Only YouTube supplies its own surface. Passing a lambda
                         // unconditionally - which is what a trailing block does - made the
@@ -244,7 +254,7 @@ fun MiniPlayer(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = currentTrack.title,
+                            text = resolved.title ?: currentTrack.title,
                             style = Aurora.typography.trackTitle,
                             color = Aurora.colors.textPrimary,
                             maxLines = 1,
@@ -253,7 +263,7 @@ fun MiniPlayer(
                         Text(
                             // Carries an icon and words, never colour alone, so the failure
                             // is perceivable without colour vision.
-                            text = if (hasError) "⚠  $errorText" else currentTrack.artist
+                            text = if (hasError) "⚠  $errorText" else resolved.artist
                                 ?: "Unknown Artist",
                             style = Aurora.typography.trackArtistCompact,
                             color = Aurora.colors.textSecondary,

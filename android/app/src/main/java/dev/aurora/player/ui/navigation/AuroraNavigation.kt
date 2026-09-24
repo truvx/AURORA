@@ -399,9 +399,28 @@ fun AuroraNavigation(
             )
         }
     ) {
+        /*
+         * Favourites are real here, not decoration: the heart writes to the same store
+         * the library reads, so a track hearted on the player is favourited everywhere.
+         */
+        val playingId = container.playerCoordinator.state.collectAsState().value.currentTrack?.id
+        val isFavorite by androidx.compose.runtime.remember(playingId) {
+            playingId
+                ?.let { container.libraryOrganizationRepository.observeIsFavorite(it) }
+                ?: kotlinx.coroutines.flow.flowOf(false)
+        }.collectAsState(initial = false)
+        val favoriteScope = androidx.compose.runtime.rememberCoroutineScope()
+
         dev.aurora.player.ui.screens.NowPlayingScreen(
             onClose = { playerExpanded = false },
             onOpenQueue = { queueVisible = true },
+            isFavorite = isFavorite,
+            onToggleFavorite = { wanted ->
+                val id = playingId ?: return@NowPlayingScreen
+                favoriteScope.launch {
+                    container.libraryOrganizationRepository.setFavorite(id, wanted)
+                }
+            },
             // The player is an overlay, not a destination, so it has to step aside before
             // the artist can be shown underneath it.
             onOpenArtist = { artist ->

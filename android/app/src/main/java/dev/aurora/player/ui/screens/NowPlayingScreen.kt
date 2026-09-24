@@ -1,5 +1,14 @@
 package dev.aurora.player.ui.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,7 +24,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -31,25 +43,24 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.domain.models.ProviderKind
 import dev.aurora.player.domain.player.PlaybackStatus
 import dev.aurora.player.domain.player.PlayerCommand
 import dev.aurora.player.domain.player.RepeatMode
 import dev.aurora.player.domain.player.ShuffleMode
-import dev.aurora.player.ui.artwork.rememberArtworkBitmap
 import dev.aurora.player.ui.artwork.rememberAlbumArtwork
+import dev.aurora.player.ui.artwork.rememberArtworkBitmap
 import dev.aurora.player.ui.artwork.rememberArtworkPalette
 import dev.aurora.player.ui.components.AmbientArtworkLayer
 import dev.aurora.player.ui.components.GlassIconButton
-import dev.aurora.player.ui.components.GlassLevel
-import dev.aurora.player.ui.components.GlassSurface
 import dev.aurora.player.ui.components.LocalPlayerCoordinator
 import dev.aurora.player.ui.components.PlayerScrubber
 import dev.aurora.player.ui.components.PrimaryCircleButton
@@ -59,15 +70,16 @@ import dev.aurora.player.ui.haptics.LocalHapticEngine
 import dev.aurora.player.ui.theme.Aurora
 
 /**
- * Now Playing: the record fills the screen, and the controls float over it.
+ * Now Playing: the record, then its name, then the controls.
  *
- * Built from the reference in `ui demo/music palyer ui.png`. The artwork is the screen
- * rather than a square in the middle of one, and the words and the transport sit on two
- * separate panes of glass over it, low enough to reach with a thumb.
+ * The artwork is a square, centred, at the size a sleeve wants to be. It used to fill the
+ * screen, which looked right for a square cover and wrong for everything else - a YouTube
+ * thumbnail is a 16:9 still, and cropping one to a tall phone left a face sliced in half
+ * behind the glass.
  *
- * YouTube is the exception and has to be: its player must stay visible and unobstructed,
- * so a YouTube track shows the official surface at the top of the screen with the glass
- * below it rather than across it. That is a policy requirement, not a layout preference.
+ * YouTube's player takes that same square when a YouTube track is playing. It stays
+ * visible and unobstructed, which the capability matrix requires, and it is in the place
+ * the eye already goes rather than floating above the artwork it was covering.
  */
 @Composable
 fun NowPlayingScreen(
@@ -75,6 +87,8 @@ fun NowPlayingScreen(
     onOpenQueue: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenArtist: (String) -> Unit = {},
+    isFavorite: Boolean = false,
+    onToggleFavorite: (Boolean) -> Unit = {},
 ) {
     val coordinator = LocalPlayerCoordinator.current
     val haptics = LocalHapticEngine.current
@@ -83,220 +97,225 @@ fun NowPlayingScreen(
     val spacing = Aurora.spacing
 
     val currentTrack = state.currentTrack
-    /*
-     * A video title is not a song and a thumbnail is not a cover.
-     *
-     * For a YouTube track this reads the artist and the song out of the upload's title and
-     * finds the sleeve of the record it came from, so the player shows what is playing
-     * rather than how it was uploaded. A local file already carries its own tags, and this
-     * leaves them alone.
-     */
     val artwork by rememberAlbumArtwork(currentTrack)
     val palette by rememberArtworkPalette(artwork.artworkUri)
     val isYouTube = currentTrack?.provider == ProviderKind.YOUTUBE
+    val isPlaying = state.status == PlaybackStatus.Playing ||
+        state.status == PlaybackStatus.Buffering
 
     AmbientArtworkLayer(modifier = modifier.fillMaxSize(), artworkColor = palette) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // The sleeve fills the screen for everything, including YouTube: its player
-            // still appears below, visible and unobstructed, but it no longer has to be
-            // the only thing on screen.
-            FullBleedArtwork(artworkUri = artwork.artworkUri)
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    /*
-                     * Drawn over the shell rather than inside a Scaffold, so it gets none
-                     * of the Scaffold's inset handling and has to ask for its own. Without
-                     * it the close and queue controls sit under the status bar, where they
-                     * are visible but unreachable - the status bar takes the touches.
-                     */
-                    .systemBarsPadding()
-                    .padding(horizontal = spacing.space4)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                /*
+                 * Drawn over the shell rather than inside a Scaffold, so it gets none of
+                 * the Scaffold's inset handling and has to ask for its own. Without it the
+                 * close and queue controls sit under the status bar, where they are
+                 * visible but unreachable - the status bar takes the touches.
+                 */
+                .systemBarsPadding()
+                .padding(horizontal = spacing.space5),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = spacing.space2),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = spacing.space2),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    GlassIconButton(
-                        onClick = {
-                            haptics.fire(HapticEvent.Tap)
-                            onClose()
-                        },
-                        icon = Icons.Rounded.KeyboardArrowDown,
-                        contentDesc = "Close",
-                    )
-                    GlassIconButton(
-                        onClick = {
-                            haptics.fire(HapticEvent.Tap)
-                            onOpenQueue()
-                        },
-                        icon = Icons.Rounded.QueueMusic,
-                        contentDesc = "Queue",
-                    )
-                }
+                GlassIconButton(
+                    onClick = {
+                        haptics.fire(HapticEvent.Tap)
+                        onClose()
+                    },
+                    icon = Icons.Rounded.KeyboardArrowDown,
+                    contentDesc = "Close",
+                )
+                Text(
+                    text = "Now Playing",
+                    style = Aurora.typography.label,
+                    color = colors.textPrimary,
+                )
+                GlassIconButton(
+                    onClick = {
+                        haptics.fire(HapticEvent.Tap)
+                        onOpenQueue()
+                    },
+                    icon = Icons.Rounded.QueueMusic,
+                    contentDesc = "Queue",
+                )
+            }
 
-                if (isYouTube) {
-                    Spacer(modifier = Modifier.height(spacing.space4))
-                    // Visible, unobstructed, and the right shape for video. Nothing is
-                    // drawn over it.
-                    YouTubePlayerSurface(
-                        modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+            Spacer(modifier = Modifier.weight(1f))
+
+            AlbumArt(
+                artworkUri = artwork.artworkUri,
+                title = artwork.title ?: currentTrack?.title,
+                showYouTubePlayer = isYouTube,
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = artwork.title ?: currentTrack?.title ?: "Nothing is playing",
+                        style = Aurora.typography.trackTitleLarge,
+                        color = colors.textPrimary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                }
-
-                // The glass sits at the bottom, where a thumb is.
-                Spacer(modifier = Modifier.weight(1f))
-
-                GlassSurface(
-                    modifier = Modifier.fillMaxWidth(),
-                    level = GlassLevel.Elevated,
-                    shape = Aurora.shapes.card
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth().padding(spacing.space4)) {
+                    val artistName = artwork.artist?.takeIf { it.isNotBlank() }
+                    if (artistName != null) {
                         Text(
-                            text = artwork.title ?: currentTrack?.title ?: "Nothing is playing",
-                            style = Aurora.typography.trackTitleLarge,
-                            color = colors.textPrimary,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
+                            text = artistName.uppercase(),
+                            style = Aurora.typography.section,
+                            color = colors.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                // The one thing here that is about someone rather than
+                                // about this track.
+                                .clickable(onClickLabel = "Open $artistName") {
+                                    haptics.fire(HapticEvent.Selection)
+                                    onOpenArtist(artistName)
+                                }
+                                .padding(vertical = spacing.space1),
                         )
-
-                        val artistName = artwork.artist?.takeIf { it.isNotBlank() }
-                        if (artistName != null) {
-                            Text(
-                                text = artistName,
-                                style = Aurora.typography.trackArtist,
-                                color = colors.textSecondary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier
-                                    // The one thing on this screen that is about someone
-                                    // rather than about this track.
-                                    .clickable(onClickLabel = "Open $artistName") {
-                                        haptics.fire(HapticEvent.Selection)
-                                        onOpenArtist(artistName)
-                                    }
-                                    .padding(vertical = spacing.space1)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(spacing.space3))
-
-                        PlayerScrubber(
-                            position = state.position,
-                            onSeek = { coordinator.dispatch(PlayerCommand.Seek(it)) }
-                        )
-
-                        val (left, right) = trackFacts(currentTrack, artwork.album)
-                        if (left != null || right != null) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(top = spacing.space2),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = left.orEmpty(),
-                                    style = Aurora.typography.label,
-                                    color = colors.textTertiary
-                                )
-                                Text(
-                                    text = right.orEmpty(),
-                                    style = Aurora.typography.label,
-                                    color = colors.textTertiary
-                                )
-                            }
-                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(spacing.space3))
-
-                GlassSurface(
-                    modifier = Modifier.fillMaxWidth(),
-                    level = GlassLevel.Elevated,
-                    shape = Aurora.shapes.card
-                ) {
-                    TransportRow(
-                        isPlaying = state.status == PlaybackStatus.Playing ||
-                            state.status == PlaybackStatus.Buffering,
-                        shuffleOn = state.queue.shuffleMode == ShuffleMode.On,
-                        repeatMode = state.queue.repeatMode,
-                        onCommand = coordinator::dispatch,
-                        modifier = Modifier.fillMaxWidth().padding(spacing.space3)
+                if (currentTrack != null) {
+                    FavoriteButton(
+                        isFavorite = isFavorite,
+                        title = artwork.title ?: currentTrack.title,
+                        onToggle = onToggleFavorite,
                     )
                 }
-
-                Spacer(modifier = Modifier.height(spacing.space5))
             }
+
+            Spacer(modifier = Modifier.height(spacing.space4))
+
+            PlayerScrubber(
+                position = state.position,
+                onSeek = { coordinator.dispatch(PlayerCommand.Seek(it)) },
+            )
+
+            Spacer(modifier = Modifier.height(spacing.space5))
+
+            TransportRow(
+                isPlaying = isPlaying,
+                shuffleOn = state.queue.shuffleMode == ShuffleMode.On,
+                repeatMode = state.queue.repeatMode,
+                onCommand = coordinator::dispatch,
+            )
+
+            Spacer(modifier = Modifier.height(spacing.space8))
         }
     }
 }
 
 /**
- * The record, filling the screen behind everything.
+ * The sleeve, square and centred.
  *
- * Cropped rather than fitted: letterboxing a cover inside a phone-shaped screen leaves two
- * grey bars and turns the most striking thing in the app into a postage stamp. A gradient
- * darkens the lower half so the glass below always has something legible behind it,
- * whatever the artwork is - a pale cover would otherwise leave white text on white.
+ * A new track crossfades in rather than cutting: the covers are the one thing on this
+ * screen that changes wholesale, and a hard swap between two photographs reads as a glitch.
  */
 @Composable
-private fun FullBleedArtwork(artworkUri: String?) {
-    val artwork by rememberArtworkBitmap(artworkUri)
-    val bitmap = artwork ?: return
+private fun AlbumArt(
+    artworkUri: String?,
+    title: String?,
+    showYouTubePlayer: Boolean,
+) {
+    val shape = RoundedCornerShape(24.dp)
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            bitmap = bitmap,
-            // Decorative: the title is written out immediately below it.
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().clearAndSetSemantics {}
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color.Transparent,
-                        0.45f to Color.Black.copy(alpha = 0.25f),
-                        1f to Color.Black.copy(alpha = 0.72f)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth(0.82f)
+            /*
+             * The frame is the shape of what is in it.
+             *
+             * A sleeve is square and video is 16:9. Holding a square frame around a video
+             * left two empty bands the width of the screen, and forcing video into a
+             * square would crop the picture - so the frame follows the content instead of
+             * the content fighting the frame.
+             */
+            .aspectRatio(if (showYouTubePlayer) 16f / 9f else 1f)
+            .shadow(elevation = 32.dp, shape = shape, clip = false)
+            .clip(shape)
+            .background(Aurora.colors.surfaceGlassSecondary),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (showYouTubePlayer) {
+            YouTubePlayerSurface(modifier = Modifier.fillMaxSize())
+        } else {
+            AnimatedContent(
+                targetState = artworkUri,
+                transitionSpec = {
+                    (fadeIn(tween(320)) + scaleIn(tween(320), initialScale = 0.96f))
+                        .togetherWith(fadeOut(tween(200)))
+                },
+                label = "album art",
+            ) { uri ->
+                val bitmap by rememberArtworkBitmap(uri)
+                val image = bitmap
+                if (image != null) {
+                    Image(
+                        bitmap = image,
+                        // Decorative: the title is written out directly below it.
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize().clearAndSetSemantics {},
                     )
-                )
-        )
+                } else {
+                    // A record with no sleeve is drawn as one, not left as a hole.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Aurora.colors.surfaceGlassPrimary),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = title?.take(1)?.uppercase().orEmpty(),
+                            style = Aurora.typography.display,
+                            color = Aurora.colors.textTertiary,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
-/**
- * The two small facts under the scrubber, as in the reference - but only ones AURORA can
- * actually stand behind.
- *
- * The reference reads "studio album · 2018" and "19 songs · 52m", which comes from a
- * catalogue this app does not have. What it does have is the file's own metadata, so a
- * local track says what it is and how good it is. A YouTube track says "YouTube", because
- * the capability matrix makes its quality provider-determined and unknown, and a bitrate
- * printed here would be invented.
- */
-internal fun trackFacts(track: MediaItem?, album: String? = null): Pair<String?, String?> {
-    if (track == null) return null to null
-    // The album, once it is known, is worth more than the word YouTube - but the quality
-    // stays unsaid, because the capability matrix makes it provider-determined.
-    if (track.provider == ProviderKind.YOUTUBE) return "YouTube" to (album ?: track.album)
+@Composable
+private fun FavoriteButton(
+    isFavorite: Boolean,
+    title: String,
+    onToggle: (Boolean) -> Unit,
+) {
+    val haptics = LocalHapticEngine.current
+    // Springs out when it fills, so the tap feels answered rather than merely recorded.
+    val scale by animateFloatAsState(
+        targetValue = if (isFavorite) 1.12f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "favourite",
+    )
 
-    val metadata = track.technicalMetadata
-    val left = listOfNotNull(
-        metadata?.container?.substringAfterLast('/')?.uppercase(),
-        metadata?.bitrate?.let { "${it / 1000} kbps" },
-        metadata?.sampleRate?.let { "${"%.1f".format(java.util.Locale.ROOT, it / 1000f)} kHz" }
-    ).take(2).joinToString(" · ").takeIf { it.isNotEmpty() }
-
-    val right = listOfNotNull(
-        track.album?.takeIf { it.isNotBlank() },
-        if (metadata?.isLossless == true) "Lossless" else null
-    ).joinToString(" · ").takeIf { it.isNotEmpty() }
-
-    return left to right
+    GlassIconButton(
+        onClick = {
+            haptics.fire(if (isFavorite) HapticEvent.Tap else HapticEvent.Success)
+            onToggle(!isFavorite)
+        },
+        icon = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+        contentDesc = if (isFavorite) "Remove $title from favorites" else "Add $title to favorites",
+        selected = isFavorite,
+        modifier = Modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        },
+    )
 }
 
 @Composable
@@ -305,14 +324,13 @@ private fun TransportRow(
     shuffleOn: Boolean,
     repeatMode: RepeatMode,
     onCommand: (PlayerCommand) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val haptics = LocalHapticEngine.current
 
     Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         GlassIconButton(
             onClick = {
@@ -331,10 +349,11 @@ private fun TransportRow(
             },
             icon = Icons.Rounded.SkipPrevious,
             contentDesc = "Previous",
-            modifier = Modifier.size(56.dp)
+            modifier = Modifier.size(56.dp),
         )
 
-        // The one filled control on the screen, and where the thumb lands.
+        // The one filled control on the screen, and where the thumb lands. Its icon
+        // animates inside it, so the circle stays put.
         PrimaryCircleButton(
             onClick = {
                 if (isPlaying) {
@@ -347,7 +366,7 @@ private fun TransportRow(
             },
             icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
             contentDescription = if (isPlaying) "Pause" else "Play",
-            size = 72.dp
+            size = 76.dp,
         )
 
         GlassIconButton(
@@ -357,7 +376,7 @@ private fun TransportRow(
             },
             icon = Icons.Rounded.SkipNext,
             contentDesc = "Next",
-            modifier = Modifier.size(56.dp)
+            modifier = Modifier.size(56.dp),
         )
 
         GlassIconButton(

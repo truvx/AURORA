@@ -3,6 +3,7 @@ package dev.aurora.player.ui.components
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -119,11 +120,37 @@ fun PrimaryCircleButton(
             },
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = colors.controlOnPrimary,
-            modifier = Modifier.size(size * 0.45f)
-        )
+        /*
+         * The icon changes, the button does not.
+         *
+         * Play and pause swap on this control constantly, and at this size a hard cut is
+         * the most visible frame on the screen. Crossfading the whole button instead makes
+         * the white circle flicker, so only what actually changed is animated.
+         */
+        androidx.compose.animation.AnimatedContent(
+            targetState = icon,
+            transitionSpec = {
+                (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(120)) +
+                    androidx.compose.animation.scaleIn(
+                        androidx.compose.animation.core.tween(120),
+                        initialScale = 0.7f
+                    ))
+                    .togetherWith(
+                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120)) +
+                            androidx.compose.animation.scaleOut(
+                                androidx.compose.animation.core.tween(120),
+                                targetScale = 0.7f
+                            )
+                    )
+            },
+            label = "primary icon"
+        ) { current ->
+            Icon(
+                imageVector = current,
+                contentDescription = contentDescription,
+                tint = colors.controlOnPrimary,
+                modifier = Modifier.size(size * 0.45f)
+            )
+        }
     }
 }

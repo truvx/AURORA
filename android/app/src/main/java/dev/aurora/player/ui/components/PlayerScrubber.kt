@@ -3,11 +3,11 @@ package dev.aurora.player.ui.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -78,10 +79,19 @@ fun PlayerScrubber(
         onSeek((fraction.coerceIn(0f, 1f) * duration).roundToLong())
     }
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = formatTime(currentElapsed),
+            style = Aurora.typography.numeric,
+            color = colors.textSecondary
+        )
+        Spacer(modifier = Modifier.width(Aurora.spacing.space3))
         Canvas(
             modifier = Modifier
-                .fillMaxWidth()
+                .weight(1f)
                 // The bars are 28dp, but the target is the full 48dp the spec asks for.
                 .height(48.dp)
                 .pointerInput(isSeekable) {
@@ -157,19 +167,12 @@ fun PlayerScrubber(
             }
         }
 
-        Row(modifier = Modifier.fillMaxWidth().padding(top = Aurora.spacing.space1)) {
-            Text(
-                text = formatTime(currentElapsed),
-                style = Aurora.typography.label,
-                color = colors.textSecondary
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = if (isSeekable) formatTime(duration) else "--:--",
-                style = Aurora.typography.label,
-                color = colors.textSecondary
-            )
-        }
+        Spacer(modifier = Modifier.width(Aurora.spacing.space3))
+        Text(
+            text = if (isSeekable) formatTime(duration) else "--:--",
+            style = Aurora.typography.numeric,
+            color = colors.textSecondary
+        )
     }
 }
 

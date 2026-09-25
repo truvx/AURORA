@@ -138,11 +138,23 @@ fun GlassSurface(
                         highlight = {
                             val press = pressProgress()
                             when (level) {
-                                // Floating chrome catches the most light: a soft ambient
-                                // rim, lifted while a finger is on it.
+                                /*
+                                 * Floating chrome catches the most light, and has to catch
+                                 * it from somewhere.
+                                 *
+                                 * The ambient style takes its brightness from the backdrop,
+                                 * which worked while the canvas was a near-black with a
+                                 * coloured wash over it. On a pitch-black canvas there is
+                                 * no light to gather: measured on device, the pill's top
+                                 * edge came to 21 against an interior of 26 - darker than
+                                 * the surface it was supposed to be lighting - while the
+                                 * bottom edge reached 85. A lens with a rim on one side is
+                                 * a rectangle. The specular style draws its own, so the
+                                 * edge holds whatever is or is not behind it.
+                                 */
                                 GlassLevel.Elevated -> Highlight(
                                     alpha = 1f + PRESS_HIGHLIGHT * press,
-                                    style = HighlightStyle.Ambient
+                                    style = HighlightStyle.Default()
                                 )
                                 GlassLevel.Primary -> Highlight(
                                     alpha = 1f + PRESS_HIGHLIGHT * press,

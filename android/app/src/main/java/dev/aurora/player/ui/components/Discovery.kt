@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,15 +17,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CenterFocusStrong
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.Explore
-import androidx.compose.material.icons.rounded.FitnessCenter
-import androidx.compose.material.icons.rounded.Spa
-import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -40,17 +34,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.aurora.player.domain.discovery.Mix
-import dev.aurora.player.domain.discovery.MixMood
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.ui.haptics.HapticEvent
 import dev.aurora.player.ui.haptics.LocalHapticEngine
@@ -139,7 +130,9 @@ private fun Modifier.pressable(onClick: () -> Unit): Modifier {
  */
 @Composable
 fun ReleaseCard(
-    item: MediaItem,
+    title: String,
+    artist: String,
+    coverUrl: String?,
     isNew: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -154,7 +147,7 @@ fun ReleaseCard(
         Box {
             ArtworkSurface(
                 altText = "",
-                artworkUri = item.artworkUri,
+                artworkUri = coverUrl,
                 modifier = Modifier.size(CardWidth).clearAndSetSemantics {}
             )
             if (isNew) {
@@ -173,14 +166,14 @@ fun ReleaseCard(
         }
         Spacer(modifier = Modifier.height(Aurora.spacing.space2))
         Text(
-            text = item.title,
+            text = title,
             style = Aurora.typography.trackTitle,
             color = colors.textPrimary,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = item.artist ?: "Unknown artist",
+            text = artist,
             style = Aurora.typography.trackArtist,
             color = colors.textSecondary,
             maxLines = 1,
@@ -190,72 +183,44 @@ fun ReleaseCard(
 }
 
 /**
- * A mood mix, drawn rather than photographed.
+ * An artist the listener plays, as a way into everything of theirs.
  *
- * There is no artwork for a mix that has not been generated yet, and inventing a cover
- * would be a picture of nothing. The gradient is the mood, and the subtitle says plainly
- * whether it was built from the listener's own artists.
+ * Round, because a circle reads as a person and a square reads as a record - the same
+ * distinction every music app makes, and the reason an artist row does not need a label
+ * saying it is one.
  */
 @Composable
-fun MixCard(
-    mix: Mix,
+fun ArtistCard(
+    name: String,
+    artworkUri: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = Aurora.colors
     Column(
         modifier = modifier
             .width(CardWidth)
             .pressable(onClick)
-            .semantics(mergeDescendants = true) {}
+            .semantics(mergeDescendants = true) { contentDescription = name },
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(
+        ArtworkSurface(
+            altText = "",
+            artworkUri = artworkUri,
             modifier = Modifier
                 .size(CardWidth)
-                .clip(Aurora.shapes.artwork)
-                .background(Brush.linearGradient(mix.mood.gradient()))
-        ) {
-            Icon(
-                imageVector = mix.mood.icon(),
-                contentDescription = null,
-                tint = Color.White.copy(alpha = 0.92f),
-                modifier = Modifier.align(Alignment.TopStart).padding(Aurora.spacing.space3).size(22.dp)
-            )
-            Text(
-                text = mix.title,
-                style = Aurora.typography.title,
-                color = Color.White,
-                modifier = Modifier.align(Alignment.BottomStart).padding(Aurora.spacing.space3)
-            )
-        }
+                .clip(CircleShape)
+                .clearAndSetSemantics {}
+        )
         Spacer(modifier = Modifier.height(Aurora.spacing.space2))
         Text(
-            text = mix.subtitle,
-            style = Aurora.typography.body,
-            color = colors.textSecondary,
-            maxLines = 1,
+            text = name,
+            style = Aurora.typography.trackTitle,
+            color = Aurora.colors.textPrimary,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
     }
-}
-
-/** Each mood's own colours, so the row reads as six different things at a glance. */
-private fun MixMood.gradient(): List<Color> = when (this) {
-    MixMood.CHILL -> listOf(Color(0xFF2B5876), Color(0xFF4E4376))
-    MixMood.FOCUS -> listOf(Color(0xFF16222A), Color(0xFF3A6073))
-    MixMood.WORKOUT -> listOf(Color(0xFF8E2DE2), Color(0xFFDA2222))
-    MixMood.LATE_NIGHT -> listOf(Color(0xFF0F2027), Color(0xFF203A43))
-    MixMood.DISCOVER -> listOf(Color(0xFF654EA3), Color(0xFFDA98B4))
-    MixMood.FEEL_GOOD -> listOf(Color(0xFFF7971E), Color(0xFFFFD200))
-}
-
-private fun MixMood.icon(): ImageVector = when (this) {
-    MixMood.CHILL -> Icons.Rounded.Spa
-    MixMood.FOCUS -> Icons.Rounded.CenterFocusStrong
-    MixMood.WORKOUT -> Icons.Rounded.FitnessCenter
-    MixMood.LATE_NIGHT -> Icons.Rounded.DarkMode
-    MixMood.DISCOVER -> Icons.Rounded.Explore
-    MixMood.FEEL_GOOD -> Icons.Rounded.WbSunny
 }
 
 /** One track in a list: artwork, title, artist, and the overflow menu from the references. */

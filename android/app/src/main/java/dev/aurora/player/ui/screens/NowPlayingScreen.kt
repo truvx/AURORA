@@ -161,7 +161,6 @@ fun NowPlayingScreen(
             AlbumArt(
                 artworkUri = artwork.artworkUri,
                 title = artwork.title ?: currentTrack?.title,
-                showYouTubePlayer = isYouTube,
                 modifier = Modifier.staggeredEntry(index = 0, visible = entered),
             )
 
@@ -228,7 +227,14 @@ fun NowPlayingScreen(
                 onCommand = coordinator::dispatch,
             )
 
-            Spacer(modifier = Modifier.height(spacing.space8))
+            if (isYouTube) {
+                Spacer(modifier = Modifier.height(spacing.space5))
+                YouTubePlayerCard(
+                    modifier = Modifier.staggeredEntry(index = 4, visible = entered),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(spacing.space6))
         }
     }
 }
@@ -273,6 +279,10 @@ private val ENTRY_LIFT = 20.dp
 /**
  * The sleeve, square and centred.
  *
+ * Always the record's own cover, including for YouTube: the video's frame is not a sleeve,
+ * and a still of someone's face where the artwork should be is the wrong picture rather
+ * than a smaller one. What is playing from YouTube keeps its own player, further down.
+ *
  * A new track crossfades in rather than cutting: the covers are the one thing on this
  * screen that changes wholesale, and a hard swap between two photographs reads as a glitch.
  */
@@ -280,65 +290,86 @@ private val ENTRY_LIFT = 20.dp
 private fun AlbumArt(
     artworkUri: String?,
     title: String?,
-    showYouTubePlayer: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(24.dp)
 
     Box(
         modifier = modifier
-            .fillMaxWidth(0.82f)
-            /*
-             * The frame is the shape of what is in it.
-             *
-             * A sleeve is square and video is 16:9. Holding a square frame around a video
-             * left two empty bands the width of the screen, and forcing video into a
-             * square would crop the picture - so the frame follows the content instead of
-             * the content fighting the frame.
-             */
-            .aspectRatio(if (showYouTubePlayer) 16f / 9f else 1f)
+            .fillMaxWidth(0.72f)
+            .aspectRatio(1f)
             .shadow(elevation = 32.dp, shape = shape, clip = false)
             .clip(shape)
             .background(Aurora.colors.surfaceGlassSecondary),
         contentAlignment = Alignment.Center,
     ) {
-        if (showYouTubePlayer) {
-            YouTubePlayerSurface(modifier = Modifier.fillMaxSize())
-        } else {
-            AnimatedContent(
-                targetState = artworkUri,
-                transitionSpec = {
-                    (fadeIn(tween(320)) + scaleIn(tween(320), initialScale = 0.96f))
-                        .togetherWith(fadeOut(tween(200)))
-                },
-                label = "album art",
-            ) { uri ->
-                val bitmap by rememberArtworkBitmap(uri)
-                val image = bitmap
-                if (image != null) {
-                    Image(
-                        bitmap = image,
-                        // Decorative: the title is written out directly below it.
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize().clearAndSetSemantics {},
+        AnimatedContent(
+            targetState = artworkUri,
+            transitionSpec = {
+                (fadeIn(tween(320)) + scaleIn(tween(320), initialScale = 0.96f))
+                    .togetherWith(fadeOut(tween(200)))
+            },
+            label = "album art",
+        ) { uri ->
+            val bitmap by rememberArtworkBitmap(uri)
+            val image = bitmap
+            if (image != null) {
+                Image(
+                    bitmap = image,
+                    // Decorative: the title is written out directly below it.
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().clearAndSetSemantics {},
+                )
+            } else {
+                // A record with no sleeve is drawn as one, not left as a hole.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Aurora.colors.surfaceGlassPrimary),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = title?.take(1)?.uppercase().orEmpty(),
+                        style = Aurora.typography.display,
+                        color = Aurora.colors.textTertiary,
                     )
-                } else {
-                    // A record with no sleeve is drawn as one, not left as a hole.
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Aurora.colors.surfaceGlassPrimary),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = title?.take(1)?.uppercase().orEmpty(),
-                            style = Aurora.typography.display,
-                            color = Aurora.colors.textTertiary,
-                        )
-                    }
                 }
             }
+        }
+    }
+}
+
+/**
+ * The official YouTube player, where a YouTube track is actually playing.
+ *
+ * docs/YOUTUBE_CAPABILITY_MATRIX.md requires it visible and unobscured, with its own
+ * controls and branding intact, so it is on the screen rather than behind the sleeve - the
+ * cover says what the record is, and this says where the sound is coming from. Nothing is
+ * drawn over it and it is never resized to nothing.
+ */
+@Composable
+private fun YouTubePlayerCard(modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(16.dp)
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "Playing on YouTube",
+            style = Aurora.typography.section,
+            color = Aurora.colors.textTertiary,
+        )
+        Spacer(modifier = Modifier.height(Aurora.spacing.space2))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.62f)
+                .aspectRatio(16f / 9f)
+                .clip(shape)
+                .background(Color.Black),
+        ) {
+            YouTubePlayerSurface(modifier = Modifier.fillMaxSize())
         }
     }
 }

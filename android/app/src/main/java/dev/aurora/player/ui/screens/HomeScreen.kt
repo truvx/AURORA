@@ -27,11 +27,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import dev.aurora.player.domain.discovery.Mix
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.ui.components.GlassCard
 import dev.aurora.player.ui.components.GlassLevel
-import dev.aurora.player.ui.components.MixCard
+import dev.aurora.player.ui.components.ArtistCard
 import dev.aurora.player.ui.components.ReleaseCard
 import dev.aurora.player.ui.components.SectionHeader
 import dev.aurora.player.ui.components.TrackRow
@@ -50,7 +49,7 @@ import dev.aurora.player.ui.theme.Aurora
 fun HomeScreen(
     viewModel: HomeViewModel? = null,
     onPlay: (MediaItem) -> Unit = {},
-    onPlayMix: (Mix) -> Unit = {},
+    onOpenArtist: (String) -> Unit = {},
     onAddToQueue: (MediaItem) -> Unit = {},
     onOpenWhatsNew: () -> Unit = {},
     onOpenProfile: () -> Unit = {},
@@ -65,9 +64,9 @@ fun HomeScreen(
         ?: androidx.compose.runtime.remember {
             androidx.compose.runtime.mutableStateOf<ReleasesState>(ReleasesState.NoHistory)
         })
-    val mixes by (viewModel?.mixes?.collectAsState()
+    val artists by (viewModel?.artists?.collectAsState()
         ?: androidx.compose.runtime.remember {
-            androidx.compose.runtime.mutableStateOf(emptyList<Mix>())
+            androidx.compose.runtime.mutableStateOf(emptyList<TopArtist>())
         })
     val recentlyPlayed by (viewModel?.recentlyPlayed?.collectAsState()
         ?: androidx.compose.runtime.remember {
@@ -126,11 +125,13 @@ fun HomeScreen(
                                 contentPadding = PaddingValues(horizontal = spacing.space4),
                                 horizontalArrangement = Arrangement.spacedBy(spacing.space3)
                             ) {
-                                items(state.releases, key = { it.item.id }) { release ->
+                                items(state.releases, key = { it.release.item.id }) { release ->
                                     ReleaseCard(
-                                        item = release.item,
-                                        isNew = release.item.id in state.unseen,
-                                        onClick = { onPlay(release.item) }
+                                        title = release.title,
+                                        artist = release.artist,
+                                        coverUrl = release.coverUrl,
+                                        isNew = release.release.item.id in state.unseen,
+                                        onClick = { onPlay(release.release.item) }
                                     )
                                 }
                             }
@@ -149,20 +150,24 @@ fun HomeScreen(
             }
         }
 
-        // --- Recommended mixes ----------------------------------------------------------
-        if (mixes.isNotEmpty()) {
+        // --- The artists behind it --------------------------------------------------------
+        if (artists.isNotEmpty()) {
             item {
                 Column {
                     SectionHeader(
-                        title = "Recommended for You",
+                        title = "Your Artists",
                         modifier = Modifier.padding(horizontal = spacing.space4)
                     )
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = spacing.space4),
                         horizontalArrangement = Arrangement.spacedBy(spacing.space3)
                     ) {
-                        items(mixes, key = { it.id }) { mix ->
-                            MixCard(mix = mix, onClick = { onPlayMix(mix) })
+                        items(artists, key = { it.name }) { artist ->
+                            ArtistCard(
+                                name = artist.name,
+                                artworkUri = artist.artworkUri,
+                                onClick = { onOpenArtist(artist.name) }
+                            )
                         }
                     }
                 }

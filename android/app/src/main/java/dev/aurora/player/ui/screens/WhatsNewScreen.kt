@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import dev.aurora.player.domain.discovery.Release
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.ui.components.GlassCard
 import dev.aurora.player.ui.components.GlassIconButton
@@ -33,7 +32,7 @@ import java.util.concurrent.TimeUnit
  */
 @Composable
 fun WhatsNewScreen(
-    releases: List<Release>,
+    releases: List<ResolvedRelease>,
     unseen: Set<String>,
     onPlay: (MediaItem) -> Unit,
     onBack: () -> Unit,
@@ -92,11 +91,11 @@ fun WhatsNewScreen(
         } else {
             item {
                 Column {
-                    releases.forEach { release ->
+                    releases.forEach { card ->
                         TrackRow(
-                            item = release.item,
-                            onPlay = { onPlay(release.item) },
-                            trailingLabel = relativeAge(release.publishedAtMs, now),
+                            item = card.release.item,
+                            onPlay = { onPlay(card.release.item) },
+                            trailingLabel = relativeAge(card.release.publishedAtMs, now),
                             modifier = Modifier.padding(horizontal = spacing.space4)
                         )
                     }

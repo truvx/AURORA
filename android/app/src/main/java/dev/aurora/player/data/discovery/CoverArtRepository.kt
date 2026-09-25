@@ -58,8 +58,27 @@ class CoverArtRepository(
      * has no cover comes back with a null [Cover.coverUrl] and its identity intact, because
      * knowing the artist and the title is worth something on its own.
      */
-    suspend fun coverFor(videoTitle: String, channelTitle: String?): Cover? {
-        val identity = TrackIdentifier.identify(videoTitle, channelTitle) ?: return null
+    suspend fun coverFor(
+        videoTitle: String,
+        channelTitle: String?,
+        /**
+         * The artist, where the caller already knows it for a reason better than the
+         * channel's name.
+         *
+         * Latest Releases is such a caller: `ChannelMatcher` only accepts a channel whose
+         * name is exactly the artist's, so an upload from it is that artist's record and
+         * the title is the song. Without this the identifier has to treat "Small Town Fame"
+         * on the "Drake" channel as a guess, declines to look it up, and the whole row
+         * wears video thumbnails instead of sleeves.
+         */
+        knownArtist: String? = null,
+    ): Cover? {
+        val read = TrackIdentifier.identify(videoTitle, channelTitle) ?: return null
+        val identity = if (!read.confident && !knownArtist.isNullOrBlank()) {
+            read.copy(artist = knownArtist, confident = true)
+        } else {
+            read
+        }
 
         val key = "cover:" + identity.searchQuery.lowercase()
         cache.read(key, CACHE_TTL_MS, CachedCover.serializer())?.let { cached ->

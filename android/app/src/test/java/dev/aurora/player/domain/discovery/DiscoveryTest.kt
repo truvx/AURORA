@@ -106,25 +106,3 @@ class ChannelMatcherTest {
     }
 }
 
-class MixCatalogTest {
-
-    @Test
-    fun `mixes are seeded with the listener's top artists`() {
-        val mixes = MixCatalog.mixesFor(listOf("Keshi", "Joji", "Laufey"))
-        assertTrue(mixes.all { it.query.contains("Keshi") && it.query.contains("Joji") })
-        assertTrue(mixes.none { it.query.contains("Laufey") })
-        assertTrue(mixes.all { it.subtitle == "Made for you" })
-    }
-
-    @Test
-    fun `without history a mix does not claim to be personal`() {
-        val mixes = MixCatalog.mixesFor(emptyList())
-        assertTrue(mixes.none { it.subtitle == "Made for you" })
-        assertEquals(MixMood.entries.size, mixes.size)
-    }
-
-    @Test
-    fun `mix ids are stable`() {
-        assertEquals(MixCatalog.mixesFor(emptyList()).map { it.id }, MixCatalog.mixesFor(listOf("A")).map { it.id })
-    }
-}

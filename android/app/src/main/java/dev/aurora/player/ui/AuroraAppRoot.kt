@@ -1,23 +1,15 @@
 package dev.aurora.player.ui
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.rememberNavController
 import dev.aurora.player.AuroraApp
 import dev.aurora.player.ui.artwork.LocalArtworkLoader
 import dev.aurora.player.ui.artwork.rememberArtworkLoader
-import dev.aurora.player.ui.artwork.rememberArtworkPalette
 import dev.aurora.player.ui.components.LocalPlayerCoordinator
 import dev.aurora.player.ui.components.LocalYouTubePlayerAdapter
 import dev.aurora.player.ui.navigation.AuroraNavigation
-import dev.aurora.player.ui.theme.Aurora
-import dev.aurora.player.ui.theme.AuroraMotionTokens
 import dev.aurora.player.ui.theme.AuroraTheme
 
 import androidx.compose.foundation.layout.Box
@@ -68,31 +60,6 @@ fun AuroraAppRoot() {
             val backdrop = rememberLayerBackdrop()
             val contentBackdrop = rememberLayerBackdrop()
 
-            /*
-             * The atmosphere the glass refracts: the dominant colour of whatever is playing.
-             *
-             * Animated rather than swapped. This fills the screen, and a full-viewport
-             * colour change that lands in one frame is an abrupt brightness jump - the thing
-             * reduced-motion guidance singles out. The soft family is the slowest one for
-             * exactly this, and reduced motion skips the wash entirely.
-             */
-            val playerState by container.playerCoordinator.state.collectAsState()
-            val palette by rememberArtworkPalette(playerState.currentTrack?.artworkUri)
-
-            val target = palette ?: Aurora.colors.backgroundPrimary
-            val atmosphere by animateColorAsState(
-                targetValue = target,
-                animationSpec = if (accessibility.reducedMotion) {
-                    snap()
-                } else {
-                    tween(
-                        durationMillis = AuroraMotionTokens.durationAmbient,
-                        easing = AuroraMotionTokens.easingStandard
-                    )
-                },
-                label = "artwork atmosphere"
-            )
-
             CompositionLocalProvider(
                 LocalAuroraBackdrop provides backdrop
             ) {
@@ -115,9 +82,18 @@ fun AuroraAppRoot() {
                 )
 
                 Box(modifier = Modifier.fillMaxSize()) {
+                    /*
+                     * The shell's canvas is black, and only black.
+                     *
+                     * It used to carry a wash of the playing track's dominant colour across
+                     * every screen, which is why Home had a brown cast under a photograph of
+                     * someone in a red room. The atmosphere belongs to the screen that is
+                     * showing the record - Now Playing draws its own - not to the library
+                     * list you happen to be scrolling while it plays.
+                     */
                     dev.aurora.player.ui.components.AmbientArtworkLayer(
                         modifier = Modifier.layerBackdrop(backdrop),
-                        artworkColor = atmosphere
+                        artworkColor = null
                     )
 
                     AuroraNavigation(

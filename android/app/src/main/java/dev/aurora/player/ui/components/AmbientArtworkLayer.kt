@@ -61,24 +61,21 @@ fun AmbientArtworkLayer(
             .background(colors.backgroundPrimary)
             .then(
                 if (reducedTransparency || artworkColor == null) {
-                    // No artwork to protect: keep the existing neutral atmosphere, which is
-                    // already measured as legible by ContrastTest.
-                    Modifier.background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                colors.accentSecondary.copy(
-                                    alpha = if (reducedTransparency) 0f else 0.15f
-                                ),
-                                colors.backgroundPrimary
-                            ),
-                            radius = 1500f
-                        )
-                    )
+                    /*
+                     * Nothing to protect, so nothing is drawn.
+                     *
+                     * This used to lay a blue radial wash over the canvas whether or not
+                     * anything was playing, which is why a screen with no artwork on it
+                     * still had a colour. A canvas with no artwork is the canvas.
+                     */
+                    Modifier
                 } else {
                     Modifier
                         .background(
                             Brush.radialGradient(
-                                colors = listOf(backdrop.copy(alpha = 0.55f), colors.backgroundPrimary),
+                                // A whisper of the sleeve, not a wash of it. The ground
+                                // stays black and the record is the only thing lit.
+                                colors = listOf(backdrop.copy(alpha = 0.22f), colors.backgroundPrimary),
                                 radius = 1500f
                             )
                         )

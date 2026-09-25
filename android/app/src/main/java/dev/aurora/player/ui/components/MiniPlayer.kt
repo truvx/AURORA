@@ -229,6 +229,15 @@ fun MiniPlayer(
                         .padding(start = Aurora.spacing.space2, end = Aurora.spacing.space2),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    /*
+                     * The sleeve, whatever the source.
+                     *
+                     * This square used to be the YouTube player itself for a YouTube
+                     * track, which put a 44dp video where the cover belongs: too small to
+                     * be the "user-recognizable YouTube experience" the capability matrix
+                     * asks for, and not the picture of the record the row is naming. The
+                     * player is docked beside this pill at a size worth calling a player.
+                     */
                     ArtworkSurface(
                         // Decorative here: the row announces the title right beside it,
                         // and a cover that says "<title> artwork" first is the same words
@@ -236,15 +245,6 @@ fun MiniPlayer(
                         altText = "",
                         artworkUri = resolved.artworkUri,
                         modifier = Modifier.size(44.dp),
-                        // Only YouTube supplies its own surface. Passing a lambda
-                        // unconditionally - which is what a trailing block does - made the
-                        // content branch always win, so local artwork could never draw and
-                        // every non-YouTube track showed an empty square.
-                        content = if (currentTrack.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) {
-                            { YouTubePlayerSurface(modifier = Modifier.fillMaxSize()) }
-                        } else {
-                            null
-                        }
                     )
 
                     Spacer(modifier = Modifier.width(Aurora.spacing.space3))

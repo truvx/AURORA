@@ -2,14 +2,13 @@ package dev.aurora.player.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.aurora.player.data.discovery.CoverArtRepository
 import dev.aurora.player.data.discovery.DiscoveryUnavailable
 import dev.aurora.player.data.discovery.LatestReleasesRepository
 import dev.aurora.player.data.discovery.MediaResolver
 import dev.aurora.player.data.discovery.WhatsNewStore
 import dev.aurora.player.domain.discovery.ArtistAffinity
 import dev.aurora.player.domain.discovery.ArtistSignal
-import dev.aurora.player.domain.discovery.Mix
-import dev.aurora.player.domain.discovery.MixCatalog
 import dev.aurora.player.domain.discovery.Release
 import dev.aurora.player.domain.discovery.SignalKind
 import dev.aurora.player.domain.library.LibraryOrganizationRepository
@@ -24,10 +23,28 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * A release as the feed shows it: the record, not the upload.
+ *
+ * A channel publishes an album one video at a time, so the raw list is ten uploads that
+ * share one sleeve and one name. [album] is what collapses them back into the record they
+ * came from, and the cover is the sleeve from the Cover Art Archive rather than a still
+ * from the video.
+ */
+data class ResolvedRelease(
+    val release: Release,
+    val coverUrl: String?,
+    val title: String,
+    val artist: String,
+)
+
+/** An artist the listener actually plays, for the row that used to hold mood mixes. */
+data class TopArtist(val name: String, val artworkUri: String?)
+
 /** What the Latest Releases row is doing, so the UI can say which rather than sit blank. */
 sealed class ReleasesState {
     object Loading : ReleasesState()
-    data class Ready(val releases: List<Release>, val unseen: Set<String>) : ReleasesState()
+    data class Ready(val releases: List<ResolvedRelease>, val unseen: Set<String>) : ReleasesState()
     /** No artists ranked yet: nothing has been played, so there is nothing to follow. */
     object NoHistory : ReleasesState()
     object NotConfigured : ReleasesState()
@@ -47,6 +64,8 @@ class HomeViewModel(
     private val releasesRepository: LatestReleasesRepository,
     private val whatsNew: WhatsNewStore,
     private val followedArtists: dev.aurora.player.data.discovery.FollowedArtistsStore? = null,
+    /** Absent in tests that do not care what the sleeves look like. */
+    private val coverArt: CoverArtRepository? = null,
     private val now: () -> Long = System::currentTimeMillis
 ) : ViewModel() {
 
@@ -58,9 +77,16 @@ class HomeViewModel(
 
     private val _topArtists = MutableStateFlow<List<String>>(emptyList())
 
-    val mixes: StateFlow<List<Mix>> = _topArtists
-        .map { MixCatalog.mixesFor(it) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MixCatalog.mixesFor(emptyList()))
+    /**
+     * The people behind the listening, rather than six invented moods.
+     *
+     * A "Chill Mix" was a search dressed up as a record: nothing existed until it was
+     * tapped, and its cover was a gradient because there was nothing to show. An artist is
+     * something the listener already chose, has a real picture, and leads somewhere with
+     * their actual songs in it.
+     */
+    private val _artists = MutableStateFlow<List<TopArtist>>(emptyList())
+    val artists: StateFlow<List<TopArtist>> = _artists.asStateFlow()
 
     /** Favorite ids for every provider, so a favorited YouTube track shows as one. */
     val favoriteIds: StateFlow<Set<String>> = organization.observeFavoriteIds()
@@ -117,6 +143,24 @@ class HomeViewModel(
                         .take(ARTIST_LIMIT)
 
                     _topArtists.value = artists
+
+                    /*
+                     * A face for each name, taken from something of theirs that was played.
+                     * There is no artist-photo endpoint in what AURORA is allowed to call,
+                     * and a track's own artwork is at least a picture of the right person's
+                     * record rather than a generated initial.
+                     */
+                    val artworkByArtist = buildMap {
+                        for (item in items.values) {
+                            val name = ArtistAffinity.displayName(item.artist) ?: continue
+                            val art = item.artworkUri ?: continue
+                            putIfAbsent(name.lowercase(), art)
+                        }
+                    }
+                    _artists.value = artists.map { name ->
+                        TopArtist(name, artworkByArtist[name.lowercase()])
+                    }
+
                     loadReleases(artists)
                 }
         }
@@ -130,7 +174,7 @@ class HomeViewModel(
         releasesRepository.latest(artists)
             .onSuccess { releases ->
                 _releases.value = ReleasesState.Ready(
-                    releases = releases,
+                    releases = resolve(releases),
                     unseen = whatsNew.unseen(releases).map { it.item.id }.toSet()
                 )
             }
@@ -140,6 +184,39 @@ class HomeViewModel(
                     else -> ReleasesState.Unavailable
                 }
             }
+    }
+
+    /**
+     * Turns uploads into records: one card per release, wearing its own sleeve.
+     *
+     * The lookup is cached for a month and rate-limited by the repository, so this is one
+     * slow pass on a cold cache and free afterwards. Anything the lookup cannot place keeps
+     * the upload's own title and thumbnail and is never folded into another record, because
+     * "unknown album" is not an album two tracks can share.
+     */
+    private suspend fun resolve(releases: List<Release>): List<ResolvedRelease> {
+        val seen = mutableSetOf<String>()
+        val cards = mutableListOf<ResolvedRelease>()
+        for (release in releases) {
+            val cover = runCatching {
+                coverArt?.coverFor(
+                    videoTitle = release.item.title,
+                    channelTitle = release.item.artist,
+                    knownArtist = release.artist,
+                )
+            }.getOrNull()
+            val album = cover?.album?.takeIf { it.isNotBlank() }
+            if (album != null && !seen.add("${release.artist.lowercase()}|${album.lowercase()}")) {
+                continue
+            }
+            cards += ResolvedRelease(
+                release = release,
+                coverUrl = cover?.coverUrl ?: release.item.artworkUri,
+                title = album ?: cover?.identity?.title ?: release.item.title,
+                artist = cover?.identity?.artist ?: release.artist,
+            )
+        }
+        return cards
     }
 
     fun markReleasesSeen() = whatsNew.markSeen(now())

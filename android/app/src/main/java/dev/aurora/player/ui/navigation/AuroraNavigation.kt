@@ -138,7 +138,8 @@ fun AuroraNavigation(
             resolver = container.mediaResolver,
             releasesRepository = container.latestReleasesRepository,
             whatsNew = container.whatsNewStore,
-            followedArtists = container.followedArtists
+            followedArtists = container.followedArtists,
+            coverArt = container.coverArtRepository
         )
     }
 
@@ -175,7 +176,6 @@ fun AuroraNavigation(
             startDestination = AuroraDestination.Home.route,
         ) {
             composable(AuroraDestination.Home.route) {
-                val scope = androidx.compose.runtime.rememberCoroutineScope()
                 val profile by container.profileStore.profile.collectAsState()
                 HomeScreen(
                     viewModel = homeViewModel,
@@ -188,23 +188,7 @@ fun AuroraNavigation(
                             dev.aurora.player.domain.player.PlayerCommand.AddToQueue(item)
                         )
                     },
-                    onPlayMix = { mix ->
-                        scope.launch {
-                            // A mix is a search that has not run yet: it is generated when
-                            // the listener asks for it, not kept warm in the background.
-                            val results = container.recommendationEngine
-                                .getRecommendations(mix.query)
-                                .map { it.item }
-                            if (results.isNotEmpty()) {
-                                playNow(container, results.first())
-                                results.drop(1).forEach { track ->
-                                    container.playerCoordinator.dispatch(
-                                        dev.aurora.player.domain.player.PlayerCommand.AddToQueue(track)
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    onOpenArtist = { artist -> navController.navigate(artistRoute(artist)) }
                 )
             }
             composable(AuroraDestination.Search.route) {

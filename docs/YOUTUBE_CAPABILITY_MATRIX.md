@@ -41,6 +41,16 @@ visible official player. Quality stays provider-determined and unstated. When th
 finds nothing, or is not confident enough to ask, the video's own title and thumbnail are
 shown rather than a guess.
 
+## Where the player is
+
+The player is visible wherever a YouTube track is playing, and it is never the artwork.
+
+Now Playing shows the record's sleeve as its hero and carries the official player beneath
+the transport controls, labelled and at 16:9. While the full player is closed, the same
+player is docked above the floating chrome at the end of the row. Nothing is drawn over
+either one, and neither is shrunk to stand in for a cover - a 44dp circle of video is not
+a user-recognizable YouTube experience, and it is not a picture of the record.
+
 ## Policy links
 
 - [IFrame Player API Reference](https://developers.google.com/youtube/iframe_api_reference)

@@ -99,8 +99,11 @@ private object LightPrimitives {
 }
 
 private object DarkPrimitives {
-    val neutral0 = Color(0xFF0E0E0F)
-    val neutral10 = Color(0xFF151517)
+    // Pitch black, not near-black. On the OLED panels this app is used on, #000 costs the
+    // pixel nothing to draw and gives the artwork the deepest ground it can have - which is
+    // the whole point of a canvas that is meant to disappear behind the record.
+    val neutral0 = Color(0xFF000000)
+    val neutral10 = Color(0xFF0A0A0B)
     val neutral20 = Color(0xFF1F1F22)
     val neutral40 = Color(0xFF3A3A3F)
     val neutral70 = Color(0xFFABABB2)

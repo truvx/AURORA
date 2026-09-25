@@ -168,6 +168,38 @@ class CoverArtRepositoryTest {
     }
 
     @Test
+    fun `a known artist turns a guess into a lookup`() = runTest {
+        val api = FakeMusicBrainz(recording())
+
+        // Latest Releases only accepts uploads from a channel whose name is exactly the
+        // artist's, so the caller knows something the title and channel alone do not say.
+        val cover = repository(api).coverFor(
+            videoTitle = "SMALL TOWN FAME",
+            channelTitle = "Drake",
+            knownArtist = "Drake",
+        )!!
+
+        assertEquals(1, api.calls)
+        assertTrue(api.lastQuery!!.contains("""artist:"Drake""""))
+        assertEquals("https://coverartarchive.org/release/release-1/front-500", cover.coverUrl)
+    }
+
+    @Test
+    fun `a known artist does not override one the title states`() = runTest {
+        val api = FakeMusicBrainz(recording())
+
+        // The upload says who it is. A caller's idea of the artist is a fallback for when
+        // it does not, never a correction of what is written on the record.
+        repository(api).coverFor(
+            videoTitle = "keshi - Soft Spot",
+            channelTitle = "KeshiVEVO",
+            knownArtist = "Drake",
+        )
+
+        assertTrue(api.lastQuery!!.contains("""artist:"keshi""""))
+    }
+
+    @Test
     fun `a video that is not a song is not looked up at all`() = runTest {
         val api = FakeMusicBrainz(recording())
 

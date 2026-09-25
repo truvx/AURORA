@@ -37,6 +37,7 @@ interface AppContainer {
     val youTubeDataApi: YouTubeDataApi
     val coverArtRepository: dev.aurora.player.data.discovery.CoverArtRepository
     val lyricsRepository: dev.aurora.player.data.lyrics.LyricsRepository
+    val waveformRepository: dev.aurora.player.data.audio.WaveformRepository
     val mediaResolver: dev.aurora.player.data.discovery.MediaResolver
     val latestReleasesRepository: dev.aurora.player.data.discovery.LatestReleasesRepository
     val trendingRepository: dev.aurora.player.data.discovery.TrendingRepository
@@ -59,7 +60,8 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             AuroraDatabase.MIGRATION_1_2,
             AuroraDatabase.MIGRATION_2_3,
             AuroraDatabase.MIGRATION_3_4,
-            AuroraDatabase.MIGRATION_4_5
+            AuroraDatabase.MIGRATION_4_5,
+            AuroraDatabase.MIGRATION_5_6
         )
          .build()
     }
@@ -159,6 +161,19 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             .create(dev.aurora.player.data.api.LrcLibApi::class.java)
 
         dev.aurora.player.data.lyrics.LyricsRepository(api = api, cache = discoveryCache)
+    }
+
+    /**
+     * The measured shape of local files.
+     *
+     * Nothing is measured until a scrubber asks for a track it can measure, so a library
+     * scan stays a scan rather than turning into a decode of everything the user owns.
+     */
+    override val waveformRepository: dev.aurora.player.data.audio.WaveformRepository by lazy {
+        dev.aurora.player.data.audio.WaveformRepository(
+            dao = localLibraryDao,
+            analyzer = dev.aurora.player.data.audio.WaveformAnalyzer(context),
+        )
     }
 
     override val youtubeMusicProvider: YouTubeMusicProvider by lazy {

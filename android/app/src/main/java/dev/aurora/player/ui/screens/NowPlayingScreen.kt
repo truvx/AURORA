@@ -105,6 +105,7 @@ fun NowPlayingScreen(
 
     val currentTrack = state.currentTrack
     val artwork by rememberAlbumArtwork(currentTrack)
+    val waveform by dev.aurora.player.ui.artwork.rememberWaveform(currentTrack)
     val lyrics by rememberLyrics(
         identity = artwork.identity,
         // The player's own duration where it has one: it is the length of what is actually
@@ -226,6 +227,7 @@ fun NowPlayingScreen(
                 position = state.position,
                 onSeek = { coordinator.dispatch(PlayerCommand.Seek(it)) },
                 modifier = Modifier.staggeredEntry(index = 2, visible = entered),
+                waveform = waveform,
             )
 
             Spacer(modifier = Modifier.height(spacing.space5))

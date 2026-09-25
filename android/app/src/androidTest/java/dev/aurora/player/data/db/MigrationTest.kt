@@ -134,4 +134,38 @@ class MigrationTest {
         assertEquals(1, favorite.getInt(0))
         favorite.close()
     }
+    @Test
+    fun migrate5To6_addsWaveformTableAndPreservesExistingData() {
+        var db = helper.createDatabase(TEST_DB, 5)
+
+        db.execSQL(
+            "INSERT INTO media_items (id, provider, kind, title, provenance, isAvailable, albumId) " +
+            "VALUES ('keep', 'LOCAL', 'TRACK', 'Existing Track', 'LOCAL', 1, NULL)"
+        )
+        db.execSQL(
+            "INSERT INTO track_loudness (mediaId, lufsIntegrated, truePeak, albumLufs, albumPeak, analysisVersion) " +
+            "VALUES ('keep', -9.5, 0.85, NULL, NULL, 2)"
+        )
+        db.close()
+
+        db = helper.runMigrationsAndValidate(TEST_DB, 6, true, AuroraDatabase.MIGRATION_5_6)
+
+        // Additive: the measured shape of a file is new information beside what was there.
+        val existing = db.query("SELECT title FROM media_items WHERE id = 'keep'")
+        assertTrue(existing.moveToFirst())
+        assertEquals("Existing Track", existing.getString(0))
+        existing.close()
+
+        val loudness = db.query("SELECT lufsIntegrated FROM track_loudness WHERE mediaId = 'keep'")
+        assertTrue(loudness.moveToFirst())
+        assertEquals(-9.5f, loudness.getFloat(0), 0.001f)
+        loudness.close()
+
+        db.execSQL("INSERT INTO track_waveform (mediaId, peaks, analysisVersion) VALUES ('keep', 'ff80', 1)")
+        val waveform = db.query("SELECT peaks FROM track_waveform WHERE mediaId = 'keep'")
+        assertTrue(waveform.moveToFirst())
+        assertEquals("ff80", waveform.getString(0))
+        waveform.close()
+    }
+
 }

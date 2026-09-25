@@ -29,6 +29,8 @@ class LocalLibraryProviderTest {
         override suspend fun insertMediaItemArtistCrossRef(crossRef: MediaItemArtistCrossRef) {}
         override suspend fun insertArtwork(artwork: ArtworkEntity) {}
         override suspend fun insertTrackLoudness(loudness: TrackLoudnessEntity) {}
+        override suspend fun insertTrackWaveform(waveform: dev.aurora.player.data.db.TrackWaveformEntity) {}
+        override suspend fun getTrackWaveform(mediaId: String): dev.aurora.player.data.db.TrackWaveformEntity? = null
         override suspend fun getTrackLoudness(mediaId: String): dev.aurora.player.domain.audio.TrackLoudnessData? = null
 
         override suspend fun upsertLocalTrack(

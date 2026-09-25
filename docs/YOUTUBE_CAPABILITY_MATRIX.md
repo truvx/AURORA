@@ -51,6 +51,17 @@ player is docked above the floating chrome at the end of the row. Nothing is dra
 either one, and neither is shrunk to stand in for a cover - a 44dp circle of video is not
 a user-recognizable YouTube experience, and it is not a picture of the record.
 
+## Waveform
+
+The scrubber draws the real shape of a local file, decoded once by the platform decoder and
+remembered. It draws no shape at all for a YouTube track, and every bar is the same height
+instead.
+
+That is not a gap waiting to be filled. AURORA never receives those bytes, so there is
+nothing to measure, and a pattern generated to look like a waveform would be a picture of a
+sound nobody heard - the same class of claim as stating a bitrate the provider never gave.
+Bars of one height are what "unknown" looks like here.
+
 ## Lyrics
 
 The lyrics AURORA shows never come from YouTube. A caption track is a transcript of a video

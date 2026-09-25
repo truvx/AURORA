@@ -43,6 +43,7 @@ fun AuroraAppRoot() {
         LocalArtworkLoader provides artworkLoader,
         dev.aurora.player.ui.artwork.LocalCoverArtRepository provides container.coverArtRepository,
         dev.aurora.player.ui.lyrics.LocalLyricsRepository provides container.lyricsRepository,
+        dev.aurora.player.ui.artwork.LocalWaveformRepository provides container.waveformRepository,
         dev.aurora.player.ui.accessibility.LocalAccessibilityPreferences provides accessibility
     ) {
         AuroraTheme {

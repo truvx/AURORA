@@ -13,6 +13,7 @@ import androidx.room.RoomDatabase
         MediaItemArtistCrossRef::class,
         ArtworkEntity::class,
         TrackLoudnessEntity::class,
+        TrackWaveformEntity::class,
         LibraryEntryEntity::class,
         PlaylistEntity::class,
         PlaylistEntryEntity::class,
@@ -21,7 +22,7 @@ import androidx.room.RoomDatabase
         QueueSnapshotEntity::class,
         QueueSnapshotItemEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class AuroraDatabase : RoomDatabase() {
@@ -59,6 +60,26 @@ abstract class AuroraDatabase : RoomDatabase() {
                 db.execSQL("DELETE FROM track_loudness WHERE analysisVersion = 1")
             }
         }
+        val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                // The measured shape of a local file. Additive and empty: every row is
+                // re-measurable from the file itself, so an interrupted upgrade costs one
+                // decode rather than any data.
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `track_waveform` (
+                        `mediaId` TEXT NOT NULL,
+                        `peaks` TEXT NOT NULL,
+                        `analysisVersion` INTEGER NOT NULL,
+                        PRIMARY KEY(`mediaId`),
+                        FOREIGN KEY(`mediaId`) REFERENCES `media_items`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_track_waveform_mediaId` ON `track_waveform` (`mediaId`)")
+            }
+        }
+
         val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 // Phase 10: durable library organization. All additive - no existing row is

@@ -60,6 +60,8 @@ fun AuroraTheme(
     ) {
         MaterialTheme(
             colorScheme = m3ColorScheme,
+            // One family for the whole app, including whatever Material draws for itself.
+            typography = AuroraMaterialTypography,
             content = content,
         )
     }

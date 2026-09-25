@@ -4,32 +4,46 @@ Status: final v1 specification, accepted by ADR-015.
 
 ## Family and weights
 
-Montserrat, in three weights: Light 300, Regular 400, Black 900. Nothing asks for a weight
-outside those three, because a weight the family does not ship is synthesised, and a
-synthesised semibold is a smeared Regular.
+Space Mono, in the two weights it ships: Regular 400 and Bold 700. Nothing asks for a
+weight outside those two, because a weight the family does not ship is synthesised, and a
+synthesised medium is a smeared Regular - so a role that wants a 500 takes 400.
+
+One family for the whole interface. The register is a record sleeve's back cover rather
+than a magazine's front - catalogue numbers, durations, track listings - and hierarchy
+comes from size, weight and colour, never from a second typeface.
+
+Sizes sit a step below the previous scale because Space Mono sets about 15% wider than a
+proportional sans at the same point size. Holding the old sizes would have pushed every
+title into an ellipsis; stepping down keeps the same number of characters on a line, which
+is what the layouts were built around.
 
 | Role | Weight | Size / line height | Use |
 | --- | ---: | --- | --- |
-| Display | Black 900 | 40 / 46 | Screen-level hero titles and large artwork context. |
-| Heading 1 | Black 900 | 30 / 36 | Page titles. |
-| Heading 2 | Black 900 | 22 / 28 | Section titles and album/playlist titles. |
-| Section label | Black 900 | 14 / 20, tracked 1.2 | Small-caps labels over a shelf of content. |
-| Track title (player) | Regular 400 | 30 / 36 | A song's name where it is the subject of the screen. |
-| Track title | Regular 400 | 22 / 28 | A song's name in a row, a card or the queue. |
-| Track artist | Light 300 | 16 / 24 | Whoever made it, under the name. |
-| Track artist (compact) | Regular 400 | 14 / 20 | The same, where 16 would crowd the title. Light thins out below 16. |
-| Lyrics | Black 900 | per surface | Reserved; AURORA has no lyrics feature yet. |
+| Display | Bold 700 | 34 / 42 | Screen-level hero titles and large artwork context. |
+| Heading 1 | Bold 700 | 26 / 34 | Page titles. |
+| Heading 2 | Bold 700 | 20 / 28 | Section titles and album/playlist titles. |
+| Section label | Bold 700 | 12 / 18, tracked 0.9 | Small-caps labels over a shelf of content. |
+| Track title (player) | Regular 400 | 26 / 34 | A song's name where it is the subject of the screen. |
+| Track title | Regular 400 | 18 / 26 | A song's name in a row, a card or the queue. |
+| Track artist | Regular 400 | 15 / 22 | Whoever made it, under the name. |
+| Track artist (compact) | Regular 400 | 13 / 18 | The same, where 15 would crowd the title. |
+| Lyrics | Bold 700 | per surface | Reserved; AURORA has no lyrics feature yet. |
 | Body | Regular 400 | 16 / 24 | Descriptions, dialogs, and readable content. |
 | Label | Regular 400 | 14 / 20 | Actions, tabs, filters, and form labels. |
 | Metadata | Regular 400 | 12 / 16 | Source, quality, and secondary facts. |
-| Numeric / timing | Regular 400 | 14 / 20; player values 32 / 36 | Duration, position, counters, and queue order. Use tabular numerals. |
+| Numeric / timing | Regular 400 | 14 / 20; player values 30 / 36 | Duration, position, counters, and queue order. Monospaced, so already tabular. |
 
-Letter spacing is size-specific rather than `0` across the scale: display and headline tighten, label and caption open up, and the small-caps section label is tracked wide. Do not scale font size with viewport width. Platform text scaling and browser zoom must be honored; long metadata wraps or truncates with an accessible full value and never changes a fixed control's dimensions unexpectedly.
+Uppercase is used selectively and only where it means something: section headers, category
+and metadata labels. It is never applied to a song, an album or a person's name, because
+those are how they are written.
+
+Letter spacing stays near zero: a monospaced face is already wide, and tightening it closes the counters. Display and headline take a touch of negative tracking, and only the small-caps section label and caption open up - capitals at 12sp need the air. Do not scale font size with viewport width. Platform text scaling and browser zoom must be honored; long metadata wraps or truncates with an accessible full value and never changes a fixed control's dimensions unexpectedly.
 
 ## Rendering rules
 
-- Prefer the Montserrat variable font with only used weights - Light 300, Regular 400, Black 900 - then fall back to platform sans-serif.
-- Use tabular numerals for time and counts; do not rely on proportional digits for aligned controls.
+- Ship Space Mono at the two weights it has - Regular 400 and Bold 700 - then fall back to the platform monospace, so the measure barely moves if the face fails to load.
+- Numerals are tabular by construction in a monospaced family, so timing values do not shift the layout as they tick. Do not substitute a proportional face for numeric roles.
 - Keep body measure readable, support at least 1.5 text scaling on Android test configurations, and support browser zoom without horizontal scrolling.
 - Do not place important text directly over unprotected artwork. Apply contrast protection from the Liquid Glass design system.
+- Define the family once, globally - the Android theme's Material typography and the web's root `font-family` and form-control reset - rather than declaring it per component.
 - Use semantic roles and platform-native text rendering; do not encode text in artwork.

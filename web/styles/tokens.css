@@ -65,32 +65,41 @@
 
   /* ──────────────── Typography ──────────────── */
   /*
-   * --font-aurora-sans is supplied by next/font in the root layout, which self-hosts the
-   * face. The system stack behind it is what renders while the face loads, and what renders
-   * if it fails entirely.
+   * --font-aurora-mono is supplied by next/font in the root layout, which self-hosts the
+   * face. The generic `monospace` behind it is what renders while the face loads, and what
+   * renders if it fails entirely - a monospaced fallback for a monospaced design, so the
+   * measure barely moves when it swaps.
    */
-  --aurora-font-family: var(--font-aurora-sans), -apple-system, BlinkMacSystemFont,
-    'Segoe UI', Roboto, sans-serif;
+  --aurora-font-family: var(--font-aurora-mono), ui-monospace, SFMono-Regular, Menlo,
+    Consolas, monospace;
 
   /*
-   * Tracking is size-specific, never one value for every role. Letters read too far apart
-   * as type grows, so display tightens; small text needs a little air to stay legible, so
-   * caption opens up. A single letter-spacing would be wrong at one end or the other.
+   * Sizes are a step down from the previous scale: Space Mono sets about 15% wider than
+   * Montserrat at the same size, so holding the old sizes would have pushed every title
+   * into an ellipsis. Stepping down keeps the same number of characters on a line, which
+   * is what the layout was actually built around.
+   *
+   * Tracking stays near zero, because a monospaced face is already wide and tightening it
+   * closes the counters. It opens only on small capitals, where a little air is what makes
+   * them legible.
+   *
+   * The family ships Regular and Bold, and nothing between: a role that wants a 500 takes
+   * 400 rather than a weight the browser has to invent.
    */
-  --aurora-type-display-size: 2.5rem;     /* 40px */
-  --aurora-type-display-line: 2.875rem;   /* 46px */
-  --aurora-type-display-weight: 900;
-  --aurora-type-display-tracking: -0.022em;
+  --aurora-type-display-size: 2.125rem;   /* 34px */
+  --aurora-type-display-line: 2.625rem;   /* 42px */
+  --aurora-type-display-weight: 700;
+  --aurora-type-display-tracking: -0.015em;
 
-  --aurora-type-headline-size: 1.875rem;  /* 30px */
-  --aurora-type-headline-line: 2.25rem;   /* 36px */
-  --aurora-type-headline-weight: 900;
-  --aurora-type-headline-tracking: -0.016em;
+  --aurora-type-headline-size: 1.625rem;  /* 26px */
+  --aurora-type-headline-line: 2.125rem;  /* 34px */
+  --aurora-type-headline-weight: 700;
+  --aurora-type-headline-tracking: -0.012em;
 
-  --aurora-type-title-size: 1.375rem;     /* 22px */
+  --aurora-type-title-size: 1.25rem;      /* 20px */
   --aurora-type-title-line: 1.75rem;      /* 28px */
-  --aurora-type-title-weight: 900;
-  --aurora-type-title-tracking: -0.009em;
+  --aurora-type-title-weight: 700;
+  --aurora-type-title-tracking: 0em;
 
   --aurora-type-body-size: 1rem;          /* 16px */
   --aurora-type-body-line: 1.5rem;        /* 24px */
@@ -99,55 +108,47 @@
 
   --aurora-type-label-size: 0.875rem;     /* 14px */
   --aurora-type-label-line: 1.25rem;      /* 20px */
-  /*
-   * Regular, not semibold. The family ships three weights - Light, Regular, Black -
-   * because those are the three that mean something here, and asking for a 600 the
-   * browser does not have makes it synthesise one, which is a smeared Regular.
-   */
   --aurora-type-label-weight: 400;
-  --aurora-type-label-tracking: 0.006em;
+  --aurora-type-label-tracking: 0em;
 
   --aurora-type-caption-size: 0.75rem;    /* 12px */
   --aurora-type-caption-line: 1rem;       /* 16px */
   --aurora-type-caption-weight: 400;
-  --aurora-type-caption-tracking: 0.014em;
+  --aurora-type-caption-tracking: 0.008em;
 
   /*
    * A song, and whoever made it.
    *
-   * Their own tokens because the weights carry meaning rather than decoration: headings
-   * are Black, and a track's name and artist are Light to Regular. A title set as heavily
-   * as the heading above it competes with it, and a screen of uniformly heavy type has no
-   * hierarchy at all - only volume.
-   *
-   * Light is used at 16px and above. Below that a 300 weight over glass starts to
-   * disappear, so the compact artist line is Regular instead.
+   * Their own tokens because the hierarchy here is size and colour rather than weight:
+   * both are Regular, and the artist is smaller and dimmer. With two weights in the
+   * family, spending Bold on a track title would put it level with the heading above it,
+   * and a screen of uniformly heavy type has no hierarchy at all - only volume.
    */
-  --aurora-type-track-title-size: 1.375rem;   /* 22px */
-  --aurora-type-track-title-line: 1.75rem;    /* 28px */
+  --aurora-type-track-title-size: 1.125rem;   /* 18px */
+  --aurora-type-track-title-line: 1.625rem;   /* 26px */
   --aurora-type-track-title-weight: 400;
 
-  --aurora-type-track-artist-size: 1rem;      /* 16px */
-  --aurora-type-track-artist-line: 1.5rem;    /* 24px */
-  --aurora-type-track-artist-weight: 300;
+  --aurora-type-track-artist-size: 0.9375rem; /* 15px */
+  --aurora-type-track-artist-line: 1.375rem;  /* 22px */
+  --aurora-type-track-artist-weight: 400;
 
-  --aurora-type-track-artist-compact-size: 0.875rem; /* 14px */
+  --aurora-type-track-artist-compact-size: 0.8125rem; /* 13px */
   --aurora-type-track-artist-compact-weight: 400;
 
   /* Small-caps section labels are headings, and take the heading weight. */
-  --aurora-type-section-weight: 900;
+  --aurora-type-section-weight: 700;
 
   /*
    * Text sitting on a translucent surface loses definition against whatever moves behind
    * it. A touch more weight and tracking buys that definition back without a heavier scrim.
    */
   /*
-   * The bump is now from Light to Regular rather than Regular to Medium: with three
-   * weights, that is the step available, and it is the one that matters - it is the
-   * Light artist lines that thin out over a bright backdrop.
+   * Only tracking now. The bump used to take Light up to Regular, but with two weights the
+   * step available is Regular to Bold, which is far more than definition needs and turns
+   * every label over glass into a heading. A little extra tracking does the same job.
    */
   --aurora-vibrancy-weight-bump: 400;
-  --aurora-vibrancy-tracking-bump: 0.008em;
+  --aurora-vibrancy-tracking-bump: 0.01em;
 
   /*
    * Spacing (4-unit rhythm), in rem so the layout grows with the user's text-size setting

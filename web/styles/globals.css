@@ -19,6 +19,19 @@
 
 /* ──────────────── Base ──────────────── */
 
+/*
+ * Form controls do not inherit type from the page - the UA sheet gives them its own font -
+ * so every button and field used to restate the family itself. Saying it once here is what
+ * makes "one typeface, defined globally" true rather than aspirational.
+ */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
 html {
   font-family: var(--aurora-font-family);
   /*

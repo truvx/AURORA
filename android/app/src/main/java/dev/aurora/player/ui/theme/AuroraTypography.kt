@@ -1,112 +1,98 @@
 package dev.aurora.player.ui.theme
 
+import androidx.compose.material3.Typography
 import androidx.compose.runtime.Immutable
 import dev.aurora.player.R
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
  * AURORA typography scale from docs/TYPOGRAPHY_FINAL.md.
  *
- * Montserrat, with a system sans-serif fallback. One variable file carries every weight,
- * so Light, Regular and Black cost one download and one resource rather than three.
+ * Space Mono, with the system monospace behind it. One family for the whole interface:
+ * hierarchy comes from size, weight and colour, never from a second typeface.
  *
- * The weights carry meaning rather than decoration: headings are Black, and the name of a
- * song and of whoever made it are Light to Regular. A track title set in the same weight
- * as the heading above it competes with it, and a screen of uniformly heavy type has no
- * hierarchy at all - only volume.
+ * The register is a record sleeve's back cover rather than a magazine's front - catalogue
+ * numbers, durations, track listings. A monospaced face is what that reads like, and it
+ * has the useful side effect that every numeral is the same width, so a running time does
+ * not shift the layout as it ticks.
  *
- * Tracking is size-specific, never one value across the scale. Letters read too far
- * apart as type grows, so display and headline tighten; small text needs a little air
- * to stay legible, so label and caption open up. A single letter-spacing is wrong at
- * one end of the scale or the other. Values are em-derived against each role's own
- * size and expressed in sp so they scale with the user's font-size setting.
+ * Space Mono ships Regular and Bold, and nothing between. Roles asked for a 500 get 400
+ * rather than a synthesised weight, which is a smeared Regular and looks like one.
  *
- * Tabular numerals should be enabled where timing/count values are displayed.
+ * Tracking is near zero at large sizes, because a monospaced face is already wide and
+ * tightening it closes the counters. It opens only on the small uppercase labels, where a
+ * little air is what makes capitals legible at 12-14sp.
  */
 
-/**
- * One variable face, asked for at three weights.
- *
- * Variable font settings need API 26, which is the project's minimum, so every device
- * that runs AURORA can render all three. A device that somehow cannot falls back to the
- * system sans rather than to no text.
- */
-@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
+/** The two weights the family actually ships. Nothing asks for a third. */
 val AuroraFontFamily = FontFamily(
-    Font(
-        R.font.montserrat,
-        weight = FontWeight.Light,
-        variationSettings = FontVariation.Settings(FontVariation.weight(300)),
-    ),
-    Font(
-        R.font.montserrat,
-        weight = FontWeight.Normal,
-        variationSettings = FontVariation.Settings(FontVariation.weight(400)),
-    ),
-    Font(
-        R.font.montserrat,
-        weight = FontWeight.Black,
-        variationSettings = FontVariation.Settings(FontVariation.weight(900)),
-    ),
+    Font(R.font.space_mono_regular, weight = FontWeight.Normal),
+    Font(R.font.space_mono_bold, weight = FontWeight.Bold),
 )
 
 @Immutable
 data class AuroraTypography(
-    /** Rare hero / now-playing title: 40/46, bold */
+    /** Rare hero / screen title: 34/42, bold */
     val display: TextStyle,
-    /** Screen title: 30/36, bold */
+    /** Screen title: 26/34, bold */
     val headline: TextStyle,
-    /** Section / card title: 22/28, semibold-bold */
+    /** Section / card title: 20/28, bold */
     val title: TextStyle,
-    /** Primary reading / action text: 16/24, regular-medium */
+    /** Primary reading / action text: 16/24, regular */
     val body: TextStyle,
-    /** Controls and metadata: 14/20, semibold */
+    /** Controls and metadata: 14/20, regular */
     val label: TextStyle,
-    /** Tertiary metadata: 12/16, regular-medium */
+    /** Tertiary metadata: 12/16, regular */
     val caption: TextStyle,
-    /** Small-caps section labels, which are headings: 14/20, black */
+    /** Small-caps section labels, which are headings: 12/18, bold, uppercase in use */
     val section: TextStyle,
-    /** Duration, position, counters: 14/20, medium-semibold */
+    /** Duration, position, counters: 14/20, regular. Monospaced, so already tabular. */
     val numeric: TextStyle,
-    /** Large player timing values: 32/36, medium-semibold */
+    /** Large player timing values: 30/36, regular */
     val playerNumeric: TextStyle,
-    /** A song's name on the player, where it is the subject: 30/36, regular */
+    /** A song's name on the player, where it is the subject: 26/34, regular */
     val trackTitleLarge: TextStyle,
-    /** A song's name in a row or a card: 22/28, regular */
+    /** A song's name in a row or a card: 18/26, regular */
     val trackTitle: TextStyle,
-    /** Whoever made it, under the name: 16/24, light */
+    /** Whoever made it, under the name: 15/22, regular */
     val trackArtist: TextStyle,
-    /** The same, in a compact row where 16sp would crowd the title: 14/20, regular */
+    /** The same, in a compact row where 15sp would crowd the title: 13/18, regular */
     val trackArtistCompact: TextStyle,
 )
 
+/*
+ * Sizes are a step down from the previous scale.
+ *
+ * Space Mono sets about 15% wider than Montserrat at the same point size, so holding the
+ * old sizes would have pushed every title into an ellipsis. Stepping down keeps the same
+ * number of characters on a line, which is what the layout was actually built around.
+ */
 val AuroraTypographyTokens = AuroraTypography(
     display = TextStyle(
         fontFamily = AuroraFontFamily,
-        fontWeight = FontWeight.Black,
-        fontSize = 40.sp,
-        lineHeight = 46.sp,
-        letterSpacing = -0.88.sp,
+        fontWeight = FontWeight.Bold,
+        fontSize = 34.sp,
+        lineHeight = 42.sp,
+        letterSpacing = (-0.5).sp,
     ),
     headline = TextStyle(
         fontFamily = AuroraFontFamily,
-        fontWeight = FontWeight.Black,
-        fontSize = 30.sp,
-        lineHeight = 36.sp,
-        letterSpacing = -0.48.sp,
+        fontWeight = FontWeight.Bold,
+        fontSize = 26.sp,
+        lineHeight = 34.sp,
+        letterSpacing = (-0.3).sp,
     ),
     title = TextStyle(
         fontFamily = AuroraFontFamily,
-        fontWeight = FontWeight.Black,
-        fontSize = 22.sp,
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp,
         lineHeight = 28.sp,
-        letterSpacing = -0.2.sp,
+        letterSpacing = 0.0.sp,
     ),
     body = TextStyle(
         fontFamily = AuroraFontFamily,
@@ -117,72 +103,99 @@ val AuroraTypographyTokens = AuroraTypography(
     ),
     label = TextStyle(
         fontFamily = AuroraFontFamily,
-        // Regular, not semibold: the family ships Light, Regular and Black, because those
-        // are the three that mean something here. Asking for a 600 it does not have gets
-        // the nearest one, which is a decision made by a matcher rather than by anyone.
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.08.sp,
+        letterSpacing = 0.0.sp,
     ),
     caption = TextStyle(
         fontFamily = AuroraFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.17.sp,
+        letterSpacing = 0.1.sp,
     ),
     numeric = TextStyle(
         fontFamily = AuroraFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.08.sp,
+        letterSpacing = 0.0.sp,
     ),
     playerNumeric = TextStyle(
         fontFamily = AuroraFontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 32.sp,
+        fontSize = 30.sp,
         lineHeight = 36.sp,
-        letterSpacing = -0.7.sp,
+        letterSpacing = (-0.4).sp,
     ),
     section = TextStyle(
         fontFamily = AuroraFontFamily,
-        fontWeight = FontWeight.Black,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 1.2.sp,
+        fontWeight = FontWeight.Bold,
+        fontSize = 12.sp,
+        lineHeight = 18.sp,
+        // The one place tracking opens: small capitals need it, and this is the label that
+        // is always set in them.
+        letterSpacing = 0.9.sp,
     ),
     trackTitleLarge = TextStyle(
         fontFamily = AuroraFontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 30.sp,
-        lineHeight = 36.sp,
-        letterSpacing = -0.48.sp,
+        fontSize = 26.sp,
+        lineHeight = 34.sp,
+        letterSpacing = (-0.3).sp,
     ),
     trackTitle = TextStyle(
         fontFamily = AuroraFontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = -0.2.sp,
+        fontSize = 18.sp,
+        lineHeight = 26.sp,
+        letterSpacing = 0.0.sp,
     ),
     trackArtist = TextStyle(
         fontFamily = AuroraFontFamily,
-        // Light, and only at this size: below 16sp a 300 weight over glass starts to
-        // disappear, which is why the compact one below is Regular instead.
-        fontWeight = FontWeight.Light,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
+        fontWeight = FontWeight.Normal,
+        fontSize = 15.sp,
+        lineHeight = 22.sp,
         letterSpacing = 0.0.sp,
     ),
     trackArtistCompact = TextStyle(
         fontFamily = AuroraFontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.08.sp,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.0.sp,
     ),
 )
+
+/**
+ * Space Mono for everything Material draws on its own.
+ *
+ * AURORA styles its own text from [AuroraTypographyTokens], but Material's components -
+ * menu items, dialogs, anything that falls through to a default - carry M3's own scale,
+ * and that scale's family is the platform sans. Without this the app is one typeface with
+ * Roboto leaking out of the overflow menus, which is exactly the mixed-family look the
+ * design asks to avoid. Setting it here means no component has to ask for the font.
+ */
+val AuroraMaterialTypography: Typography = Typography().run {
+    fun TextStyle.mono() = copy(fontFamily = AuroraFontFamily)
+    copy(
+        displayLarge = displayLarge.mono(),
+        displayMedium = displayMedium.mono(),
+        displaySmall = displaySmall.mono(),
+        headlineLarge = headlineLarge.mono(),
+        headlineMedium = headlineMedium.mono(),
+        headlineSmall = headlineSmall.mono(),
+        titleLarge = titleLarge.mono(),
+        titleMedium = titleMedium.mono(),
+        titleSmall = titleSmall.mono(),
+        bodyLarge = bodyLarge.mono(),
+        bodyMedium = bodyMedium.mono(),
+        bodySmall = bodySmall.mono(),
+        labelLarge = labelLarge.mono(),
+        labelMedium = labelMedium.mono(),
+        labelSmall = labelSmall.mono(),
+    )
+}
 
 val LocalAuroraTypography = staticCompositionLocalOf { AuroraTypographyTokens }

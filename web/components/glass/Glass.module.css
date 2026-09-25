@@ -84,7 +84,6 @@
   border-radius: var(--aurora-radius-control);
   border: none;
   cursor: pointer;
-  font-family: var(--aurora-font-family);
   font-size: var(--aurora-type-label-size);
   font-weight: var(--aurora-type-label-weight);
   line-height: var(--aurora-type-label-line);

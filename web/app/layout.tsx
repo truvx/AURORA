@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Montserrat } from "next/font/google";
+import { Space_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { AppShell } from "@/components/navigation/AppShell";
 import { ArtworkProvider } from "@/lib/artwork/useArtwork";
@@ -18,14 +18,14 @@ import "@/styles/globals.css";
  * `display: swap` keeps text visible while the face loads, so a slow font delays the look
  * of the page rather than its content.
  */
-const montserrat = Montserrat({
+const spaceMono = Space_Mono({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-aurora-sans",
-  // Three weights, because three carry meaning: Black for headings, Regular for a song's
-  // name, Light for whoever made it. Every weight shipped is bytes on the wire, so the
-  // ones nothing uses are not requested.
-  weight: ["300", "400", "900"],
+  variable: "--font-aurora-mono",
+  // Both of the two the family ships, and no more: Space Mono has Regular and Bold and
+  // nothing between them. A role that wants a 500 gets 400 rather than a browser-
+  // synthesised weight, which is a smeared Regular and looks like one.
+  weight: ["400", "700"],
 });
 
 /*
@@ -62,7 +62,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${montserrat.variable} ${materialSymbols.variable}`}
+      className={`${spaceMono.variable} ${materialSymbols.variable}`}
     >
       <body>
         <ThemeProvider>

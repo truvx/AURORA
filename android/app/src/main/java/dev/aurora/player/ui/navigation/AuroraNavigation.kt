@@ -386,15 +386,26 @@ fun AuroraNavigation(
                 )
             )
         },
+        /*
+         * Closing is not opening played backwards.
+         *
+         * Opening invites attention and is worth a spring; closing is the screen getting
+         * out of the way and wants to be over. Both used the same spring, which made
+         * dismissing the player feel like it was reluctant to leave. A flat, quick curve
+         * on the way out is the asymmetry every sheet in the reference has.
+         */
         exit = if (reducedMotion) {
             androidx.compose.animation.fadeOut()
         } else {
             androidx.compose.animation.slideOutVertically(
                 targetOffsetY = { it },
-                animationSpec = androidx.compose.animation.core.spring(
-                    dampingRatio = dev.aurora.player.ui.theme.AuroraMotionTokens.springStandardDamping,
-                    stiffness = dev.aurora.player.ui.theme.AuroraMotionTokens.springStandardStiffness,
-                    visibilityThreshold = androidx.compose.ui.unit.IntOffset.VisibilityThreshold
+                animationSpec = androidx.compose.animation.core.tween(
+                    durationMillis = dev.aurora.player.ui.theme.AuroraMotionTokens.durationStandard,
+                    easing = dev.aurora.player.ui.theme.AuroraMotionTokens.easingAccelerate
+                )
+            ) + androidx.compose.animation.fadeOut(
+                animationSpec = androidx.compose.animation.core.tween(
+                    durationMillis = dev.aurora.player.ui.theme.AuroraMotionTokens.durationQuick
                 )
             )
         }

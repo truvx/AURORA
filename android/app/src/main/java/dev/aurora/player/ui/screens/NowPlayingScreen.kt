@@ -39,8 +39,12 @@ import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +52,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,6 +61,7 @@ import dev.aurora.player.domain.player.PlaybackStatus
 import dev.aurora.player.domain.player.PlayerCommand
 import dev.aurora.player.domain.player.RepeatMode
 import dev.aurora.player.domain.player.ShuffleMode
+import dev.aurora.player.ui.accessibility.LocalAccessibilityPreferences
 import dev.aurora.player.ui.artwork.rememberAlbumArtwork
 import dev.aurora.player.ui.artwork.rememberArtworkBitmap
 import dev.aurora.player.ui.artwork.rememberArtworkPalette
@@ -102,6 +108,11 @@ fun NowPlayingScreen(
     val isYouTube = currentTrack?.provider == ProviderKind.YOUTUBE
     val isPlaying = state.status == PlaybackStatus.Playing ||
         state.status == PlaybackStatus.Buffering
+
+    // Flipped after the first composition so the entry actually animates from nothing
+    // rather than starting already settled.
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
 
     AmbientArtworkLayer(modifier = modifier.fillMaxSize(), artworkColor = palette) {
         Column(
@@ -151,12 +162,15 @@ fun NowPlayingScreen(
                 artworkUri = artwork.artworkUri,
                 title = artwork.title ?: currentTrack?.title,
                 showYouTubePlayer = isYouTube,
+                modifier = Modifier.staggeredEntry(index = 0, visible = entered),
             )
 
             Spacer(modifier = Modifier.weight(1f))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .staggeredEntry(index = 1, visible = entered),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -201,11 +215,13 @@ fun NowPlayingScreen(
             PlayerScrubber(
                 position = state.position,
                 onSeek = { coordinator.dispatch(PlayerCommand.Seek(it)) },
+                modifier = Modifier.staggeredEntry(index = 2, visible = entered),
             )
 
             Spacer(modifier = Modifier.height(spacing.space5))
 
             TransportRow(
+                modifier = Modifier.staggeredEntry(index = 3, visible = entered),
                 isPlaying = isPlaying,
                 shuffleOn = state.queue.shuffleMode == ShuffleMode.On,
                 repeatMode = state.queue.repeatMode,
@@ -218,6 +234,43 @@ fun NowPlayingScreen(
 }
 
 /**
+ * Entry, one element after another.
+ *
+ * Everything used to arrive in the same frame, which is the difference between a screen
+ * that appears and a screen that assembles. Staggering by a few frames builds the
+ * hierarchy the eye should follow - the record, then what it is, then the controls - and
+ * costs nothing but a delay per element.
+ *
+ * Reduced motion gets all of it at once, because this is movement for its own sake and
+ * that is exactly what the setting asks to remove.
+ */
+@Composable
+private fun Modifier.staggeredEntry(index: Int, visible: Boolean): Modifier {
+    val reducedMotion = LocalAccessibilityPreferences.current.reducedMotion
+    if (reducedMotion) return this
+
+    val progress by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = Aurora.motion.durationStandard,
+            delayMillis = index * STAGGER_MS,
+            easing = Aurora.motion.easingDecelerate,
+        ),
+        label = "entry $index",
+    )
+    val lift = with(LocalDensity.current) { ENTRY_LIFT.toPx() }
+
+    return graphicsLayer {
+        alpha = progress
+        translationY = (1f - progress) * lift
+    }
+}
+
+/** Roughly two frames at 60Hz - enough to read as a sequence, not as a queue. */
+private const val STAGGER_MS = 45
+private val ENTRY_LIFT = 20.dp
+
+/**
  * The sleeve, square and centred.
  *
  * A new track crossfades in rather than cutting: the covers are the one thing on this
@@ -228,11 +281,12 @@ private fun AlbumArt(
     artworkUri: String?,
     title: String?,
     showYouTubePlayer: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(24.dp)
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth(0.82f)
             /*
              * The frame is the shape of what is in it.
@@ -324,11 +378,12 @@ private fun TransportRow(
     shuffleOn: Boolean,
     repeatMode: RepeatMode,
     onCommand: (PlayerCommand) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val haptics = LocalHapticEngine.current
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

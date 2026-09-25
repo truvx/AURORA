@@ -36,6 +36,7 @@ interface AppContainer {
     val followedArtists: dev.aurora.player.data.discovery.FollowedArtistsStore
     val youTubeDataApi: YouTubeDataApi
     val coverArtRepository: dev.aurora.player.data.discovery.CoverArtRepository
+    val lyricsRepository: dev.aurora.player.data.lyrics.LyricsRepository
     val mediaResolver: dev.aurora.player.data.discovery.MediaResolver
     val latestReleasesRepository: dev.aurora.player.data.discovery.LatestReleasesRepository
     val trendingRepository: dev.aurora.player.data.discovery.TrendingRepository
@@ -125,6 +126,39 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
                 }
             },
         )
+    }
+
+    /**
+     * LRCLIB, for the words of what is playing.
+     *
+     * Its own Retrofit because it is a different service with different manners: no key,
+     * no rate limit published, and no User-Agent demanded - but one is sent anyway, since
+     * an anonymous client is the first thing an open service blocks when it needs to.
+     */
+    override val lyricsRepository: dev.aurora.player.data.lyrics.LyricsRepository by lazy {
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        val contentType = okhttp3.MediaType.get("application/json")
+        val client = okhttp3.OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header(
+                            "User-Agent",
+                            "AURORA/${dev.aurora.player.BuildConfig.VERSION_NAME} " +
+                                "( https://github.com/t6ux/AURORA )"
+                        )
+                        .build()
+                )
+            }
+            .build()
+        val api = retrofit2.Retrofit.Builder()
+            .baseUrl("https://lrclib.net/")
+            .client(client)
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            .create(dev.aurora.player.data.api.LrcLibApi::class.java)
+
+        dev.aurora.player.data.lyrics.LyricsRepository(api = api, cache = discoveryCache)
     }
 
     override val youtubeMusicProvider: YouTubeMusicProvider by lazy {

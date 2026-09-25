@@ -9,6 +9,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import dev.aurora.player.data.discovery.CoverArtRepository
+import dev.aurora.player.domain.discovery.TrackIdentifier
+import dev.aurora.player.domain.discovery.TrackIdentity
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.domain.models.ProviderKind
 
@@ -28,7 +30,31 @@ data class ResolvedArtwork(
     val artist: String?,
     val title: String?,
     val album: String?,
+    /**
+     * What record this is, where AURORA is sure enough to ask a database about it.
+     *
+     * Carried here so nothing downstream has to re-read a title that has already been
+     * read. Parsing "Soft Spot" a second time, with a channel name for an artist, throws
+     * away the answer the cover lookup already paid for and comes back with a guess.
+     */
+    val identity: TrackIdentity? = null,
 )
+
+/**
+ * What this track is, before any lookup has run.
+ *
+ * A local file's tags are the truth about it - somebody wrote them for their own library -
+ * so they are taken as certain. A YouTube upload is read apart by the identifier, which
+ * says itself how much to trust the result.
+ */
+private fun initialIdentity(track: MediaItem): TrackIdentity? =
+    if (track.provider == ProviderKind.YOUTUBE) {
+        TrackIdentifier.identify(track.title, track.artist)
+    } else {
+        track.artist
+            ?.takeIf { it.isNotBlank() }
+            ?.let { TrackIdentity(artist = it, title = track.title, confident = true) }
+    }
 
 /**
  * Resolves the album artwork for a track, looking it up once per track.
@@ -40,7 +66,13 @@ data class ResolvedArtwork(
 @Composable
 fun rememberAlbumArtwork(track: MediaItem?): State<ResolvedArtwork> {
     val repository = LocalCoverArtRepository.current
-    val fallback = ResolvedArtwork(track?.artworkUri, track?.artist, track?.title, track?.album)
+    val fallback = ResolvedArtwork(
+        artworkUri = track?.artworkUri,
+        artist = track?.artist,
+        title = track?.title,
+        album = track?.album,
+        identity = track?.let { initialIdentity(it) },
+    )
     val resolved = remember(track?.id) { mutableStateOf(fallback) }
 
     LaunchedEffect(track?.id, repository) {
@@ -56,6 +88,7 @@ fun rememberAlbumArtwork(track: MediaItem?): State<ResolvedArtwork> {
             artist = cover.identity.artist,
             title = cover.identity.title,
             album = cover.album ?: track.album,
+            identity = cover.identity,
         )
     }
 

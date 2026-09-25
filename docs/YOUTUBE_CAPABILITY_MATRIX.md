@@ -17,7 +17,7 @@ Status: final v1 contract, 2026-09-03.
 | Quality selection | No app-controlled contract | No app-controlled contract | IFrame player quality methods are not a supported contract | Unsupported | Do not claim bitrate, codec, sample rate, lossless, or Hi-Res from YouTube. | Resolve `Preferred Audio Quality` to provider-determined/unknown actual quality. |
 | Downloads | No | No | None | Unsupported | AURORA does not download or cache YouTube audiovisual content. | Hide download action for YouTube. |
 | Offline playback | No | No | None | Unsupported | No offline media bytes or hidden cache. | Offline mode includes local files only. |
-| Lyrics | No provider lyrics API | No provider lyrics API | None in the selected mechanisms | Unsupported | Captions/descriptions are not treated as licensed lyrics. | Do not show a lyrics action for YouTube unless a separately authorized source is added later. |
+| Lyrics | Not from YouTube | Not from YouTube | LRCLIB, a separate lyrics database | Supported from that source only | Captions/descriptions are still not treated as licensed lyrics, and never will be. | Look the record up by its resolved identity; show nothing when the source has nothing. |
 | Recommendations | Limited provider UI | Limited provider UI | Embedded player related-video behavior; Data API search for candidate discovery | Limited | YouTube controls related content; no general AURORA claim or unrestricted derived dataset. | Treat embedded recommendations as provider-owned; use AURORA deterministic ranking for permitted candidates. |
 | Metadata caching | Bounded | Bounded | Data API metadata plus local policy-compliant cache | Conditional | Non-authorized API data has current retention/refresh limits; audiovisual bytes are never cached. | Expire/refresh metadata and artwork according to policy; never make a media-byte cache. |
 | Audio separation / stream extraction | No | No | None; playback remains inside the official player | Unsupported | No separate audio URL, scraping, DRM bypass, or alternate audio path. | Reject any path that requests or returns one. |
@@ -50,6 +50,23 @@ the transport controls, labelled and at 16:9. While the full player is closed, t
 player is docked above the floating chrome at the end of the row. Nothing is drawn over
 either one, and neither is shrunk to stand in for a cover - a 44dp circle of video is not
 a user-recognizable YouTube experience, and it is not a picture of the record.
+
+## Lyrics
+
+The lyrics AURORA shows never come from YouTube. A caption track is a transcript of a video
+and a description is whatever the uploader typed, and reading either as the lyric of a
+recording is how a player ends up printing "[Music]" and a sign-off as verse. Both are also
+somebody else's text, published for a different purpose.
+
+They come from LRCLIB, a lyrics database with a public API and no key. It is asked about
+the record AURORA has already identified - "keshi", "Soft Spot" - and never about the
+upload's own wording. A candidate is accepted only when its length agrees with what is
+playing, because the lyric of a different edit drifts further out of time with every
+chorus, and a lyric is the one thing on screen a listener reads along with.
+
+Like MusicBrainz and the Cover Art Archive, LRCLIB is not a `MusicProvider`: nothing is
+played, browsed or recommended from it. The source is named on the surface that shows its
+answer.
 
 ## Policy links
 

@@ -27,7 +27,7 @@ is what the layouts were built around.
 | Track title | Regular 400 | 18 / 26 | A song's name in a row, a card or the queue. |
 | Track artist | Regular 400 | 15 / 22 | Whoever made it, under the name. |
 | Track artist (compact) | Regular 400 | 13 / 18 | The same, where 15 would crowd the title. |
-| Lyrics | Bold 700 | per surface | Reserved; AURORA has no lyrics feature yet. |
+| Lyrics | Regular 400, Bold 700 when sung | 26 / 34 | The words on the lyrics sheet. The sung line is Bold and lit; weight and colour together, never colour alone. |
 | Body | Regular 400 | 16 / 24 | Descriptions, dialogs, and readable content. |
 | Label | Regular 400 | 14 / 20 | Actions, tabs, filters, and form labels. |
 | Metadata | Regular 400 | 12 / 16 | Source, quality, and secondary facts. |

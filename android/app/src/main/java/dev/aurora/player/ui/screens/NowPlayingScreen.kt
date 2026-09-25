@@ -63,6 +63,7 @@ import dev.aurora.player.domain.player.RepeatMode
 import dev.aurora.player.domain.player.ShuffleMode
 import dev.aurora.player.ui.accessibility.LocalAccessibilityPreferences
 import dev.aurora.player.ui.artwork.rememberAlbumArtwork
+import dev.aurora.player.ui.lyrics.rememberLyrics
 import dev.aurora.player.ui.artwork.rememberArtworkBitmap
 import dev.aurora.player.ui.artwork.rememberArtworkPalette
 import dev.aurora.player.ui.components.AmbientArtworkLayer
@@ -104,6 +105,16 @@ fun NowPlayingScreen(
 
     val currentTrack = state.currentTrack
     val artwork by rememberAlbumArtwork(currentTrack)
+    val lyrics by rememberLyrics(
+        identity = artwork.identity,
+        // The player's own duration where it has one: it is the length of what is actually
+        // loaded, which is what a lyrics file has to agree with.
+        durationMs = state.position.duration ?: currentTrack?.technicalMetadata?.durationMs,
+    )
+    var lyricsOpen by remember { mutableStateOf(false) }
+    // Closes the lyrics before the player, because it was opened last. Composed inside the
+    // player's own handler, so it is the one that wins.
+    androidx.activity.compose.BackHandler(enabled = lyricsOpen) { lyricsOpen = false }
     val palette by rememberArtworkPalette(artwork.artworkUri)
     val isYouTube = currentTrack?.provider == ProviderKind.YOUTUBE
     val isPlaying = state.status == PlaybackStatus.Playing ||
@@ -227,16 +238,56 @@ fun NowPlayingScreen(
                 onCommand = coordinator::dispatch,
             )
 
-            if (isYouTube) {
-                Spacer(modifier = Modifier.height(spacing.space5))
-                YouTubePlayerCard(
+            if (currentTrack != null) {
+                Spacer(modifier = Modifier.height(spacing.space4))
+                LyricsPill(
+                    onClick = {
+                        haptics.fire(HapticEvent.Tap)
+                        lyricsOpen = true
+                    },
                     modifier = Modifier.staggeredEntry(index = 4, visible = entered),
                 )
             }
 
-            Spacer(modifier = Modifier.height(spacing.space6))
+            if (isYouTube) {
+                Spacer(modifier = Modifier.height(spacing.space4))
+                YouTubePlayerCard(
+                    modifier = Modifier.staggeredEntry(index = 5, visible = entered),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(spacing.space5))
+        }
+
+        if (lyricsOpen) {
+            LyricsSheet(
+                state = lyrics,
+                positionMs = state.position.elapsed,
+                title = artwork.title ?: currentTrack?.title,
+                artist = artwork.artist,
+                onClose = { lyricsOpen = false },
+            )
         }
     }
+}
+
+/**
+ * The way in to the words, from the reference.
+ *
+ * A pill rather than an icon because it is the only control on this screen whose meaning is
+ * not obvious from a glyph, and because the reference puts a named action here - the eye
+ * finishes on the transport and then finds one more thing to do.
+ */
+@Composable
+private fun LyricsPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    dev.aurora.player.ui.components.GlassButton(
+        text = "Lyrics",
+        onClick = onClick,
+        // Secondary, not the white primary pill: the play button is the one filled control
+        // on this screen, and a second one would argue with it.
+        style = dev.aurora.player.ui.components.GlassButtonStyle.Secondary,
+        modifier = modifier,
+    )
 }
 
 /**

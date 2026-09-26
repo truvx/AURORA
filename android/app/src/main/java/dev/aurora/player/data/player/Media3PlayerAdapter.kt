@@ -62,6 +62,11 @@ class Media3PlayerAdapter(
 
     override val sessionPlayer: ExoPlayer get() = exoPlayer
 
+    override fun clearSession() {
+        exoPlayer.clearMediaItems()
+        exoPlayer.stop()
+    }
+
     private val _events = MutableSharedFlow<EngineEvent>(extraBufferCapacity = 64)
     override val events: Flow<EngineEvent> = _events
 

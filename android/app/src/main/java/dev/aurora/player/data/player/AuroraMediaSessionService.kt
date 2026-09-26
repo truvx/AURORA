@@ -47,7 +47,36 @@ class AuroraMediaSessionService : MediaSessionService() {
             }
         }
         
-        mediaSession = MediaSession.Builder(this, forwardingPlayer).build()
+        mediaSession = MediaSession.Builder(this, forwardingPlayer)
+            // Tapping the notification comes back to AURORA rather than launching a
+            // second copy of it.
+            .setSessionActivity(
+                android.app.PendingIntent.getActivity(
+                    this,
+                    0,
+                    Intent(this, dev.aurora.player.MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    },
+                    android.app.PendingIntent.FLAG_IMMUTABLE
+                )
+            )
+            .build()
+    }
+
+    /*
+     * Swiping the app away.
+     *
+     * If something is still playing the service stays: that is the point of background
+     * playback, and killing it here would make the notification a lie. If nothing is
+     * playing there is nothing to keep alive, and leaving a foreground service running
+     * over a paused player is how a music app becomes the thing in the battery screen.
+     */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        val player = mediaSession?.player
+        if (player == null || !player.isPlaying) {
+            stopSelf()
+        }
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {

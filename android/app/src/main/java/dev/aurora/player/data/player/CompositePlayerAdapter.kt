@@ -17,6 +17,10 @@ class CompositePlayerAdapter(
     override val sessionPlayer: androidx.media3.exoplayer.ExoPlayer
         get() = (localAdapter as Media3PlayerOwner).sessionPlayer
 
+    override fun clearSession() {
+        (localAdapter as? Media3PlayerOwner)?.clearSession()
+    }
+
     // Volatile: load() runs on the caller's thread while the flows are collected elsewhere,
     // and the filters below read this on every emission.
     @Volatile
@@ -44,6 +48,21 @@ class CompositePlayerAdapter(
 
         if (activeAdapter != nextAdapter) {
             activeAdapter?.pause()
+            /*
+             * Handing over to YouTube empties the Media3 player rather than parking it.
+             *
+             * The media session is built on that player, so a merely paused one keeps its
+             * last item - and the notification, the lock screen and the car would go on
+             * naming a local track while a YouTube video was the thing making sound. That
+             * is a lie in two directions at once: it credits the wrong recording, and it
+             * puts a background media session behind YouTube playback, which
+             * docs/YOUTUBE_CAPABILITY_MATRIX.md does not allow. Cleared, the session has
+             * nothing to say and the service drops out of the foreground, which is the
+             * truth: YouTube plays in the visible player or it does not play.
+             */
+            if (nextAdapter === youtubeAdapter) {
+                clearSession()
+            }
             activeAdapter = nextAdapter
         }
         

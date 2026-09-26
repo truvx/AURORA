@@ -43,6 +43,19 @@ class CompositePlayerAdapterTest {
         override fun release() {}
     }
 
+    /**
+     * A local adapter that is Media3-backed, without a real ExoPlayer.
+     *
+     * The handover only needs to reach [clearSession]; nothing here touches the player
+     * itself, and [sessionPlayer] says so rather than pretending to hold one.
+     */
+    private class FakeMedia3Adapter : PlayerAdapter by FakeAdapter(), Media3PlayerOwner {
+        var cleared = 0
+        override val sessionPlayer: androidx.media3.exoplayer.ExoPlayer
+            get() = error("the session player is not used in this test")
+        override fun clearSession() { cleared++ }
+    }
+
     private fun track(provider: ProviderKind) = MediaItem(
         id = if (provider == ProviderKind.YOUTUBE) "youtube:abc" else "local_1",
         provider = provider,
@@ -154,4 +167,44 @@ class CompositePlayerAdapterTest {
                 received.any { it is EngineEvent.Error }
             )
         }
+    @Test
+    fun `handing over to youtube empties the media session`() {
+        // A paused Media3 player keeps its item, so the notification, the lock screen and
+        // the car would go on naming a local track while a YouTube video made the sound -
+        // and a media session behind YouTube playback is what the capability matrix
+        // forbids in the first place.
+        val local = FakeMedia3Adapter()
+        val composite = CompositePlayerAdapter(local, FakeAdapter())
+
+        composite.load(track(ProviderKind.LOCAL), "file:///music.mp3", true, 0)
+        assertEquals(0, local.cleared)
+
+        composite.load(track(ProviderKind.YOUTUBE), "abc123", true, 0)
+        assertEquals(1, local.cleared)
+    }
+
+    @Test
+    fun `coming back to a local track does not empty it again`() {
+        val local = FakeMedia3Adapter()
+        val composite = CompositePlayerAdapter(local, FakeAdapter())
+
+        composite.load(track(ProviderKind.YOUTUBE), "abc123", true, 0)
+        composite.load(track(ProviderKind.LOCAL), "file:///music.mp3", true, 0)
+
+        // Cleared on the way out to YouTube, and not on the way back - the local player is
+        // about to be given the item it is supposed to play.
+        assertEquals(1, local.cleared)
+    }
+
+    @Test
+    fun `two local tracks in a row never empty the session`() {
+        val local = FakeMedia3Adapter()
+        val composite = CompositePlayerAdapter(local, FakeAdapter())
+
+        composite.load(track(ProviderKind.LOCAL), "file:///a.mp3", true, 0)
+        composite.load(track(ProviderKind.LOCAL), "file:///b.mp3", true, 0)
+
+        assertEquals(0, local.cleared)
+    }
+
 }

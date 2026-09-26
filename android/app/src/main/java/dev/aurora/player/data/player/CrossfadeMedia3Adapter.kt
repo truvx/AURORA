@@ -31,6 +31,13 @@ class CrossfadeMedia3Adapter(
      */
     override val sessionPlayer: androidx.media3.exoplayer.ExoPlayer
         get() = activePlayer.exoPlayer
+
+    override fun clearSession() {
+        // Both, not just the active one: the idle half of a crossfade still holds the item
+        // it last played, and it becomes the active one on the next handover.
+        activePlayer.clearSession()
+        inactivePlayer.clearSession()
+    }
     
     /**
      * Only the active player's events are exposed.

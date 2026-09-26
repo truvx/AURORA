@@ -8,6 +8,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!--
+      The media notification is how playback is controlled once the app is not on screen.
+      Denying it does not stop playback - the foreground service still runs - it only
+      removes the controls, so this is requested when playback starts rather than at launch.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".AuroraApp"

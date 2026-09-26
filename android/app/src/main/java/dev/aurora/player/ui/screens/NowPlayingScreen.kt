@@ -424,6 +424,22 @@ private fun YouTubePlayerCard(modifier: Modifier = Modifier) {
         ) {
             YouTubePlayerSurface(modifier = Modifier.fillMaxSize())
         }
+        Spacer(modifier = Modifier.height(Aurora.spacing.space2))
+        /*
+         * Said plainly, where it will be read before it is discovered.
+         *
+         * Local files play with the screen off; this one does not, and the capability
+         * matrix asks for the limitation to be exposed rather than left to be found when
+         * the music stops in someone's pocket. It is a YouTube policy boundary, not a
+         * missing feature, so it is stated as a fact about this track rather than as an
+         * apology or a promise to fix it.
+         */
+        Text(
+            text = "Keeps playing only while the player is on screen",
+            style = Aurora.typography.caption,
+            color = Aurora.colors.textTertiary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
     }
 }
 

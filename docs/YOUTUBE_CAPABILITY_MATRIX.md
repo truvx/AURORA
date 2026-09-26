@@ -51,6 +51,19 @@ player is docked above the floating chrome at the end of the row. Nothing is dra
 either one, and neither is shrunk to stand in for a cover - a 44dp circle of video is not
 a user-recognizable YouTube experience, and it is not a picture of the record.
 
+## The media session
+
+Local playback owns a Media3 `MediaSessionService`: a media notification, lock-screen and
+headset controls, and playback that continues with the app in the background and the screen
+off.
+
+A YouTube track owns none of it. Handing over to YouTube empties the Media3 player rather
+than pausing it, so the session has nothing to claim and the foreground service drops. A
+paused player would have kept its last item, which would have put a background media
+session behind YouTube playback and had the lock screen name a local track while a video
+made the sound - two different untruths from one shortcut. The player says so on screen:
+"Keeps playing only while the player is on screen."
+
 ## Waveform
 
 The scrubber draws the real shape of a local file, decoded once by the platform decoder and

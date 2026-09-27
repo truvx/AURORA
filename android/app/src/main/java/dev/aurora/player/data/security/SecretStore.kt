@@ -128,5 +128,15 @@ fun gatewayTokenStore(context: Context): SecretStore =
  * local.properties, so every copy of the APK carried a working key that anyone could pull
  * out of the file with `strings`. Discovery is simply unavailable until one is entered.
  */
+/**
+ * The Google session: access token, refresh token and ID token, as one serialized blob.
+ *
+ * The refresh token in it is the valuable part - it is long-lived and it is what lets
+ * anyone holding it mint access tokens - so it gets the same Keystore treatment as the
+ * gateway token rather than the ordinary preferences AppAuth would happily write to.
+ */
+fun googleAuthStore(context: Context): SecretStore =
+    KeystoreSecretStore(context, "aurora_google_auth", "google_auth_state")
+
 fun youTubeKeyStore(context: Context): SecretStore =
     KeystoreSecretStore(context, "aurora_youtube_key", "youtube_api_key")

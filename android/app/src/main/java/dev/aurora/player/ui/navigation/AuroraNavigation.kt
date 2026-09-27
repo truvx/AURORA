@@ -328,6 +328,7 @@ fun AuroraNavigation(
                     privacyViewModel = privacyViewModel,
                     gatewayTokenStore = container.gatewayTokenStore,
                     youTubeKeyStore = container.youTubeKeyStore,
+                    googleAuth = container.googleAuth,
                     profileStore = container.profileStore
                 )
             }

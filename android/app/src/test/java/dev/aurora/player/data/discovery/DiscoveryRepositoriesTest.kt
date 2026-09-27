@@ -94,7 +94,7 @@ private fun upload(videoId: String, title: String, published: String) = YouTubeP
 class LatestReleasesRepositoryTest {
 
     private fun repo(api: FakeYouTube, store: KeyValueStore = InMemoryStore(), key: String = "k") =
-        LatestReleasesRepository(api, { key }, DiscoveryCache(store) { NOW }) { NOW }
+        LatestReleasesRepository(api, { val k = key; if (k.isBlank()) dev.aurora.player.domain.auth.YouTubeCredential.None else dev.aurora.player.domain.auth.YouTubeCredential.Key(k) }, DiscoveryCache(store) { NOW }) { NOW }
 
     private val keshi = FakeYouTube(
         channels = mapOf("Keshi" to listOf("fan" to "Keshi Fans", "UCkeshi" to "keshi - Topic")),
@@ -184,7 +184,7 @@ class TrendingRepositoryTest {
     fun `keeps only videos that can play in AURORA`() = runTest {
         val api = FakeYouTube(chart = listOf(video("a", true), video("b", false)))
 
-        val items = TrendingRepository(api, { "k" }, DiscoveryCache(InMemoryStore()) { NOW }).trending("IN").getOrThrow()
+        val items = TrendingRepository(api, { dev.aurora.player.domain.auth.YouTubeCredential.Key("k") }, DiscoveryCache(InMemoryStore()) { NOW }).trending("IN").getOrThrow()
 
         assertEquals(listOf("youtube:a"), items.map { it.id })
         // Channel decoration stripped for display.
@@ -198,7 +198,7 @@ class TrendingRepositoryTest {
         // left discovery dead until the app was restarted.
         var key = ""
         val api = FakeYouTube(chart = listOf(video("a", true)))
-        val repo = TrendingRepository(api, { key }, DiscoveryCache(InMemoryStore()) { NOW })
+        val repo = TrendingRepository(api, { val k = key; if (k.isBlank()) dev.aurora.player.domain.auth.YouTubeCredential.None else dev.aurora.player.domain.auth.YouTubeCredential.Key(k) }, DiscoveryCache(InMemoryStore()) { NOW })
 
         val before = repo.trending("IN")
         assertEquals(
@@ -217,7 +217,7 @@ class TrendingRepositoryTest {
     @Test
     fun `caches per region`() = runTest {
         val api = FakeYouTube(chart = listOf(video("a", true)))
-        val repo = TrendingRepository(api, { "k" }, DiscoveryCache(InMemoryStore()) { NOW })
+        val repo = TrendingRepository(api, { dev.aurora.player.domain.auth.YouTubeCredential.Key("k") }, DiscoveryCache(InMemoryStore()) { NOW })
 
         repo.trending("IN"); repo.trending("IN"); repo.trending("US")
 
@@ -244,7 +244,7 @@ class MediaResolverTest {
     @Test
     fun `resolves both providers, keeping the caller's order`() = runTest {
         val api = FakeYouTube(videos = mapOf("a" to yt("a")))
-        val resolver = MediaResolver(local, api, { "k" }, DiscoveryCache(InMemoryStore()) { NOW })
+        val resolver = MediaResolver(local, api, { dev.aurora.player.domain.auth.YouTubeCredential.Key("k") }, DiscoveryCache(InMemoryStore()) { NOW })
 
         val result = resolver.resolve(listOf("youtube:a", "local:1"))
 
@@ -255,7 +255,7 @@ class MediaResolverTest {
     @Test
     fun `looks YouTube ids up in one batch and remembers them`() = runTest {
         val api = FakeYouTube(videos = mapOf("a" to yt("a"), "b" to yt("b")))
-        val resolver = MediaResolver(local, api, { "k" }, DiscoveryCache(InMemoryStore()) { NOW })
+        val resolver = MediaResolver(local, api, { dev.aurora.player.domain.auth.YouTubeCredential.Key("k") }, DiscoveryCache(InMemoryStore()) { NOW })
 
         resolver.resolve(listOf("youtube:a", "youtube:b"))
         resolver.resolve(listOf("youtube:a", "youtube:b"))
@@ -266,14 +266,14 @@ class MediaResolverTest {
     @Test
     fun `marks a no-longer-embeddable video unavailable rather than hiding it`() = runTest {
         val api = FakeYouTube(videos = mapOf("gone" to yt("gone", embeddable = false)))
-        val resolver = MediaResolver(local, api, { "k" }, DiscoveryCache(InMemoryStore()) { NOW })
+        val resolver = MediaResolver(local, api, { dev.aurora.player.domain.auth.YouTubeCredential.Key("k") }, DiscoveryCache(InMemoryStore()) { NOW })
 
         assertEquals(false, resolver.resolve(listOf("youtube:gone")).getValue("youtube:gone").isAvailable)
     }
 
     @Test
     fun `an offline lookup leaves the rest of the list intact`() = runTest {
-        val resolver = MediaResolver(local, FakeYouTube(failAll = true), { "k" }, DiscoveryCache(InMemoryStore()) { NOW })
+        val resolver = MediaResolver(local, FakeYouTube(failAll = true), { dev.aurora.player.domain.auth.YouTubeCredential.Key("k") }, DiscoveryCache(InMemoryStore()) { NOW })
 
         assertEquals(listOf("local:1"), resolver.resolve(listOf("youtube:a", "local:1")).keys.toList())
     }

@@ -36,6 +36,15 @@
             </intent-filter>
         </activity>
 
+        <!--
+          Exported on purpose, and unprotected on purpose.
+          
+          A MediaSessionService is how the system UI, Bluetooth, Android Auto and the
+          assistant reach playback, and they cannot hold an app-private permission. Media3's
+          design puts the gate inside the session's own connection callback rather than in
+          the manifest, which is why lint's ExportedService warning stands here rather than
+          being silenced: the export is the feature.
+        -->
         <service
             android:name=".data.player.AuroraMediaSessionService"
             android:exported="true"

@@ -1,5 +1,6 @@
 package dev.aurora.player.data.discovery
 
+import dev.aurora.player.domain.auth.YouTubeCredential
 import dev.aurora.player.data.api.YouTubeDataApi
 import dev.aurora.player.domain.discovery.ArtistAffinity
 import dev.aurora.player.domain.models.MediaItem
@@ -22,7 +23,7 @@ class MediaResolver(
      * A lookup rather than a value: the key is entered in Settings and kept in the
      * Keystore, so it can arrive, change, or be cleared long after this object was built.
      */
-    private val apiKeyProvider: () -> String,
+    private val credentials: suspend () -> YouTubeCredential,
     private val cache: DiscoveryCache
 ) {
     suspend fun resolve(ids: List<String>): Map<String, MediaItem> {
@@ -38,8 +39,9 @@ class MediaResolver(
             }
         }
 
-        val apiKey = apiKeyProvider()
-        if (missingYouTube.isNotEmpty() && apiKey.isNotBlank()) {
+        val credential = credentials()
+        val apiKey = credential.keyParameter
+        if (missingYouTube.isNotEmpty() && credential !is YouTubeCredential.None) {
             for (batch in missingYouTube.chunked(50)) {
                 val response = try {
                     api.getVideos(

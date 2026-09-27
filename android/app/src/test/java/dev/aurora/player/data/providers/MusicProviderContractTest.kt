@@ -191,7 +191,7 @@ class YouTubeMusicProviderContractTest : MusicProviderContractTest() {
     fun `searches music, not all of YouTube`() = runBlocking {
         val api = FakeApi()
 
-        YouTubeMusicProvider(api) { "test-key" }.search("keshi")
+        YouTubeMusicProvider(api) { dev.aurora.player.domain.auth.YouTubeCredential.Key("test-key") }.search("keshi")
 
         // Category 10 is Music. Without it a search for an artist comes back with news
         // clips that happen to share their name, and the app plays one.
@@ -201,14 +201,14 @@ class YouTubeMusicProviderContractTest : MusicProviderContractTest() {
     }
 
     override fun providerWithKnownTrack(): MusicProvider =
-        YouTubeMusicProvider(FakeApi()) { "test-key" }
+        YouTubeMusicProvider(FakeApi()) { dev.aurora.player.domain.auth.YouTubeCredential.Key("test-key") }
 
     override fun providerThatFails(): MusicProvider =
-        YouTubeMusicProvider(FakeApi(java.io.IOException("offline"))) { "test-key" }
+        YouTubeMusicProvider(FakeApi(java.io.IOException("offline"))) { dev.aurora.player.domain.auth.YouTubeCredential.Key("test-key") }
 
     @Test
     fun `a missing api key fails cleanly rather than calling the network`() = runBlocking {
-        val provider = YouTubeMusicProvider(FakeApi()) { "" }
+        val provider = YouTubeMusicProvider(FakeApi()) { dev.aurora.player.domain.auth.YouTubeCredential.None }
 
         // CI has no local.properties, so an unconfigured key must be an ordinary typed
         // failure rather than an exception or a silent empty result.

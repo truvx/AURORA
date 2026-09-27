@@ -42,6 +42,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material3.OutlinedTextField
@@ -72,6 +73,7 @@ fun SettingsScreen(
     privacyViewModel: PrivacyViewModel? = null,
     gatewayTokenStore: SecretStore? = null,
     youTubeKeyStore: SecretStore? = null,
+    googleAuth: dev.aurora.player.data.auth.GoogleAuthRepository? = null,
     profileStore: dev.aurora.player.data.discovery.ProfileStore? = null,
     modifier: Modifier = Modifier
 ) {
@@ -301,6 +303,11 @@ fun SettingsScreen(
             )
         }
 
+        if (googleAuth != null && googleAuth.isConfigured) {
+            Spacer(modifier = Modifier.height(spacing.space6))
+            GoogleAccountSection(auth = googleAuth, haptics = haptics)
+        }
+
         if (youTubeKeyStore != null) {
             Spacer(modifier = Modifier.height(spacing.space6))
             SecretSection(
@@ -309,9 +316,9 @@ fun SettingsScreen(
                 name = "Data API key",
                 setText = "Saved",
                 unsetText = "Not set",
-                explanation = "Search, the Home feed and new releases need a YouTube Data API v3 key " +
-                    "from your own Google Cloud project. It's encrypted on this device and never " +
-                    "built into the app.",
+                explanation = "An alternative to signing in: a YouTube Data API v3 key from your own " +
+                    "Google Cloud project. Signing in is used in preference to this when both are " +
+                    "present. It's encrypted on this device and never built into the app.",
                 placeholder = "API key",
                 clearLabel = "Remove",
                 saveLabel = "Save",
@@ -416,6 +423,120 @@ private fun PrivacySection(
             }
         }
     }
+}
+
+/**
+ * Signing in to Google, in place of pasting a key.
+ *
+ * The explanation is careful about what this does and does not buy, because the natural
+ * assumption is wrong and expensive to discover later. Signing in does not hand AURORA a
+ * quota - a Google account is an identity, and the requests are still spent against the
+ * Cloud project the client ID came from. What it replaces is the typing.
+ */
+@Composable
+private fun GoogleAccountSection(
+    auth: dev.aurora.player.data.auth.GoogleAuthRepository,
+    haptics: dev.aurora.player.ui.haptics.HapticEngine,
+) {
+    val spacing = Aurora.spacing
+    val typography = Aurora.typography
+    val colors = Aurora.colors
+    val state by auth.state.collectAsState()
+    val scope = rememberCoroutineScope()
+    var working by remember { mutableStateOf(false) }
+
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        scope.launch {
+            auth.complete(result.data)
+            working = false
+        }
+    }
+
+    Text(
+        text = "Google",
+        style = typography.headline,
+        color = colors.textPrimary,
+        modifier = Modifier.padding(bottom = spacing.space3)
+    )
+
+    GlassCard(modifier = Modifier.fillMaxWidth(), level = GlassLevel.Primary) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.AccountCircle,
+                    contentDescription = null,
+                    tint = colors.accentPrimary,
+                    modifier = Modifier.padding(end = spacing.space3)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "Account", style = typography.title, color = colors.textPrimary)
+                    // Status in words, never colour alone.
+                    Text(
+                        text = when (val current = state) {
+                            is dev.aurora.player.domain.auth.GoogleSignInState.SignedIn ->
+                                current.email ?: "Signed in"
+                            is dev.aurora.player.domain.auth.GoogleSignInState.Failed ->
+                                current.reason.sentence()
+                            else -> "Not signed in"
+                        },
+                        style = typography.body,
+                        color = colors.textSecondary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(spacing.space3))
+            Text(
+                text = "Signs YouTube requests instead of an API key. The quota is still your own " +
+                    "Google Cloud project's - signing in replaces the typing, not the project.",
+                style = typography.caption,
+                color = colors.textTertiary
+            )
+            Spacer(modifier = Modifier.height(spacing.space4))
+
+            if (state is dev.aurora.player.domain.auth.GoogleSignInState.SignedIn) {
+                GlassButton(
+                    text = if (working) "Signing out…" else "Sign out",
+                    onClick = {
+                        haptics.fire(dev.aurora.player.ui.haptics.HapticEvent.Tap)
+                        working = true
+                        scope.launch {
+                            auth.signOut()
+                            working = false
+                        }
+                    },
+                    style = GlassButtonStyle.Secondary,
+                    enabled = !working
+                )
+            } else {
+                GlassButton(
+                    text = if (working) "Opening Google…" else "Sign in with Google",
+                    onClick = {
+                        haptics.fire(dev.aurora.player.ui.haptics.HapticEvent.Tap)
+                        val intent = auth.authorizationIntent()
+                        if (intent == null) {
+                            working = false
+                        } else {
+                            working = true
+                            launcher.launch(intent)
+                        }
+                    },
+                    enabled = !working
+                )
+            }
+        }
+    }
+}
+
+/** Each failure gets its own sentence, because each has a different thing to do about it. */
+private fun dev.aurora.player.domain.auth.SignInFailure.sentence(): String = when (this) {
+    dev.aurora.player.domain.auth.SignInFailure.Cancelled -> "Not signed in"
+    dev.aurora.player.domain.auth.SignInFailure.Unreachable -> "Couldn't reach Google. Try again."
+    dev.aurora.player.domain.auth.SignInFailure.Refused ->
+        "Google refused the sign-in. Check the app is registered in your Cloud project."
+    dev.aurora.player.domain.auth.SignInFailure.Unreadable -> "Google's answer couldn't be read."
 }
 
 /**

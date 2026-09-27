@@ -32,6 +32,36 @@ android {
         // No YouTube key here on purpose. A buildConfigField ships the key inside every
         // copy of the APK, where `strings` finds it in seconds. It is entered in Settings
         // instead and kept in the Keystore - see data/security/SecretStore.kt.
+
+        /*
+         * The Google OAuth client ID, which is a different kind of thing from a key.
+         *
+         * An installed-app client has no secret by design - Google says so, and PKCE is
+         * what stands in for one - so this genuinely can ship in the APK, and has to: the
+         * authorization request cannot be made without it. It is read from
+         * local.properties rather than written here only so that one person's Cloud
+         * project identifier does not end up committed to a shared repository.
+         *
+         * Absent, the app falls back to the pasted API key and says so in Settings.
+         */
+        val googleClientId: String = localProperties.getProperty("GOOGLE_OAUTH_CLIENT_ID")
+            ?: System.getenv("GOOGLE_OAUTH_CLIENT_ID")
+            ?: ""
+        buildConfigField("String", "GOOGLE_OAUTH_CLIENT_ID", "\"$googleClientId\"")
+
+        /*
+         * The redirect Google will send the browser back to.
+         *
+         * Installed-app clients get the reversed client ID as a private-use scheme. It is
+         * derived rather than configured separately so the two can never disagree - a
+         * redirect that does not match the client exactly is rejected by Google, and
+         * "exact redirects" is what AGENTS.md asks for.
+         */
+        manifestPlaceholders["appAuthRedirectScheme"] =
+            googleClientId.substringBefore(".apps.googleusercontent.com")
+                .takeIf { it.isNotBlank() && it != googleClientId }
+                ?.let { "com.googleusercontent.apps.$it" }
+                ?: "dev.aurora.player.unconfigured"
     }
 
 
@@ -143,6 +173,14 @@ dependencies {
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.kotlinx.serialization.json)
+
+    // OAuth, for signing in to Google instead of pasting a key.
+    //
+    // A hand-written authorization flow is a security protocol written by hand: PKCE,
+    // state, exact redirect matching, refresh and revocation, each with a way to be subtly
+    // wrong. AppAuth is the OpenID Foundation's implementation of exactly this and is what
+    // Google's own installed-app guidance points at.
+    implementation("net.openid:appauth:0.11.1")
 
     // UI Utilities
     implementation("io.github.kyant0:backdrop:1.0.6")

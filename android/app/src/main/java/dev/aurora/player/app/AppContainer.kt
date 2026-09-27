@@ -37,6 +37,7 @@ interface AppContainer {
     val youTubeDataApi: YouTubeDataApi
     val coverArtRepository: dev.aurora.player.data.discovery.CoverArtRepository
     val lyricsRepository: dev.aurora.player.data.lyrics.LyricsRepository
+    val googleAuth: dev.aurora.player.data.auth.GoogleAuthRepository
     val waveformRepository: dev.aurora.player.data.audio.WaveformRepository
     val mediaResolver: dev.aurora.player.data.discovery.MediaResolver
     val latestReleasesRepository: dev.aurora.player.data.discovery.LatestReleasesRepository
@@ -77,8 +78,23 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     override val youTubeDataApi: YouTubeDataApi by lazy {
         val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
         val contentType = okhttp3.MediaType.get("application/json")
+        val client = okhttp3.OkHttpClient.Builder()
+            /*
+             * The bearer token is attached here rather than passed down through the call
+             * sites, because freshness belongs to the moment a request leaves rather than
+             * to the moment someone decided to make one. Blocking is safe: interceptors
+             * run on OkHttp's own I/O threads, and the refresh behind this is either
+             * instant from memory or the one call the request already depended on.
+             */
+            .addInterceptor(
+                dev.aurora.player.data.api.YouTubeAuthInterceptor {
+                    kotlinx.coroutines.runBlocking { googleAuth.accessToken() }
+                }
+            )
+            .build()
         retrofit2.Retrofit.Builder()
             .baseUrl("https://www.googleapis.com/youtube/v3/")
+            .client(client)
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
             .create(YouTubeDataApi::class.java)
@@ -176,8 +192,33 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         )
     }
 
+    /**
+     * What authorises a YouTube call, resolved fresh each time it is asked.
+     *
+     * A signed-in session wins over a pasted key: it is the newer, revocable thing, and
+     * someone who has signed in has said which they want. The key stays as the fallback
+     * for anyone who has not - and for the case where a session has expired and cannot be
+     * refreshed, where falling back beats going dark.
+     */
+    private suspend fun youTubeCredential(): dev.aurora.player.domain.auth.YouTubeCredential =
+        dev.aurora.player.domain.auth.YouTubeCredential.of(
+            accessToken = googleAuth.accessToken(),
+            apiKey = youTubeKeyStore.get(),
+        )
+
+    override val googleAuth: dev.aurora.player.data.auth.GoogleAuthRepository by lazy {
+        dev.aurora.player.data.auth.GoogleAuthRepository(
+            context = context,
+            store = dev.aurora.player.data.security.googleAuthStore(context),
+            clientId = dev.aurora.player.BuildConfig.GOOGLE_OAUTH_CLIENT_ID,
+            redirectUri = dev.aurora.player.BuildConfig.GOOGLE_OAUTH_CLIENT_ID
+                .substringBefore(".apps.googleusercontent.com")
+                .let { "com.googleusercontent.apps.$it:/oauth2redirect" },
+        ).also { it.restore() }
+    }
+
     override val youtubeMusicProvider: YouTubeMusicProvider by lazy {
-        YouTubeMusicProvider(youTubeDataApi) { youTubeKeyStore.get().orEmpty() }
+        YouTubeMusicProvider(youTubeDataApi) { youTubeCredential() }
     }
 
     /*
@@ -198,7 +239,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         dev.aurora.player.data.discovery.MediaResolver(
             local = localLibraryProvider,
             api = youTubeDataApi,
-            apiKeyProvider = { youTubeKeyStore.get().orEmpty() },
+            credentials = { youTubeCredential() },
             cache = discoveryCache
         )
     }
@@ -206,7 +247,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     override val latestReleasesRepository: dev.aurora.player.data.discovery.LatestReleasesRepository by lazy {
         dev.aurora.player.data.discovery.LatestReleasesRepository(
             api = youTubeDataApi,
-            apiKeyProvider = { youTubeKeyStore.get().orEmpty() },
+            credentials = { youTubeCredential() },
             cache = discoveryCache
         )
     }
@@ -214,7 +255,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     override val trendingRepository: dev.aurora.player.data.discovery.TrendingRepository by lazy {
         dev.aurora.player.data.discovery.TrendingRepository(
             api = youTubeDataApi,
-            apiKeyProvider = { youTubeKeyStore.get().orEmpty() },
+            credentials = { youTubeCredential() },
             cache = discoveryCache
         )
     }

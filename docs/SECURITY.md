@@ -51,3 +51,34 @@ Do not disable TLS or certificate validation, bypass DRM, scrape cookies, downlo
 - [ ] Local files/URIs are validated and scoped to user ownership.
 - [ ] Logs/crash reports redact secrets and sensitive music data.
 - [ ] TLS/security validation remains enabled and dependency risk is reviewed.
+
+## Signing in to Google
+
+AURORA can authorize YouTube Data API calls with an OAuth access token instead of a pasted
+API key. What that buys is narrow, and worth stating because the obvious reading is wrong:
+a Google account is an identity, not an entitlement. The quota spent still belongs to the
+Google Cloud project the client ID came from, and a consumer account brings none of its
+own. Signing in replaces the typing, not the project.
+
+The flow is AppAuth's authorization code flow with PKCE and state, against Google's
+published endpoints, with a redirect derived from the client ID so the two cannot disagree.
+Scopes are the least that will do the job: `openid` and `email` so a server can be told who
+is asking, and `youtube.readonly` because nothing here uploads, rates, subscribes or
+deletes.
+
+The OAuth client ID is not a secret - installed-app clients have none by design, which is
+what PKCE stands in for - so it ships in the APK, as it must. It is read from
+`local.properties` rather than written into the build file only so that one person's Cloud
+project identifier is not committed to a shared repository. With none configured, the
+sign-in option is not offered and the API key remains the way in.
+
+The session - access token, refresh token and ID token - is held in the Keystore-backed
+`SecretStore`, not in the ordinary preferences AppAuth would otherwise use: the refresh
+token is long-lived and is what lets anyone holding it mint access tokens. Signing out
+revokes the grant with Google as well as clearing it locally, and clears locally even if
+the revocation cannot be delivered, because someone who signed out must not still be
+signed in.
+
+A signed-in session takes precedence over a stored key, and suppresses it: Google rejects a
+request carrying both an API key and a bearer token. A session that has expired and cannot
+refresh falls back to the key rather than going dark.

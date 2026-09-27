@@ -94,7 +94,7 @@ class AiE2ETest {
             .build()
         val ytApi = ytRetrofit.create(YouTubeDataApi::class.java)
         val youTubeKey = System.getProperty("aurora.youtubeKey").orEmpty()
-        val ytProvider = YouTubeMusicProvider(ytApi) { youTubeKey }
+        val ytProvider = YouTubeMusicProvider(ytApi) { val k = youTubeKey; if (k.isBlank()) dev.aurora.player.domain.auth.YouTubeCredential.None else dev.aurora.player.domain.auth.YouTubeCredential.Key(k) }
 
         // 3. Setup Recommendation Engine
         val engine = RecommendationEngine(listOf(ytProvider))
@@ -144,7 +144,7 @@ class AiE2ETest {
 
     @Test
     fun testInvalidTrackIdCannotReachCoordinator() = runBlocking {
-        val ytProvider = YouTubeMusicProvider(Retrofit.Builder().baseUrl("https://www.googleapis.com/youtube/v3/").addConverterFactory(kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.asConverterFactory(MediaType.get("application/json"))).build().create(YouTubeDataApi::class.java)) { System.getProperty("aurora.youtubeKey").orEmpty() }
+        val ytProvider = YouTubeMusicProvider(Retrofit.Builder().baseUrl("https://www.googleapis.com/youtube/v3/").addConverterFactory(kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.asConverterFactory(MediaType.get("application/json"))).build().create(YouTubeDataApi::class.java)) { val k = System.getProperty("aurora.youtubeKey").orEmpty(); if (k.isBlank()) dev.aurora.player.domain.auth.YouTubeCredential.None else dev.aurora.player.domain.auth.YouTubeCredential.Key(k) }
         val engine = RecommendationEngine(listOf(ytProvider))
         val scope = CoroutineScope(Dispatchers.Unconfined)
         var loadedTrack: MediaItem? = null

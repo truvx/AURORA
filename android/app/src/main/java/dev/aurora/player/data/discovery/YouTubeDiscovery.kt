@@ -1,6 +1,7 @@
 package dev.aurora.player.data.discovery
 
 import dev.aurora.player.data.api.YouTubeDataApi
+import dev.aurora.player.domain.auth.YouTubeCredential
 import dev.aurora.player.domain.discovery.ArtistAffinity
 import dev.aurora.player.domain.discovery.ChannelMatcher
 import dev.aurora.player.domain.discovery.Release
@@ -29,7 +30,7 @@ class LatestReleasesRepository(
      * A lookup rather than a value: the key is entered in Settings and kept in the
      * Keystore, so it can arrive, change, or be cleared long after this object was built.
      */
-    private val apiKeyProvider: () -> String,
+    private val credentials: suspend () -> YouTubeCredential,
     private val cache: DiscoveryCache,
     private val now: () -> Long = System::currentTimeMillis
 ) {
@@ -40,8 +41,11 @@ class LatestReleasesRepository(
     private data class ChannelRecord(val channelId: String?, val uploadsPlaylistId: String?)
 
     suspend fun latest(artists: List<String>): Result<List<Release>> {
-        val apiKey = apiKeyProvider()
-        if (apiKey.isBlank()) return Result.failure(DiscoveryUnavailable(DiscoveryUnavailable.Reason.NO_API_KEY))
+        val credential = credentials()
+        if (credential is YouTubeCredential.None) {
+            return Result.failure(DiscoveryUnavailable(DiscoveryUnavailable.Reason.NO_API_KEY))
+        }
+        val apiKey = credential.keyParameter
         if (artists.isEmpty()) return Result.success(emptyList())
 
         val listKey = "releases:" + artists.joinToString("|") { it.lowercase() }
@@ -130,12 +134,15 @@ class TrendingRepository(
      * A lookup rather than a value: the key is entered in Settings and kept in the
      * Keystore, so it can arrive, change, or be cleared long after this object was built.
      */
-    private val apiKeyProvider: () -> String,
+    private val credentials: suspend () -> YouTubeCredential,
     private val cache: DiscoveryCache
 ) {
     suspend fun trending(regionCode: String): Result<List<MediaItem>> {
-        val apiKey = apiKeyProvider()
-        if (apiKey.isBlank()) return Result.failure(DiscoveryUnavailable(DiscoveryUnavailable.Reason.NO_API_KEY))
+        val credential = credentials()
+        if (credential is YouTubeCredential.None) {
+            return Result.failure(DiscoveryUnavailable(DiscoveryUnavailable.Reason.NO_API_KEY))
+        }
+        val apiKey = credential.keyParameter
         val key = "trending:$regionCode"
         cache.read(key, TTL_MS, ListSerializer(CachedMedia.serializer()))?.let { cached ->
             return Result.success(cached.map { it.toMediaItem() })

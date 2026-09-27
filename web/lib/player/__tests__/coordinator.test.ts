@@ -170,4 +170,63 @@ describe("PlayerCoordinator", () => {
     expect(countWhileSubscribed).toBeGreaterThan(0);
     expect(seen.length).toBe(countWhileSubscribed);
   });
+  it("keeps the queue you built when you play something new", async () => {
+    // Pressing play on a fourth track used to replace the three you had queued.
+    await coordinator.dispatch({ type: "addToQueue", track: track("a") });
+    await coordinator.dispatch({ type: "addToQueue", track: track("b") });
+    await coordinator.dispatch({ type: "addToQueue", track: track("c") });
+
+    await coordinator.dispatch({ type: "load", track: track("d") });
+
+    const { queue } = coordinator.getState();
+    expect(queue.items.map((i) => i.id)).toEqual(["a", "b", "c", "d"]);
+    expect(queue.currentIndex).toBe(3);
+  });
+
+  it("advances past a duplicate instead of looping back to its first copy", async () => {
+    // [A, B, A] used to play A, B, A, B forever: skipping to index 2 re-derived the
+    // position from the track id and landed on index 0.
+    await coordinator.dispatch({ type: "addToQueue", track: track("a") });
+    await coordinator.dispatch({ type: "addToQueue", track: track("b") });
+    await coordinator.dispatch({ type: "addToQueue", track: track("a") });
+    await coordinator.dispatch({ type: "load", track: track("a") });
+    expect(coordinator.getState().queue.currentIndex).toBe(0);
+
+    await coordinator.dispatch({ type: "skipNext" });
+    expect(coordinator.getState().queue.currentIndex).toBe(1);
+
+    await coordinator.dispatch({ type: "skipNext" });
+    expect(coordinator.getState().queue.currentIndex).toBe(2);
+  });
+
+  it("does not let a slow resolve overwrite a newer load", async () => {
+    // Two rapid loads where the first resolves slower: the adapter used to end up playing
+    // the slow one while the screen named the fast one.
+    const resolved: Record<string, number> = { slow: 40, fast: 0 };
+    const racing = new PlayerCoordinator(adapter, async (t: MediaItem) => {
+      await new Promise((r) => setTimeout(r, resolved[t.id] ?? 0));
+      return `blob:${t.id}`;
+    });
+
+    const first = racing.dispatch({ type: "load", track: track("slow") });
+    const second = racing.dispatch({ type: "load", track: track("fast") });
+    await Promise.all([first, second]);
+
+    expect(racing.getState().currentTrack?.id).toBe("fast");
+    expect(adapter.loaded.at(-1)?.track.id).toBe("fast");
+  });
+
+  it("leaves Seeking when a paused track finishes seeking", async () => {
+    // A paused HTMLAudioElement emits seeking/seeked/canplay and no playing event, so the
+    // status stayed "Seeking…" forever and the live region announced it.
+    await coordinator.dispatch({ type: "load", track: track("a") });
+    adapter.listener.onPaused();
+    await coordinator.dispatch({ type: "seek", positionMs: 5000 });
+    expect(coordinator.getState().status).toBe("Seeking");
+
+    adapter.listener.onSeeked();
+
+    expect(coordinator.getState().status).toBe("Paused");
+  });
+
 });

@@ -26,6 +26,12 @@ export class PlayerCoordinator {
   /** Revoked when a track is replaced, so object URLs do not accumulate. */
   private currentObjectUrl?: string;
 
+  /** Rises on every load; a resolve that finishes against an older one is discarded. */
+  private loadGeneration = 0;
+
+  /** What to go back to when a seek ends. */
+  private statusBeforeSeek: PlayerState["status"] | undefined;
+
   constructor(
     private readonly adapter: PlaybackAdapter,
     private readonly resolveSource: SourceResolver
@@ -63,7 +69,12 @@ export class PlayerCoordinator {
         this.adapter.pause();
         break;
       case "seek":
-        this.update((state) => ({ ...state, status: "Seeking" }));
+        this.update((state) => {
+          // Remembered, because a seek is a detour and not a destination: what comes after
+          // it is whatever was happening before it.
+          if (!isTerminal(state)) this.statusBeforeSeek = state.status;
+          return { ...state, status: "Seeking" };
+        });
         this.adapter.seek(command.positionMs);
         break;
       case "skipNext":
@@ -120,17 +131,40 @@ export class PlayerCoordinator {
    * The queue placement is deliberate: the Android client shipped without it, so a finished
    * track had nothing to advance to and completion was never observable.
    */
-  private async loadTrack(track: MediaItem, playWhenReady: boolean): Promise<void> {
+  private async loadTrack(
+    track: MediaItem,
+    playWhenReady: boolean,
+    /**
+     * Where in the queue this track is being played from.
+     *
+     * Passed in rather than looked up, because a queue may hold the same track twice and
+     * its identity cannot say which copy is meant. Skipping into the second copy of a
+     * track used to re-derive the position from the id, land on the first copy, and loop
+     * between them forever.
+     */
+    queueIndex?: number
+  ): Promise<void> {
+    const generation = ++this.loadGeneration;
+
     this.update((state) => ({
       ...state,
       status: "Loading",
       currentTrack: track,
       error: undefined,
       position: { elapsedMs: 0 },
-      queue: placeInQueue(state.queue, track),
+      queue: placeInQueue(state.queue, track, queueIndex),
     }));
 
     const source = await this.resolveSource(track);
+    /*
+     * Another load started while this one was resolving.
+     *
+     * Without this the loser still reached the adapter, so the speakers played one track
+     * while the screen named another - and worse, revokeCurrentUrl below would revoke the
+     * blob the winner had just been handed.
+     */
+    if (generation !== this.loadGeneration) return;
+
     if (!source) {
       this.update((state) => ({
         ...state,
@@ -163,7 +197,7 @@ export class PlayerCoordinator {
     const next = queue.currentIndex + 1;
     if (next >= queue.items.length) {
       if (queue.repeatMode === "All") {
-        await this.loadTrack(queue.items[0], true);
+        await this.loadTrack(queue.items[0], true, 0);
         return;
       }
       // Nothing to advance to: terminal, and left terminal so observers can see it.
@@ -171,7 +205,7 @@ export class PlayerCoordinator {
       this.update((state) => ({ ...state, status: "Completed" }));
       return;
     }
-    await this.loadTrack(queue.items[next], true);
+    await this.loadTrack(queue.items[next], true, next);
   }
 
   private async skipPrevious(): Promise<void> {
@@ -186,7 +220,7 @@ export class PlayerCoordinator {
       this.adapter.seek(0);
       return;
     }
-    await this.loadTrack(queue.items[previous], true);
+    await this.loadTrack(queue.items[previous], true, previous);
   }
 
   private readonly adapterListener: AdapterListener = {
@@ -209,6 +243,13 @@ export class PlayerCoordinator {
         // Completed and Error are terminal. The Android client reset a completion to Paused
         // a millisecond after setting it, so nothing ever observed a finished track.
         isTerminal(state) ? state : { ...state, status: "Paused" }
+      ),
+
+    onSeeked: () =>
+      this.update((state) =>
+        state.status === "Seeking"
+          ? { ...state, status: this.statusBeforeSeek ?? "Paused" }
+          : state
       ),
 
     onBuffering: (isBuffering) =>
@@ -268,11 +309,21 @@ function isTerminal(state: PlayerState): boolean {
   return state.status === "Completed" || state.status === "Error";
 }
 
-/** A loaded track replaces the queue; addToQueue is what appends. */
-function placeInQueue(queue: QueueState, track: MediaItem): QueueState {
+/**
+ * Puts a loaded track into the queue without destroying what is already there.
+ *
+ * [index] is the copy being played, when the caller knows it - skipping forward always
+ * does. Without it, a track already present keeps its first position, and a new one is
+ * appended. It used to replace the whole queue with a single item, so pressing play on
+ * anything discarded the queue the listener had just built.
+ */
+function placeInQueue(queue: QueueState, track: MediaItem, index?: number): QueueState {
+  if (index !== undefined && queue.items[index]?.id === track.id) {
+    return { ...queue, currentIndex: index };
+  }
   const existing = queue.items.findIndex((item) => item.id === track.id);
   if (existing >= 0) return { ...queue, currentIndex: existing };
-  return { ...queue, items: [track], currentIndex: 0 };
+  return { ...queue, items: [...queue.items, track], currentIndex: queue.items.length };
 }
 
 function removeFromQueue(state: PlayerState, trackId: string): PlayerState {

@@ -122,6 +122,14 @@ export interface AdapterListener {
   onPlaying(): void;
   onPaused(): void;
   onBuffering(isBuffering: boolean): void;
+  /**
+   * A seek finished.
+   *
+   * Needed because a *paused* element emits only `seeking`, `seeked`, `canplay` - no
+   * `playing`, no `pause` - so without this there is no event that ends the seek and the
+   * status stays "Seeking" for good.
+   */
+  onSeeked(): void;
   onPosition(elapsedMs: number, durationMs?: number, bufferedMs?: number): void;
   onCompleted(): void;
   onError(message: string): void;

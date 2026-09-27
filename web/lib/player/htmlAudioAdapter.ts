@@ -86,6 +86,12 @@ export class HtmlAudioAdapter implements PlaybackAdapter {
     });
     this.audio.addEventListener("waiting", () => this.listener?.onBuffering(true));
     this.audio.addEventListener("canplay", () => this.listener?.onBuffering(false));
+    /*
+     * A paused element emits seeking, seeked, canplay - and no playing, no pause. Without
+     * this event nothing ends the seek, and the status stayed "Seeking" for the rest of
+     * the track, announced on a live region.
+     */
+    this.audio.addEventListener("seeked", () => this.listener?.onSeeked());
     this.audio.addEventListener("ended", () => {
       this.stopPositionTimer();
       this.listener?.onCompleted();

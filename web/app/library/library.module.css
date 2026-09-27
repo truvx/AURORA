@@ -16,7 +16,7 @@
 .secondaryButton {
   min-height: 44px;
   padding: 0 var(--aurora-space-4);
-  border-radius: 999px;
+  border-radius: var(--aurora-radius-pill);
   cursor: pointer;
   font: inherit;
 }
@@ -63,7 +63,7 @@
   gap: var(--aurora-space-3);
   padding: var(--aurora-space-3);
   border: 1px solid var(--aurora-border-control);
-  border-radius: 12px;
+  border-radius: var(--aurora-radius-control);
   background: var(--aurora-surface-glass-secondary);
   color: var(--aurora-text-primary);
   text-align: left;
@@ -81,7 +81,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: var(--aurora-space-hair);
   min-width: 0;
 }
 
@@ -121,7 +121,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--aurora-border-control);
-  border-radius: 12px;
+  border-radius: var(--aurora-radius-control);
   background: transparent;
   color: var(--aurora-text-secondary);
   cursor: pointer;
@@ -138,7 +138,7 @@
 
 .pickerTitle {
   margin: 0 0 var(--aurora-space-2);
-  font-size: 1rem;
+  font-size: var(--aurora-type-body-size);
   /* A heading over the picker, so it takes the heading weight. */
   font-weight: var(--aurora-type-section-weight);
 }

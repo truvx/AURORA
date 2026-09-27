@@ -27,7 +27,7 @@
 }
 
 .placeholder .material-symbols-outlined {
-  font-size: 1.5rem;
+  font-size: var(--aurora-icon-size);
 }
 
 .player.placeholder {

@@ -21,7 +21,8 @@
 .scrubber:focus-visible {
   outline: 2px solid var(--aurora-focus-ring);
   outline-offset: 2px;
-  border-radius: 6px;
+  /* The same ring as everything else. This was 6px, so focus had two roundings. */
+  border-radius: var(--aurora-radius-focus);
 }
 
 .bars,
@@ -57,7 +58,7 @@
   width: 3px;
   height: 28px;
   transform: translate(-3px, -50%);
-  border-radius: 999px;
+  border-radius: var(--aurora-radius-pill);
   background: var(--aurora-player-progress);
 }
 

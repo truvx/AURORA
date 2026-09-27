@@ -16,12 +16,12 @@
   width: 100%;
   /* 16:9, so the official player keeps its own proportions and controls stay usable. */
   aspect-ratio: 16 / 9;
-  border-radius: 12px;
+  border-radius: var(--aurora-radius-control);
   overflow: hidden;
 }
 
 .attribution {
   margin: var(--aurora-space-2) 0 0;
-  font-size: 0.8125rem;
+  font-size: var(--aurora-type-track-artist-compact-size);
   color: var(--aurora-text-secondary);
 }

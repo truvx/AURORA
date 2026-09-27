@@ -98,7 +98,7 @@
   justify-content: space-around;
   /* The pill: a fixed height and a fully rounded end, matching the Android chrome. */
   height: 3.75rem;
-  border-radius: 999px;
+  border-radius: var(--aurora-radius-pill);
   overflow: hidden;
   /*
    * The structural layer, so it carries the heavier material: a stronger blur and more
@@ -154,7 +154,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--aurora-space-hair);
   padding: 0 var(--aurora-space-2);
   min-width: var(--aurora-target-min);
   min-height: var(--aurora-target-min);

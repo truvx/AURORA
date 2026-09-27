@@ -14,7 +14,7 @@
   min-height: 44px;
   padding: 0 var(--aurora-space-3);
   border: 1px solid var(--aurora-border-control);
-  border-radius: 12px;
+  border-radius: var(--aurora-radius-control);
   background: transparent;
   color: var(--aurora-text-primary);
   font: inherit;
@@ -24,9 +24,9 @@
   min-height: 44px;
   padding: 0 var(--aurora-space-4);
   border: none;
-  border-radius: 999px;
+  border-radius: var(--aurora-radius-pill);
   background: var(--aurora-accent-primary);
-  color: #0b0b0b;
+  color: var(--aurora-control-on-primary);
   font: inherit;
   cursor: pointer;
 }
@@ -64,10 +64,10 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: var(--aurora-space-hair);
   padding: var(--aurora-space-3);
   border: 1px solid var(--aurora-border-control);
-  border-radius: 12px;
+  border-radius: var(--aurora-radius-control);
   background: var(--aurora-surface-glass-secondary);
   color: var(--aurora-text-primary);
   text-align: left;
@@ -82,14 +82,14 @@
 
 .rowTitle {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--aurora-type-body-size);
   /* A playlist's name is a heading for the rows under it. */
   font-weight: var(--aurora-type-section-weight);
 }
 
 .status {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--aurora-type-label-size);
   color: var(--aurora-text-secondary);
 }
 
@@ -100,7 +100,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--aurora-border-control);
-  border-radius: 12px;
+  border-radius: var(--aurora-radius-control);
   background: transparent;
   color: var(--aurora-text-secondary);
   cursor: pointer;

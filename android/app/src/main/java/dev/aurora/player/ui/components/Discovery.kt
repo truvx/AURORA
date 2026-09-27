@@ -160,7 +160,12 @@ fun ReleaseCard(
                         .padding(Aurora.spacing.space2)
                         .clip(RoundedCornerShape(4.dp))
                         .background(colors.controlPrimary)
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        /*
+                         * Tighter than the 4-unit scale, deliberately: this is the inside
+                         * of a badge sitting on artwork, where a 4dp inset already reads
+                         * as a gap around the word rather than as its box.
+                         */
+                        .padding(horizontal = Aurora.spacing.space1 + 2.dp, vertical = 2.dp)
                 )
             }
         }

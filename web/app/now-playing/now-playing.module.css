@@ -78,7 +78,7 @@
   gap: 0 var(--aurora-space-3);
   padding: var(--aurora-space-3);
   border: 1px solid var(--aurora-border-control);
-  border-radius: 12px;
+  border-radius: var(--aurora-radius-control);
   background: var(--aurora-surface-glass-secondary);
   color: var(--aurora-text-primary);
   text-align: left;
@@ -110,7 +110,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--aurora-border-control);
-  border-radius: 12px;
+  border-radius: var(--aurora-radius-control);
   background: transparent;
   color: var(--aurora-text-secondary);
   cursor: pointer;
@@ -196,7 +196,7 @@
   min-width: var(--aurora-target-min);
   min-height: var(--aurora-target-min);
   border: none;
-  border-radius: 999px;
+  border-radius: var(--aurora-radius-pill);
   background: transparent;
   color: var(--aurora-text-primary);
   cursor: pointer;
@@ -263,7 +263,7 @@
     align-items: center;
     gap: var(--aurora-space-4);
     padding: var(--aurora-space-3) var(--aurora-space-4);
-    border-radius: 999px;
+    border-radius: var(--aurora-radius-pill);
   }
 
   .controls {

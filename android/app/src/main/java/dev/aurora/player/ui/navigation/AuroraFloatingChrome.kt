@@ -199,7 +199,7 @@ private fun NavPillItem(
                     onClick()
                 }
             )
-            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .padding(horizontal = Aurora.spacing.space3, vertical = Aurora.spacing.space2)
             .graphicsLayer {
                 scaleX = 1f - 0.08f * press
                 scaleY = 1f - 0.08f * press

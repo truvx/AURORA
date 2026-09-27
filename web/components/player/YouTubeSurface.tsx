@@ -31,8 +31,19 @@ export function YouTubeSurface() {
     >
       <div id={YOUTUBE_PLAYER_ELEMENT_ID} className={styles.player} />
       {isYouTube && (
+        /*
+         * What is true today, not what will be true later.
+         *
+         * This line used to read "Playing on YouTube", which the page printed directly
+         * beneath "could not be opened" - because nothing here plays YouTube at all: the
+         * IFrame adapter exists but is never constructed, so the element above stays
+         * empty and every YouTube track is handed to the local-file adapter. Claiming
+         * playback that is not happening is the one thing the capability matrix is for.
+         * The mount point stays so wiring the real player is a change of one line here.
+         */
         <p className={styles.attribution}>
-          Playing on YouTube. Quality and availability are determined by YouTube.
+          YouTube playback isn&apos;t available in the web app yet. This track plays on
+          Android.
         </p>
       )}
     </section>

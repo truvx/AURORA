@@ -273,6 +273,8 @@ components:
     padding: 64px
 ---
 
+> AURORA note: third-party analysis from VoltAgent/awesome-design-md, inspiration only. Adapted to Space Mono (400/700, near-zero tracking) per ADR-015. `docs/AURORA_MASTER_DESIGN_SYSTEM.md` and `docs/DESIGN_TOKENS.md` win on every conflict. Do not copy Apple colours, SF Pro, or assets (ADR-002, ADR-015).
+
 ## Overview
 
 Apple's web presence is a masterclass in **reverent product photography framed by near-invisible UI**. Every page is a stack of edge-to-edge product "tiles" — alternating light and dark canvases, each centered on a hero headline, a one-line tagline, two tiny blue pill CTAs, and an impossibly crisp product render. Nothing competes with the product. Typography is confident but quiet; color is either pure white, an off-white parchment, or a near-black tile; interactive elements are a single, quiet blue.

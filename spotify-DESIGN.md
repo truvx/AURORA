@@ -1,5 +1,7 @@
 # Design System Inspired by Spotify
 
+> AURORA note: third-party analysis from VoltAgent/awesome-design-md, inspiration only. `docs/AURORA_MASTER_DESIGN_SYSTEM.md` and `docs/DESIGN_TOKENS.md` win on every conflict. Do not copy Spotify colours, fonts, or assets. Spotify is not an AURORA provider.
+
 ## 1. Visual Theme & Atmosphere
 
 Spotify's web interface is a dark, immersive music player that wraps listeners in a near-black cocoon (`#121212`, `#181818`, `#1f1f1f`) where album art and content become the primary source of color. The design philosophy is "content-first darkness" — the UI recedes into shadow so that music, podcasts, and playlists can glow. Every surface is a shade of charcoal, creating a theater-like environment where the only true color comes from the iconic Spotify Green (`#1ed760`) and the album artwork itself.

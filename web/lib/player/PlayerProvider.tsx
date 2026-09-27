@@ -22,11 +22,7 @@ import { LibraryRepository } from "../library/repository";
 import { PlayerCoordinator } from "./coordinator";
 import { HtmlAudioAdapter } from "./htmlAudioAdapter";
 import { bindMediaSession } from "./mediaSession";
-import {
-  QueueSnapshotRepository,
-  queueSignature,
-  restorableQueue,
-} from "./queueSnapshot";
+import { QueueSnapshotRepository, queueSignature, restorableQueue, storedRepeatMode, storedShuffleMode } from "./queueSnapshot";
 import { MediaItem, PlayerCommand, PlayerState, initialPlayerState } from "./types";
 
 interface PlayerContextValue {
@@ -100,7 +96,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
      * already saved per track in resumePositions.
      */
     let lastSignature = queueSignature(created.getState());
+    /*
+     * Nothing is written while the saved queue is being put back.
+     *
+     * Restoring is not a change the listener made, and treating it as one is how the
+     * snapshot came to be overwritten by the very act of reading it.
+     */
+    let restoring = false;
     const unsubscribeQueue = created.subscribe((state) => {
+      if (restoring) return;
       const signature = queueSignature(state);
       if (signature === lastSignature) return;
       lastSignature = signature;
@@ -118,17 +122,41 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       // A local track whose file has left the library cannot play, so it does not go back.
       const stored = await repository.getAll().catch(() => []);
       const known = new Set(stored.map((track) => track.id));
-      const { items } = restorableQueue(snapshot, (item) =>
+      const { items, currentIndex } = restorableQueue(snapshot, (item) =>
         item.provider === "LOCAL" ? known.has(item.id) : true
       );
       if (cancelled || items.length === 0) return;
 
-      // Silently: a page that starts making noise on its own after a refresh is a worse
-      // surprise than an empty player, and autoplay would be blocked anyway.
-      for (const item of items) {
-        await created.dispatch({ type: "addToQueue", track: item });
+      restoring = true;
+      try {
+        // One dispatch, silently: a page that starts making noise on its own after a
+        // refresh is a worse surprise than a quiet one, and autoplay would be refused.
+        await created.dispatch({
+          type: "restoreQueue",
+          items,
+          currentIndex,
+          repeatMode: storedRepeatMode(snapshot.repeatMode),
+          shuffleMode: storedShuffleMode(snapshot.shuffleMode),
+        });
+      } finally {
+        restoring = false;
       }
-      lastSignature = queueSignature(created.getState());
+
+      /*
+       * The signature of what was *saved*, not of what came back.
+       *
+       * Tracks whose files the library cannot confirm are left out of the restored queue,
+       * but that is a fact about this moment - a folder permission not granted back yet -
+       * and not a decision the listener made. Signing the restore with the stored queue's
+       * own shape means the omission is never written down, so granting the folder again
+       * brings the whole queue back instead of finding it permanently shortened.
+       */
+      lastSignature = [
+        snapshot.items.map((item) => item.id).join(","),
+        snapshot.currentIndex,
+        storedRepeatMode(snapshot.repeatMode),
+        storedShuffleMode(snapshot.shuffleMode),
+      ].join("|");
     })();
 
     setCoordinator(created);

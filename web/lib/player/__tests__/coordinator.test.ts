@@ -229,4 +229,27 @@ describe("PlayerCoordinator", () => {
     expect(coordinator.getState().status).toBe("Paused");
   });
 
+  it("restores a queue whole, with its pointer and its modes", async () => {
+    // Restoring used to append track by track, so the pointer and both modes were never
+    // applied - and each append rewrote the saved snapshot with the defaults, which made
+    // the loss permanent.
+    await coordinator.dispatch({
+      type: "restoreQueue",
+      items: [track("a"), track("b"), track("c")],
+      currentIndex: 2,
+      repeatMode: "All",
+      shuffleMode: "On",
+    });
+
+    const { queue, status } = coordinator.getState();
+    expect(queue.items.map((i) => i.id)).toEqual(["a", "b", "c"]);
+    expect(queue.currentIndex).toBe(2);
+    expect(queue.repeatMode).toBe("All");
+    expect(queue.shuffleMode).toBe("On");
+    // Restoring is not playing: a page that makes noise on its own after a refresh is a
+    // worse surprise than a quiet one.
+    expect(status).toBe("Idle");
+    expect(adapter.loaded).toHaveLength(0);
+  });
+
 });

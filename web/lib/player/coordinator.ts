@@ -92,6 +92,19 @@ export class PlayerCoordinator {
       case "removeFromQueue":
         this.update((state) => removeFromQueue(state, command.trackId));
         break;
+      case "restoreQueue":
+        // Deliberately not playing, and deliberately not touching currentTrack: this is
+        // the queue coming back, not a track starting.
+        this.update((state) => ({
+          ...state,
+          queue: {
+            items: command.items,
+            currentIndex: command.currentIndex,
+            repeatMode: command.repeatMode,
+            shuffleMode: command.shuffleMode,
+          },
+        }));
+        break;
       case "clearQueue":
         this.update((state) => ({
           ...state,

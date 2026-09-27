@@ -98,6 +98,21 @@ export type PlayerCommand =
   | { type: "addToQueue"; track: MediaItem }
   | { type: "removeFromQueue"; trackId: string }
   | { type: "clearQueue" }
+  /**
+   * Puts a whole saved queue back in one step.
+   *
+   * One command rather than a run of appends: appending restored the tracks but never the
+   * pointer or the modes, and every append looked like a queue change to whatever is
+   * persisting it - so the snapshot was overwritten with the defaults before the restore
+   * had finished, and the real one was gone.
+   */
+  | {
+      type: "restoreQueue";
+      items: MediaItem[];
+      currentIndex: number;
+      repeatMode: RepeatMode;
+      shuffleMode: ShuffleMode;
+    }
   | { type: "setVolume"; volume: number }
   | { type: "setRepeat"; mode: RepeatMode }
   | { type: "setShuffle"; mode: ShuffleMode };

@@ -6,7 +6,7 @@ import {
   openDatabase,
   runTransaction,
 } from "../library/db";
-import { MediaItem, PlayerState, ProviderKind, QueueState } from "./types";
+import { MediaItem, PlayerState, ProviderKind, QueueState, RepeatMode, ShuffleMode } from "./types";
 
 /**
  * The queue, kept across reloads.
@@ -131,6 +131,21 @@ export function restorableQueue(
  * Position ticks arrive four times a second and must not each cause a database write. The
  * queue only changes when its tracks, its pointer or its modes change.
  */
+/**
+ * The modes as they came off disk, narrowed to what the player actually understands.
+ *
+ * A snapshot is persisted data and therefore untrusted input: it may have been written by
+ * an older version, hand-edited in devtools, or truncated. Anything unrecognised reads as
+ * Off, which is the mode that surprises nobody.
+ */
+export function storedRepeatMode(value: unknown): RepeatMode {
+  return value === "All" || value === "One" ? value : "Off";
+}
+
+export function storedShuffleMode(value: unknown): ShuffleMode {
+  return value === "On" ? "On" : "Off";
+}
+
 export function queueSignature(state: PlayerState): string {
   const { queue } = state;
   return [

@@ -149,6 +149,36 @@ class PlayerCoordinatorTest {
     // `if (q.items.isEmpty())` guard. PlaybackStatus.Completed was never reached, history
     // never recorded a COMPLETE, and no queue snapshot was ever written.
 
+    @Test
+    fun `crossfade hands over once per track, not once per position tick`() =
+        runTest(UnconfinedTestDispatcher()) {
+            /*
+             * Positions arrive every 200ms and the crossfade window was 300ms wide, so two
+             * ticks landed in it whenever the first fell in its leading 100ms: skipNext ran
+             * twice, the queue advanced two places, and a track was never played.
+             */
+            coordinator = PlayerCoordinator(fakeAdapter, fakeResolver, backgroundScope)
+            val a = trackWithId("a")
+            val b = trackWithId("b")
+            val c = trackWithId("c")
+            coordinator.dispatch(PlayerCommand.AddToQueue(a))
+            coordinator.dispatch(PlayerCommand.AddToQueue(b))
+            coordinator.dispatch(PlayerCommand.AddToQueue(c))
+            coordinator.dispatch(PlayerCommand.Load(a))
+            coordinator.dispatch(PlayerCommand.Play)
+            coordinator.dispatch(PlayerCommand.SetCrossfade(2_000L))
+            testScheduler.advanceUntilIdle()
+
+            // Two ticks inside one 2s crossfade window, 200ms apart, as the engine emits them.
+            adapterEvents.emit(EngineEvent.PositionChanged(elapsed = 8_100L, duration = 10_000L, buffered = null))
+            testScheduler.advanceUntilIdle()
+            adapterEvents.emit(EngineEvent.PositionChanged(elapsed = 8_300L, duration = 10_000L, buffered = null))
+            testScheduler.advanceUntilIdle()
+
+            // One advance, so the track after the next one is still ahead of us.
+            assertEquals(b.id, coordinator.state.value.currentTrack?.id)
+        }
+
     private fun trackWithId(id: String) = fakeTrack.copy(id = id, title = "Track $id")
 
     @Test

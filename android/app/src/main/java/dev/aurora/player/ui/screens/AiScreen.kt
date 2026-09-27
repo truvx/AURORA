@@ -143,7 +143,11 @@ fun AiScreen(
                         RecommendationCard(
                             candidate = candidate,
                             onPlayClick = {
+                                // Load then Play: Load resolves and prepares, it does
+                                // not start. Pressing Play here used to leave the track
+                                // sitting in Ready with nothing audible.
                                 playerCoordinator.dispatch(PlayerCommand.Load(candidate.item))
+                                playerCoordinator.dispatch(PlayerCommand.Play)
                             },
                             onQueueClick = {
                                 playerCoordinator.dispatch(PlayerCommand.AddToQueue(candidate.item))

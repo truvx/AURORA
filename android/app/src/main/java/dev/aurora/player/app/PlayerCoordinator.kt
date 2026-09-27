@@ -20,6 +20,25 @@ class PlayerCoordinator(
 
     private var targetPlayIntent = false
 
+    /**
+     * Whether the current track has already handed over to the next one.
+     *
+     * Positions arrive every 200ms and the crossfade window was 300ms wide, so two ticks
+     * landed in it whenever the first fell in its leading 100ms: skipNext ran twice, the
+     * queue advanced two places, and a track was silently never played.
+     *
+     * Cleared when the playhead moves backwards, not when a track is loaded. Loading is
+     * the wrong moment: the hand-over *is* a load, so resetting there re-armed the guard
+     * in time for the very tick it existed to ignore. A position that goes backwards is
+     * the only honest signal that a different stretch of audio is now playing - a new
+     * track starting near zero, or a seek, both of which should be able to cross the
+     * window again.
+     */
+    private var crossfadeFired = false
+
+    /** The previous position, to notice the playhead moving backwards. */
+    private var lastElapsedMs = 0L
+
     init {
         scope.launch {
             adapter.events.collect { event ->
@@ -413,15 +432,24 @@ class PlayerCoordinator(
                 }
                 
                 // Proactive crossfade check
+                if (event.elapsed < lastElapsedMs) crossfadeFired = false
+                lastElapsedMs = event.elapsed
+
                 if (targetPlayIntent && event.duration != null && event.duration > 0) {
                     val crossfadeMs = _state.value.crossfadeDurationMs
                     val remaining = event.duration - event.elapsed
                     
-                    // Trigger skipNext slightly before the track ends (at crossfadeMs + 100ms threshold to ensure we catch it)
-                    // We only want to do this once per track, so we check if we are very close to the threshold.
-                    // This is a naive polling approach. In a real app we'd use a Handler/Timer scheduled precisely,
-                    // but since PositionChanged emits every 200ms, this is acceptable for Phase 22 scaffold.
-                    if (crossfadeMs > 0 && remaining <= crossfadeMs && remaining > crossfadeMs - 300) {
+                    /*
+                     * Once per track, and said with a flag rather than with arithmetic.
+                     *
+                     * This used to fire inside a 300ms window while positions arrive every
+                     * 200ms, so two ticks landed in it whenever the first fell in its
+                     * leading 100ms: skipNext ran twice, the queue advanced two places, and
+                     * a track was silently never played. A comment claimed a once-per-track
+                     * guard; there was none.
+                     */
+                    if (crossfadeMs > 0 && remaining <= crossfadeMs && !crossfadeFired) {
+                        crossfadeFired = true
                         Log.d(TAG, "Triggering proactive crossfade. Remaining: $remaining, Crossfade: $crossfadeMs")
                         val q = _state.value.queue
                         if (q.repeatMode == RepeatMode.One) {

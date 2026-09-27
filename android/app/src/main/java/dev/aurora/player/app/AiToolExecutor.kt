@@ -63,7 +63,10 @@ class AiToolExecutor(
                 val trackId = toolCall.args["trackId"]?.jsonPrimitive?.content ?: return emptyList()
                 val mediaItem = resolveItem(trackId)
                 if (mediaItem != null) {
+                    // Load prepares; Play starts. Without the second dispatch the
+                    // playback tool was a silent no-op.
                     playerCoordinator.dispatch(PlayerCommand.Load(mediaItem))
+                    playerCoordinator.dispatch(PlayerCommand.Play)
                 }
                 emptyList()
             }

@@ -7,6 +7,8 @@ import dev.aurora.player.data.security.SecretStore
 import dev.aurora.player.domain.auth.GoogleSignInState
 import dev.aurora.player.domain.auth.SignInFailure
 import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -164,7 +166,16 @@ class GoogleAuthRepository(
         val token = authState.refreshToken ?: authState.accessToken
         clearLocally()
         if (token.isNullOrBlank()) return
-        runCatching { revoke(token) }
+        /*
+         * Off the main thread, because this is a blocking HTTP call.
+         *
+         * signOut is called from a composable's scope, which is Dispatchers.Main.immediate:
+         * the execute() below threw NetworkOnMainThreadException, runCatching swallowed it
+         * (it catches Throwable), the UI said "Signed out", and the grant stayed live on
+         * the account page. A revocation nobody performed is worse than none at all,
+         * because the person believes it happened.
+         */
+        withContext(Dispatchers.IO) { runCatching { revoke(token) } }
     }
 
     private fun clearLocally() {

@@ -80,6 +80,16 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         val contentType = okhttp3.MediaType.get("application/json")
         val client = okhttp3.OkHttpClient.Builder()
             /*
+             * A ceiling on the whole call, not just on the socket.
+             *
+             * connect/read/write bound socket operations only. The interceptor below blocks
+             * on a token refresh *before* chain.proceed, where none of them apply, so a
+             * refresh that never came back hung the request forever and repeats starved
+             * OkHttp's dispatcher until every YouTube call stopped returning, with nothing
+             * to show the user. callTimeout is the only one that bounds the chain.
+             */
+            .callTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            /*
              * The bearer token is attached here rather than passed down through the call
              * sites, because freshness belongs to the moment a request leaves rather than
              * to the moment someone decided to make one. Blocking is safe: interceptors
@@ -330,6 +340,9 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            // The interceptor blocks on a token refresh before the socket exists, which the
+            // three above cannot bound. This one bounds the whole chain.
+            .callTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
             .addInterceptor(
                 /*
                  * The signed-in identity first, the shared token second.

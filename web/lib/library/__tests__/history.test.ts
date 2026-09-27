@@ -214,7 +214,7 @@ describe("history and resume", () => {
      * its own PLAY. The duplicates then read back as real listening signal.
      */
     const recorder = new PlaybackHistoryRecorder(repository);
-    const playing = state("t1", "Playing", 0, 200_000);
+    const playing = state("t1", "Playing", 0, { durationMs: 200_000 });
 
     await Promise.all([
       recorder.onState(playing),

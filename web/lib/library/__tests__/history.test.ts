@@ -206,4 +206,24 @@ describe("history and resume", () => {
     expect(await repository.getAll()).toEqual([]);
     expect(await repository.getResume("LOCAL", "a")).toBeUndefined();
   });
+  it("records one PLAY when unawaited calls arrive together for the same track", async () => {
+    /*
+     * PlayerProvider fires onState unawaited on every notification - four a second while
+     * a track plays, and several in a row at a track change. The id used to be claimed
+     * only after two awaits, so every one of them passed the "new track?" check and wrote
+     * its own PLAY. The duplicates then read back as real listening signal.
+     */
+    const recorder = new PlaybackHistoryRecorder(repository);
+    const playing = state("t1", "Playing", 0, 200_000);
+
+    await Promise.all([
+      recorder.onState(playing),
+      recorder.onState(playing),
+      recorder.onState(playing),
+    ]);
+
+    const events = await repository.getAll();
+    expect(events.filter((e) => e.kind === "PLAY" && e.mediaId === "t1")).toHaveLength(1);
+  });
+
 });

@@ -136,7 +136,28 @@ export class PlaybackHistoryRecorder {
     private readonly minimumResumeMs = 10000
   ) {}
 
-  async onState(state: {
+  /**
+   * One at a time, in the order they arrived.
+   *
+   * PlayerProvider fires this unawaited on every state notification - four a second while
+   * a track plays, and several in a row at a track change - and the body awaits twice
+   * before claiming the new track's id. Three calls for the same track therefore all
+   * passed the "is this new?" check and each recorded its own PLAY, which then read back
+   * as real listening signal to anything ranking on history. Chaining them means the
+   * second sees what the first wrote, without moving the bookkeeping around it.
+   */
+  onState(state: {
+    status: string;
+    currentTrack?: { id: string; provider: string };
+    position: { elapsedMs: number; durationMs?: number };
+  }): Promise<void> {
+    this.queue = this.queue.then(() => this.handleState(state));
+    return this.queue;
+  }
+
+  private queue: Promise<void> = Promise.resolve();
+
+  private async handleState(state: {
     status: string;
     currentTrack?: { id: string; provider: string };
     position: { elapsedMs: number; durationMs?: number };

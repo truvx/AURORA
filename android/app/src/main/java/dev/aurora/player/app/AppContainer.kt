@@ -331,7 +331,19 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .addInterceptor(
-                dev.aurora.player.data.api.GatewayAuthInterceptor { gatewayTokenStore.get() }
+                /*
+                 * The signed-in identity first, the shared token second.
+                 *
+                 * The gateway tells a JWT from a secret by its shape and checks whichever
+                 * it was given, so sending the ID token when there is one needs nothing
+                 * else agreed between the two. The pasted token stays as the way in for
+                 * anyone who has not signed in - or whose gateway has no Google client
+                 * configured, where an ID token would be refused.
+                 */
+                dev.aurora.player.data.api.GatewayAuthInterceptor {
+                    kotlinx.coroutines.runBlocking { googleAuth.idToken() }
+                        ?: gatewayTokenStore.get()
+                }
             )
             .build()
         // Use 10.0.2.2 for Android emulator -> localhost

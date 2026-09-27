@@ -340,15 +340,14 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
                  * anyone who has not signed in - or whose gateway has no Google client
                  * configured, where an ID token would be refused.
                  */
-                dev.aurora.player.data.api.GatewayAuthInterceptor {
-                    kotlinx.coroutines.runBlocking { googleAuth.idToken() }
-                        ?: gatewayTokenStore.get()
-                }
+                dev.aurora.player.data.api.GatewayAuthInterceptor(
+                    idToken = { kotlinx.coroutines.runBlocking { googleAuth.idToken() } },
+                    sharedToken = { gatewayTokenStore.get() },
+                )
             )
             .build()
-        // Use 10.0.2.2 for Android emulator -> localhost
         val retrofit = retrofit2.Retrofit.Builder()
-            .baseUrl("http://10.0.2.2:3000/")
+            .baseUrl(aiGatewayUrl)
             .client(aiClient)
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
@@ -356,6 +355,27 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         val api = retrofit.create(dev.aurora.player.data.api.AiGatewayApi::class.java)
         dev.aurora.player.data.providers.NetworkAiProvider(api)
     }
+
+    /**
+     * The gateway's address, from the build rather than from a literal.
+     *
+     * A debug build with nothing configured falls back to the emulator's host alias, which
+     * is the one host the debug network-security config permits cleartext to. A release
+     * build with nothing configured gets a URL that cannot resolve, and the AI reports
+     * itself unconfigured - which is the truth, and better than a socket error.
+     */
+    private val aiGatewayUrl: String
+        get() {
+            val configured = dev.aurora.player.BuildConfig.AI_GATEWAY_URL
+            if (configured.isNotBlank()) {
+                return if (configured.endsWith("/")) configured else "$configured/"
+            }
+            return if (dev.aurora.player.BuildConfig.DEBUG) {
+                "http://10.0.2.2:3000/"
+            } else {
+                "https://gateway.invalid/"
+            }
+        }
 
     override val recommendationEngine: dev.aurora.player.domain.recommendations.RecommendationEngine by lazy {
         dev.aurora.player.domain.recommendations.RecommendationEngine(

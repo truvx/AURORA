@@ -97,14 +97,18 @@ class NetworkAiProviderTest {
 
 class GatewayAuthInterceptorTest {
 
-    private fun proceedWith(token: String?): Request {
+    private fun proceedWith(
+        token: String?,
+        url: String = "https://gateway.example.com/api/ai/intent",
+        idToken: String? = null,
+    ): Request {
         val sent = slot<Request>()
         val chain = mockk<Interceptor.Chain>()
-        every { chain.request() } returns Request.Builder().url("http://localhost/api/ai/intent").build()
+        every { chain.request() } returns Request.Builder().url(url).build()
         every { chain.proceed(capture(sent)) } answers {
             Response.Builder().request(sent.captured).protocol(Protocol.HTTP_1_1).code(200).message("OK").build()
         }
-        GatewayAuthInterceptor { token }.intercept(chain)
+        GatewayAuthInterceptor(idToken = { idToken }, sharedToken = { token }).intercept(chain)
         return sent.captured
     }
 
@@ -121,12 +125,39 @@ class GatewayAuthInterceptorTest {
     }
 
     @Test
+    fun `an id token is never sent over cleartext`() {
+        /*
+         * The gateway was a hardcoded http://10.0.2.2:3000/ with the ID token attached
+         * unconditionally, which put a token naming a real person on an unencrypted wire
+         * on every AI call. Over http only the shared secret the developer deliberately
+         * pointed at their own machine is sent.
+         */
+        val sent = proceedWith(token = null, url = "http://10.0.2.2:3000/api/ai/intent", idToken = "eyJ.id.token")
+
+        assertNull(sent.header("Authorization"))
+    }
+
+    @Test
+    fun `over cleartext the shared token is still sent`() {
+        val sent = proceedWith(token = "dev-secret", url = "http://10.0.2.2:3000/api/ai/intent", idToken = "eyJ.id.token")
+
+        assertEquals("Bearer dev-secret", sent.header("Authorization"))
+    }
+
+    @Test
+    fun `over tls the signed-in identity is preferred over the pasted token`() {
+        val sent = proceedWith(token = "dev-secret", idToken = "eyJ.id.token")
+
+        assertEquals("Bearer eyJ.id.token", sent.header("Authorization"))
+    }
+
+    @Test
     fun `reads the token per request so Settings changes apply immediately`() {
         var token: String? = null
-        val interceptor = GatewayAuthInterceptor { token }
+        val interceptor = GatewayAuthInterceptor(idToken = { null }, sharedToken = { token })
         val sent = mutableListOf<Request>()
         val chain = mockk<Interceptor.Chain>()
-        every { chain.request() } returns Request.Builder().url("http://localhost/").build()
+        every { chain.request() } returns Request.Builder().url("https://gateway.example.com/").build()
         every { chain.proceed(any()) } answers {
             val request = firstArg<Request>()
             sent += request

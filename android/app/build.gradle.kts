@@ -50,6 +50,24 @@ android {
         buildConfigField("String", "GOOGLE_OAUTH_CLIENT_ID", "\"$googleClientId\"")
 
         /*
+         * Where the AI gateway lives.
+         *
+         * It used to be `http://10.0.2.2:3000/` written into the source - the emulator's
+         * alias for the host machine, which on a real phone is nothing at all. The signed
+         * beta could therefore never reach the AI, and a debug build sent a Google ID token
+         * to it over plaintext HTTP.
+         *
+         * Set AURORA_GATEWAY_URL in local.properties to your deployment. Left unset, a
+         * debug build falls back to the emulator loopback, which is the only host the debug
+         * network-security config permits cleartext to; a release build gets nothing and
+         * says the AI is not configured rather than failing at the socket.
+         */
+        val gatewayUrl: String = localProperties.getProperty("AURORA_GATEWAY_URL")
+            ?: System.getenv("AURORA_GATEWAY_URL")
+            ?: ""
+        buildConfigField("String", "AI_GATEWAY_URL", "\"$gatewayUrl\"")
+
+        /*
          * The redirect Google will send the browser back to.
          *
          * Installed-app clients get the reversed client ID as a private-use scheme. It is

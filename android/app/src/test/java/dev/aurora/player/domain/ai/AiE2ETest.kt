@@ -78,7 +78,7 @@ class AiE2ETest {
         val gatewayToken = System.getProperty("aurora.gatewayToken")
         val okHttpClient = okhttp3.OkHttpClient.Builder()
             .readTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
-            .addInterceptor(dev.aurora.player.data.api.GatewayAuthInterceptor { gatewayToken })
+            .addInterceptor(dev.aurora.player.data.api.GatewayAuthInterceptor(idToken = { null }, sharedToken = { gatewayToken }))
             .build()
         val aiRetrofit = Retrofit.Builder().client(okHttpClient)
             .baseUrl("http://localhost:3000/")

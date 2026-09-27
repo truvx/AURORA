@@ -16,14 +16,31 @@ import okhttp3.Response
  * "not connected" - the same outcome as a wrong token, and the right thing to show either
  * way.
  */
-class GatewayAuthInterceptor(private val credential: () -> String?) : Interceptor {
+class GatewayAuthInterceptor(
+    private val idToken: () -> String?,
+    private val sharedToken: () -> String?,
+) : Interceptor {
+
     override fun intercept(chain: Interceptor.Chain): Response {
-        val current = credential()
-        val request = if (current.isNullOrBlank()) {
-            chain.request()
+        val request = chain.request()
+        val credential = credentialFor(request.url().isHttps)
+        val authorized = if (credential.isNullOrBlank()) {
+            request
         } else {
-            chain.request().newBuilder().header("Authorization", "Bearer $current").build()
+            request.newBuilder().header("Authorization", "Bearer $credential").build()
         }
-        return chain.proceed(request)
+        return chain.proceed(authorized)
     }
+
+    /**
+     * A Google ID token never leaves the device over plaintext.
+     *
+     * It names a real person to anyone holding it, and it is minted for an audience that
+     * will accept it - so putting one on an unencrypted wire is handing out an identity,
+     * not just leaking a request. Over cleartext, only the shared token the developer
+     * deliberately pointed at a local server is sent; over TLS, the signed-in identity is
+     * preferred as usual.
+     */
+    private fun credentialFor(isHttps: Boolean): String? =
+        if (isHttps) idToken() ?: sharedToken() else sharedToken()
 }

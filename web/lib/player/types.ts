@@ -55,6 +55,14 @@ export interface QueueState {
   readonly currentIndex: number;
   readonly repeatMode: RepeatMode;
   readonly shuffleMode: ShuffleMode;
+  /**
+   * The order to play in while shuffling: queue indices, not tracks.
+   *
+   * Indices rather than a reordered copy of the items, so the queue the listener sees
+   * never changes underneath them - shuffle changes what comes next, not what the list
+   * says. Empty whenever shuffleMode is Off. The same shape the Android client uses.
+   */
+  readonly shuffledOrder: readonly number[];
 }
 
 /**
@@ -83,7 +91,7 @@ export interface PlayerState {
 export const initialPlayerState: PlayerState = {
   status: "Idle",
   position: { elapsedMs: 0 },
-  queue: { items: [], currentIndex: -1, repeatMode: "Off", shuffleMode: "Off" },
+  queue: { items: [], currentIndex: -1, repeatMode: "Off", shuffleMode: "Off", shuffledOrder: [] },
   volume: 1,
   capabilities: { mediaSession: false, directoryPicker: false, autoplayBlocked: false },
 };

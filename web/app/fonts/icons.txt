@@ -17,6 +17,7 @@ arrow_upward
 auto_awesome
 close
 delete
+error
 favorite
 favorite_border
 library_music
@@ -25,7 +26,10 @@ play_arrow
 play_circle
 playlist_add
 queue_music
+repeat
+repeat_one
 search
 settings
+shuffle
 skip_next
 skip_previous

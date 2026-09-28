@@ -7,7 +7,7 @@ import { BarScrubber } from "@/components/player/BarScrubber";
 import { CoverFlow } from "@/components/player/CoverFlow";
 import { useArtworkById } from "@/lib/artwork/useArtwork";
 import { usePlayerCommands, usePlayerState } from "@/lib/player/PlayerProvider";
-import { PlayerState } from "@/lib/player/types";
+import { PlayerCommand, PlayerState } from "@/lib/player/types";
 import styles from "./now-playing.module.css";
 
 const selectTrack = (state: PlayerState) => state.currentTrack;
@@ -46,45 +46,12 @@ export default function NowPlayingPage() {
           the same as a queue that was lost.
         */}
         {queue.items.length > 0 && (
-          <section aria-labelledby="waiting-queue-heading" className={styles.queuePanel}>
-            <h2 id="waiting-queue-heading">Queue</h2>
-            <ol className={styles.queue}>
-              {queue.items.map((item, index) => (
-                <li key={`${item.id}-${index}`}>
-                  <div className={styles.queueRow}>
-                    <button
-                      type="button"
-                      className={styles.queueButton}
-                      onClick={() =>
-                        dispatch({ type: "load", track: item, playWhenReady: true })
-                      }
-                      aria-label={`Play ${item.title}, track ${index + 1} of ${
-                        queue.items.length
-                      }`}
-                    >
-                      <span aria-hidden="true" className={styles.queueIndex}>
-                        {index + 1}
-                      </span>
-                      <span className={styles.queueTitle}>{item.title}</span>
-                      <span className={styles.secondary}>
-                        {item.artist ?? "Unknown artist"}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.removeButton}
-                      onClick={() => dispatch({ type: "removeFromQueue", trackId: item.id })}
-                      aria-label={`Remove ${item.title} from the queue`}
-                    >
-                      <span className="material-symbols-outlined" aria-hidden="true">
-                        close
-                      </span>
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </section>
+          <QueueList
+            id="waiting-queue"
+            queue={queue}
+            dispatch={dispatch}
+            showCurrent={false}
+          />
         )}
       </div>
     );
@@ -116,10 +83,35 @@ export default function NowPlayingPage() {
           Status stays in words, never a colour or an icon alone.
         */}
         <p className={styles.status} role="status">
-          {error ? `⚠ ${error}` : statusLabel(status)}
+          {error ? (
+            <>
+              <span className="material-symbols-outlined" aria-hidden="true">
+                error
+              </span>{" "}
+              {error}
+            </>
+          ) : (
+            statusLabel(status)
+          )}
         </p>
 
         <div className={styles.controls}>
+          {/*
+            Shuffle and repeat live with the transport because that is what they change.
+            Both modes existed in state and in the saved snapshot with no way for anyone to
+            set them - shuffle in particular was a mode nothing read.
+          */}
+          <button
+            type="button"
+            className={styles.control}
+            onClick={() =>
+              dispatch({ type: "setShuffle", mode: queue.shuffleMode === "On" ? "Off" : "On" })
+            }
+            aria-pressed={queue.shuffleMode === "On"}
+            aria-label="Shuffle"
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">shuffle</span>
+          </button>
           <button
             type="button"
             className={styles.control}
@@ -145,6 +137,22 @@ export default function NowPlayingPage() {
             aria-label="Next track"
           >
             <span className="material-symbols-outlined" aria-hidden="true">skip_next</span>
+          </button>
+          {/*
+            Three states, so the label says which one rather than leaving it to the icon:
+            "repeat one" and "repeat all" are two glyphs apart and one word apart, and the
+            word is the part that does not need to be learned.
+          */}
+          <button
+            type="button"
+            className={styles.control}
+            onClick={() => dispatch({ type: "setRepeat", mode: nextRepeat(queue.repeatMode) })}
+            aria-pressed={queue.repeatMode !== "Off"}
+            aria-label={`Repeat: ${repeatLabel(queue.repeatMode)}`}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">
+              {queue.repeatMode === "One" ? "repeat_one" : "repeat"}
+            </span>
           </button>
         </div>
 
@@ -181,62 +189,96 @@ export default function NowPlayingPage() {
       </div>
 
       {queueOpen && (
-        <section id="queue-panel" aria-labelledby="queue-heading" className={styles.queuePanel}>
-          <h2 id="queue-heading">Queue</h2>
-          {queue.items.length === 0 ? (
-            <p className={styles.secondary}>The queue is empty.</p>
-          ) : (
-            <ol className={styles.queue}>
-              {queue.items.map((item, index) => {
-                const isCurrent = index === queue.currentIndex;
-                return (
-                  <li key={`${item.id}-${index}`}>
-                    <div className={styles.queueRow}>
-                      <button
-                        type="button"
-                        className={styles.queueButton}
-                        onClick={() =>
-                          dispatch({ type: "load", track: item, playWhenReady: true })
-                        }
-                        // Position is announced so a screen reader user knows where they are
-                        // in the queue, not just which track this is.
-                        aria-label={`Play ${item.title}, track ${index + 1} of ${
-                          queue.items.length
-                        }${isCurrent ? ", currently playing" : ""}`}
-                        aria-current={isCurrent ? "true" : undefined}
-                      >
-                        <span aria-hidden="true" className={styles.queueIndex}>
-                          {isCurrent ? "▶" : index + 1}
-                        </span>
-                        <span className={styles.queueTitle}>{item.title}</span>
-                        <span className={styles.secondary}>
-                          {item.artist ?? "Unknown artist"}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.removeButton}
-                        onClick={() =>
-                          dispatch({ type: "removeFromQueue", trackId: item.id })
-                        }
-                        aria-label={`Remove ${item.title} from the queue`}
-                      >
-                        <span className="material-symbols-outlined" aria-hidden="true">
-                          close
-                        </span>
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-        </section>
+        <QueueList id="queue-panel" queue={queue} dispatch={dispatch} showCurrent />
       )}
+
     </div>
   );
 }
 
+
+/**
+ * The queue, in one place.
+ *
+ * This was written out twice - once for the waiting queue on an idle player and once for
+ * the panel behind the queue button - which is two chances to fix an accessibility label
+ * and only ever remember one of them.
+ *
+ * [showCurrent] is the only real difference: before anything is loaded there is no current
+ * track to mark, and marking one would be a lie about what is playing.
+ */
+function QueueList({
+  id,
+  queue,
+  dispatch,
+  showCurrent,
+}: {
+  id: string;
+  queue: PlayerState["queue"];
+  dispatch: (command: PlayerCommand) => void;
+  showCurrent: boolean;
+}) {
+  return (
+    <section id={id} aria-labelledby={`${id}-heading`} className={styles.queuePanel}>
+      <h2 id={`${id}-heading`}>Queue</h2>
+      {queue.items.length === 0 ? (
+        <p className={styles.secondary}>The queue is empty.</p>
+      ) : (
+        <ol className={styles.queue}>
+          {queue.items.map((item, index) => {
+            const isCurrent = showCurrent && index === queue.currentIndex;
+            return (
+              <li key={`${item.id}-${index}`}>
+                <div className={styles.queueRow}>
+                  <button
+                    type="button"
+                    className={styles.queueButton}
+                    onClick={() => dispatch({ type: "load", track: item, playWhenReady: true })}
+                    // Position is announced so a screen reader user knows where they are in
+                    // the queue, not just which track this is.
+                    aria-label={`Play ${item.title}, track ${index + 1} of ${queue.items.length}${
+                      isCurrent ? ", currently playing" : ""
+                    }`}
+                    aria-current={isCurrent ? "true" : undefined}
+                  >
+                    <span aria-hidden="true" className={styles.queueIndex}>
+                      {isCurrent ? (
+                        <span className="material-symbols-outlined">play_arrow</span>
+                      ) : (
+                        index + 1
+                      )}
+                    </span>
+                    <span className={styles.queueTitle}>{item.title}</span>
+                    <span className={styles.secondary}>{item.artist ?? "Unknown artist"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.removeButton}
+                    onClick={() => dispatch({ type: "removeFromQueue", trackId: item.id })}
+                    aria-label={`Remove ${item.title} from the queue`}
+                  >
+                    <span className="material-symbols-outlined" aria-hidden="true">
+                      close
+                    </span>
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
+  );
+}
+
+/** Off, then everything, then this one - the order every music player uses. */
+function nextRepeat(mode: PlayerState["queue"]["repeatMode"]): PlayerState["queue"]["repeatMode"] {
+  return mode === "Off" ? "All" : mode === "All" ? "One" : "Off";
+}
+
+function repeatLabel(mode: PlayerState["queue"]["repeatMode"]): string {
+  return mode === "Off" ? "off" : mode === "All" ? "all tracks" : "this track";
+}
 
 function statusLabel(status: PlayerState["status"]): string {
   switch (status) {

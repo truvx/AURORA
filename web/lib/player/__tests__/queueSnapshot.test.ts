@@ -32,6 +32,7 @@ describe("queue snapshots", () => {
       currentIndex: 1,
       repeatMode: "All",
       shuffleMode: "Off",
+      shuffledOrder: [],
     });
 
     const snapshot = await repository.load();
@@ -48,12 +49,14 @@ describe("queue snapshots", () => {
       currentIndex: 0,
       repeatMode: "Off",
       shuffleMode: "Off",
+      shuffledOrder: [],
     });
     await repository.save({
       items: [track("local:2")],
       currentIndex: 0,
       repeatMode: "Off",
       shuffleMode: "Off",
+      shuffledOrder: [],
     });
 
     expect((await repository.load())?.items.map((item) => item.id)).toEqual(["local:2"]);
@@ -162,7 +165,7 @@ describe("queue signature", () => {
       queueSignature({ ...one, queue: { ...one.queue, repeatMode: "All" } })
     ).not.toBe(queueSignature(one));
     expect(
-      queueSignature({ ...one, queue: { ...one.queue, shuffleMode: "On" } })
+      queueSignature({ ...one, queue: { ...one.queue, shuffleMode: "On", shuffledOrder: [] } })
     ).not.toBe(queueSignature(one));
   });
 });

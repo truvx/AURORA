@@ -58,6 +58,18 @@ export class PlayerCoordinator {
   }
 
   async dispatch(command: PlayerCommand): Promise<void> {
+    /*
+     * A fresh intent clears the last failure.
+     *
+     * The error was only ever cleared inside loadTrack, so after a track failed to open
+     * the banner outlived the condition: Next, Previous and Play all left it on screen,
+     * and the transport read as inert when it was working. Anything the listener does to
+     * move on is them saying they have read it.
+     */
+    if (RECOVERING_COMMANDS.has(command.type) && this.state.error !== undefined) {
+      this.update((state) => ({ ...state, error: undefined }));
+    }
+
     switch (command.type) {
       case "load":
         await this.loadTrack(command.track, command.playWhenReady ?? false);
@@ -102,13 +114,24 @@ export class PlayerCoordinator {
             currentIndex: command.currentIndex,
             repeatMode: command.repeatMode,
             shuffleMode: command.shuffleMode,
+            /*
+             * Regenerated rather than restored.
+             *
+             * A shuffle order is how one sitting happened to run, not a property of the
+             * queue, and persisting it would mean reopening the app replays the same
+             * "random" order every time. Coming back to a shuffled queue reshuffles.
+             */
+            shuffledOrder:
+              command.shuffleMode === "On"
+                ? shuffledOrderFrom(command.items.length, command.currentIndex)
+                : [],
           },
         }));
         break;
       case "clearQueue":
         this.update((state) => ({
           ...state,
-          queue: { ...state.queue, items: [], currentIndex: -1 },
+          queue: { ...state.queue, items: [], currentIndex: -1, shuffledOrder: [] },
         }));
         break;
       case "setVolume": {
@@ -126,7 +149,14 @@ export class PlayerCoordinator {
       case "setShuffle":
         this.update((state) => ({
           ...state,
-          queue: { ...state.queue, shuffleMode: command.mode },
+          queue: {
+            ...state.queue,
+            shuffleMode: command.mode,
+            shuffledOrder:
+              command.mode === "On"
+                ? shuffledOrderFrom(state.queue.items.length, state.queue.currentIndex)
+                : [],
+          },
         }));
         break;
     }
@@ -207,8 +237,8 @@ export class PlayerCoordinator {
     const { queue } = this.state;
     if (queue.items.length === 0) return;
 
-    const next = queue.currentIndex + 1;
-    if (next >= queue.items.length) {
+    const next = stepThrough(queue, 1);
+    if (next === undefined) {
       if (queue.repeatMode === "All") {
         await this.loadTrack(queue.items[0], true, 0);
         return;
@@ -228,8 +258,8 @@ export class PlayerCoordinator {
       this.adapter.seek(0);
       return;
     }
-    const previous = queue.currentIndex - 1;
-    if (previous < 0) {
+    const previous = stepThrough(queue, -1);
+    if (previous === undefined) {
       this.adapter.seek(0);
       return;
     }
@@ -317,6 +347,56 @@ export class PlayerCoordinator {
     this.listeners.forEach((listener) => listener(next));
   }
 }
+
+/**
+ * A play order that is not the queue order, with the current track at the front.
+ *
+ * Current-first so switching shuffle on does not jump you out of the track you are
+ * listening to: the change is about what comes next, not about now. Fisher-Yates over the
+ * rest, which is the shuffle that is actually uniform - sorting by `random()` is not, and
+ * the bias shows over a long queue.
+ */
+function shuffledOrderFrom(length: number, currentIndex: number): number[] {
+  if (length <= 0) return [];
+  const rest = Array.from({ length }, (_, i) => i).filter((i) => i !== currentIndex);
+  for (let i = rest.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [rest[i], rest[j]] = [rest[j], rest[i]];
+  }
+  return currentIndex >= 0 && currentIndex < length ? [currentIndex, ...rest] : rest;
+}
+
+/**
+ * The next queue index in the direction asked for, or undefined at the end.
+ *
+ * Undefined is the signal to do whatever "the end" means in that direction - wrap for
+ * repeat-all, stop at the end of the queue, restart the track for previous - and leaving
+ * that decision to the callers is what lets one walker serve both.
+ */
+function stepThrough(queue: QueueState, direction: 1 | -1): number | undefined {
+  const { items, currentIndex, shuffleMode, shuffledOrder } = queue;
+
+  if (shuffleMode === "On" && shuffledOrder.length === items.length && items.length > 0) {
+    const position = shuffledOrder.indexOf(currentIndex);
+    // Not in the order - the queue changed under it - so start from its beginning.
+    if (position < 0) return shuffledOrder[0];
+    const next = position + direction;
+    return next >= 0 && next < shuffledOrder.length ? shuffledOrder[next] : undefined;
+  }
+
+  const next = currentIndex + direction;
+  return next >= 0 && next < items.length ? next : undefined;
+}
+
+/** The commands that mean "I have seen the error, move on". */
+const RECOVERING_COMMANDS: ReadonlySet<PlayerCommand["type"]> = new Set([
+  "play",
+  "pause",
+  "seek",
+  "skipNext",
+  "skipPrevious",
+  "load",
+]);
 
 function isTerminal(state: PlayerState): boolean {
   return state.status === "Completed" || state.status === "Error";

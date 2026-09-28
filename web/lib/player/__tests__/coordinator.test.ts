@@ -252,4 +252,90 @@ describe("PlayerCoordinator", () => {
     expect(adapter.loaded).toHaveLength(0);
   });
 
+  it("plays a different order when shuffle is on", async () => {
+    // setShuffle used to write the mode and nothing read it: skipNext stayed strictly
+    // linear, so shuffle was a label on a control that changed nothing.
+    for (const id of ["a", "b", "c", "d", "e"]) {
+      await coordinator.dispatch({ type: "addToQueue", track: track(id) });
+    }
+    await coordinator.dispatch({ type: "load", track: track("a") });
+    await coordinator.dispatch({ type: "setShuffle", mode: "On" });
+
+    const played: string[] = [];
+    for (let i = 0; i < 4; i += 1) {
+      await coordinator.dispatch({ type: "skipNext" });
+      played.push(coordinator.getState().currentTrack!.id);
+    }
+
+    // Every other track exactly once - the property that actually matters, and the one a
+    // shuffle must never break. Asserting the order differs from the queue would be a
+    // one-in-twenty-four flake, since a fair shuffle is entitled to return queue order.
+    expect([...played].sort()).toEqual(["b", "c", "d", "e"]);
+  });
+
+  it("keeps the track you are on when shuffle is switched on", async () => {
+    // Turning shuffle on must not jump you somewhere else mid-track.
+    for (const id of ["a", "b", "c", "d"]) {
+      await coordinator.dispatch({ type: "addToQueue", track: track(id) });
+    }
+    await coordinator.dispatch({ type: "load", track: track("c") });
+
+    await coordinator.dispatch({ type: "setShuffle", mode: "On" });
+
+    expect(coordinator.getState().currentTrack?.id).toBe("c");
+    expect(coordinator.getState().queue.currentIndex).toBe(2);
+  });
+
+  it("returns to queue order when shuffle is switched off", async () => {
+    for (const id of ["a", "b", "c"]) {
+      await coordinator.dispatch({ type: "addToQueue", track: track(id) });
+    }
+    await coordinator.dispatch({ type: "load", track: track("a") });
+    await coordinator.dispatch({ type: "setShuffle", mode: "On" });
+    await coordinator.dispatch({ type: "setShuffle", mode: "Off" });
+
+    await coordinator.dispatch({ type: "skipNext" });
+
+    expect(coordinator.getState().currentTrack?.id).toBe("b");
+  });
+
+  it("clears a failed track's error when you try something else", async () => {
+    // The banner outlived the condition: error was only ever cleared inside loadTrack, so
+    // after a failure the transport looked inert and the message stayed on screen through
+    // Next, Previous and Play alike.
+    const failing = new PlayerCoordinator(adapter, async () => undefined);
+    await failing.dispatch({ type: "load", track: track("gone") });
+    expect(failing.getState().error).toBeDefined();
+
+    await failing.dispatch({ type: "play" });
+
+    expect(failing.getState().error).toBeUndefined();
+  });
+
+  it("shuffles rather than returning the queue order", async () => {
+    // Math.random stubbed, so this asserts the ordering itself without a flake: a fair
+    // shuffle is allowed to produce queue order, which is why the test above only checks
+    // that every track is played once.
+    const random = vi.spyOn(Math, "random").mockReturnValue(0);
+    try {
+      for (const id of ["a", "b", "c", "d"]) {
+        await coordinator.dispatch({ type: "addToQueue", track: track(id) });
+      }
+      await coordinator.dispatch({ type: "load", track: track("a") });
+      await coordinator.dispatch({ type: "setShuffle", mode: "On" });
+
+      const played: string[] = [];
+      for (let i = 0; i < 3; i += 1) {
+        await coordinator.dispatch({ type: "skipNext" });
+        played.push(coordinator.getState().currentTrack!.id);
+      }
+
+      // Pinned random makes this exact; the claim that matters is the second line.
+      expect(played).toEqual(["c", "d", "b"]);
+      expect(played).not.toEqual(["b", "c", "d"]);
+    } finally {
+      random.mockRestore();
+    }
+  });
+
 });

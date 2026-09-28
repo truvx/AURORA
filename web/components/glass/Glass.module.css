@@ -81,8 +81,13 @@
   gap: var(--aurora-space-2);
   min-height: var(--aurora-target-min);
   padding: var(--aurora-space-3) var(--aurora-space-6);
-  border-radius: var(--aurora-radius-control);
-  border: none;
+  /*
+   * A pill, because DESIGN_TOKENS.md says the primary action is one: "The primary action
+   * is a solid pill using the theme's strongest contrast". The 12px control radius here
+   * was the reason two screens rolled their own button rather than use this one.
+   */
+  border-radius: var(--aurora-radius-pill);
+  border: 1px solid transparent;
   cursor: pointer;
   font-size: var(--aurora-type-label-size);
   font-weight: var(--aurora-type-label-weight);
@@ -112,6 +117,29 @@
 .button_quiet {
   background-color: transparent;
   color: var(--aurora-accent-primary);
+}
+
+/*
+ * Pressed, and visible as such.
+ *
+ * The library's filter chips carried aria-pressed with no style behind it, so the active
+ * view was announced to a screen reader and invisible to everyone else. Weight and fill
+ * together, never colour alone.
+ */
+.button[aria-pressed="true"] {
+  background-color: var(--aurora-control-primary);
+  color: var(--aurora-control-on-primary);
+  font-weight: var(--aurora-type-section-weight);
+}
+
+/*
+ * The outlined secondary button this replaced gave a real border in high-contrast mode.
+ * Keeping that is cheaper than keeping a second component for it.
+ */
+@media (prefers-contrast: more) {
+  .button {
+    border-color: var(--aurora-border-control);
+  }
 }
 
 /* ──────── Icon Button ──────── */

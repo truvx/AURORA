@@ -12,34 +12,9 @@
   gap: var(--aurora-space-3);
 }
 
-.primaryButton,
-.secondaryButton {
-  min-height: 44px;
-  padding: 0 var(--aurora-space-4);
-  border-radius: var(--aurora-radius-pill);
-  cursor: pointer;
-  font: inherit;
-}
 
-.primaryButton {
-  border: none;
-  background: var(--aurora-accent-primary);
-  /* Per theme: near-black on light's accent measured 3.23:1. */
-  color: var(--aurora-accent-on-primary);
-}
 
-.secondaryButton {
-  border: 1px solid var(--aurora-border-control);
-  background: transparent;
-  color: var(--aurora-text-primary);
-}
 
-.primaryButton:focus-visible,
-.secondaryButton:focus-visible,
-.trackRow:focus-visible {
-  outline: 2px solid var(--aurora-accent-primary);
-  outline-offset: 2px;
-}
 
 .status {
   margin: 0;

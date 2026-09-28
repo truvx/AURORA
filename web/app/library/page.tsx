@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { GlassCard } from "@/components/glass/Glass";
+import { GlassButton, GlassCard } from "@/components/glass/Glass";
 import { PlaylistsSection } from "@/components/library/PlaylistsSection";
 import { TrackRow } from "@/components/library/TrackRow";
 import { TrackGroup, groupByAlbum, groupByArtist } from "@/lib/library/grouping";
@@ -156,9 +156,7 @@ export default function LibraryPage() {
       <header className={styles.header}>
         <h1>Library</h1>
         {directory && (
-          <button type="button" onClick={rescan} className={styles.secondaryButton}>
-            Rescan
-          </button>
+          <GlassButton variant="secondary" onClick={rescan}>Rescan</GlassButton>
         )}
       </header>
 
@@ -180,46 +178,40 @@ export default function LibraryPage() {
             AURORA reads files directly from the folder you pick and remembers it for next
             time. Your audio is never uploaded or copied.
           </p>
-          <button type="button" onClick={chooseFolder} className={styles.primaryButton}>
-            Choose folder
-          </button>
+          <GlassButton onClick={chooseFolder}>Choose folder</GlassButton>
         </GlassCard>
       )}
 
       {/* Always available: playlists must be reachable before any track is scanned. */}
       <div className={styles.filters} role="group" aria-label="Library view">
-          <button
-            type="button"
+          <GlassButton
+            variant="secondary"
+            pressed={view === "tracks"}
             onClick={() => { setView("tracks"); setOpenGroup(undefined); }}
-            className={styles.secondaryButton}
-            aria-pressed={view === "tracks"}
           >
             Tracks
-          </button>
-          <button
-            type="button"
+          </GlassButton>
+          <GlassButton
+            variant="secondary"
+            pressed={view === "albums"}
             onClick={() => { setView("albums"); setOpenGroup(undefined); }}
-            className={styles.secondaryButton}
-            aria-pressed={view === "albums"}
           >
             Albums
-          </button>
-          <button
-            type="button"
+          </GlassButton>
+          <GlassButton
+            variant="secondary"
+            pressed={view === "artists"}
             onClick={() => { setView("artists"); setOpenGroup(undefined); }}
-            className={styles.secondaryButton}
-            aria-pressed={view === "artists"}
           >
             Artists
-          </button>
-          <button
-            type="button"
+          </GlassButton>
+          <GlassButton
+            variant="secondary"
+            pressed={view === "playlists"}
             onClick={() => setView("playlists")}
-            className={styles.secondaryButton}
-            aria-pressed={view === "playlists"}
           >
             Playlists
-          </button>
+          </GlassButton>
       </div>
 
       {view === "playlists" && organization && (
@@ -254,14 +246,13 @@ export default function LibraryPage() {
       {view === "tracks" && tracks.length > 0 && (
         <>
           <div className={styles.filters}>
-            <button
-              type="button"
+            <GlassButton
+              variant="secondary"
+              pressed={showFavoritesOnly}
               onClick={() => setShowFavoritesOnly((value) => !value)}
-              className={styles.secondaryButton}
-              aria-pressed={showFavoritesOnly}
             >
               {showFavoritesOnly ? "Showing favorites" : "Show favorites only"}
-            </button>
+            </GlassButton>
           </div>
 
           {addingTrackId && (
@@ -284,13 +275,9 @@ export default function LibraryPage() {
                   ))}
                 </ul>
               )}
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={() => setAddingTrackId(undefined)}
-              >
+              <GlassButton variant="secondary" onClick={() => setAddingTrackId(undefined)}>
                 Cancel
-              </button>
+              </GlassButton>
             </GlassCard>
           )}
 
@@ -353,9 +340,7 @@ export default function LibraryPage() {
         <GlassCard>
           <h2>No audio files found</h2>
           <p>That folder has no files AURORA can play. Try rescanning or choosing another.</p>
-          <button type="button" onClick={chooseFolder} className={styles.primaryButton}>
-            Choose a different folder
-          </button>
+          <GlassButton onClick={chooseFolder}>Choose a different folder</GlassButton>
         </GlassCard>
       )}
     </div>
@@ -399,14 +384,13 @@ function GroupedView({
     return (
       <div className={styles.page}>
         <div className={styles.header}>
-          <button
-            type="button"
+          <GlassButton
+            variant="secondary"
+            ariaLabel={`Back to all ${label}s`}
             onClick={() => onOpen(undefined)}
-            className={styles.secondaryButton}
-            aria-label={`Back to all ${label}s`}
           >
             Back
-          </button>
+          </GlassButton>
           <h2>{current.name}</h2>
         </div>
         <ul className={styles.trackList}>

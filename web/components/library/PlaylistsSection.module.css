@@ -20,22 +20,7 @@
   font: inherit;
 }
 
-.primaryButton {
-  min-height: 44px;
-  padding: 0 var(--aurora-space-4);
-  border: none;
-  border-radius: var(--aurora-radius-pill);
-  background: var(--aurora-accent-primary);
-  color: var(--aurora-control-on-primary);
-  font: inherit;
-  cursor: pointer;
-}
 
-.primaryButton:disabled {
-  /* Dimmed and disabled, but the label still reads clearly. */
-  opacity: 0.55;
-  cursor: not-allowed;
-}
 
 .detailHeader {
   display: flex;
@@ -113,11 +98,6 @@
 
 .rowButton:focus-visible,
 .iconButton:focus-visible,
-.primaryButton:focus-visible,
-.input:focus-visible {
-  outline: 2px solid var(--aurora-accent-primary);
-  outline-offset: 2px;
-}
 
 .visuallyHidden {
   position: absolute;

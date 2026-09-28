@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { GlassCard } from "@/components/glass/Glass";
+import { GlassButton, GlassCard } from "@/components/glass/Glass";
 import { StoredPlaylist, StoredPlaylistEntry, StoredTrack } from "@/lib/library/db";
 import { toMediaItem } from "@/lib/library/fileSystem";
 import { OrganizationRepository } from "@/lib/library/organization";
@@ -154,14 +154,12 @@ export function PlaylistsSection({ organization, tracks }: Props) {
           placeholder="New playlist name"
           className={styles.input}
         />
-        <button
-          type="button"
+        <GlassButton
           onClick={() => void create()}
           disabled={newName.trim().length === 0}
-          className={styles.primaryButton}
         >
           Create
-        </button>
+        </GlassButton>
       </div>
 
       {error && (

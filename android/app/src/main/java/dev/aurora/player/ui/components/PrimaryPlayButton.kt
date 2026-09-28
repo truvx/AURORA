@@ -7,7 +7,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
@@ -47,18 +46,15 @@ fun PrimaryPlayButton(
     val colors = Aurora.colors
     val haptics = LocalHapticEngine.current
     val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val press by animateFloatAsState(
-        targetValue = if (pressed) 1f else 0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh),
-        label = "play press"
-    )
+    val press by rememberPressProgress(interaction)
+    // Read here: graphicsLayer's lambda is not a composable scope.
+    val pressDepth = Aurora.motion
 
     Row(
         modifier = modifier
             .graphicsLayer {
-                scaleX = 1f - 0.04f * press
-                scaleY = 1f - 0.04f * press
+                scaleX = 1f - pressDepth.pressScaleControl * press
+                scaleY = 1f - pressDepth.pressScaleControl * press
             }
             .clip(RoundedCornerShape(percent = 50))
             .background(colors.controlPrimary)
@@ -98,18 +94,15 @@ fun PrimaryCircleButton(
     val colors = Aurora.colors
     val haptics = LocalHapticEngine.current
     val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val press by animateFloatAsState(
-        targetValue = if (pressed) 1f else 0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh),
-        label = "primary circle press"
-    )
+    val press by rememberPressProgress(interaction)
+    // Read here: graphicsLayer's lambda is not a composable scope.
+    val pressDepth = Aurora.motion
 
     androidx.compose.foundation.layout.Box(
         modifier = modifier
             .graphicsLayer {
-                scaleX = 1f - 0.05f * press
-                scaleY = 1f - 0.05f * press
+                scaleX = 1f - pressDepth.pressScaleControl * press
+                scaleY = 1f - pressDepth.pressScaleControl * press
             }
             .size(size)
             .clip(androidx.compose.foundation.shape.CircleShape)

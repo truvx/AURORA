@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.kyant.backdrop.Backdrop
 import dev.aurora.player.domain.models.ProviderKind
 import dev.aurora.player.ui.components.GlassLevel
+import dev.aurora.player.ui.components.rememberPressProgress
 import dev.aurora.player.ui.components.LocalPlayerCoordinator
 import dev.aurora.player.ui.components.YouTubePlayerSurface
 import dev.aurora.player.ui.components.GlassSurface
@@ -175,13 +175,9 @@ private fun NavPillItem(
     val colors = Aurora.colors
     val haptics = LocalHapticEngine.current
     val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val press by animateFloatAsState(
-        targetValue = if (pressed) 1f else 0f,
-        // Critically damped: this is a tap, not a throw, so it settles without overshoot.
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh),
-        label = "nav press"
-    )
+    val press by rememberPressProgress(interaction)
+    // Read here: graphicsLayer's lambda is not a composable scope.
+    val pressDepth = Aurora.motion
     val tint = if (selected) colors.accentPrimary else colors.textSecondary
 
     Column(
@@ -201,8 +197,8 @@ private fun NavPillItem(
             )
             .padding(horizontal = Aurora.spacing.space3, vertical = Aurora.spacing.space2)
             .graphicsLayer {
-                scaleX = 1f - 0.08f * press
-                scaleY = 1f - 0.08f * press
+                scaleX = 1f - pressDepth.pressScaleCompact * press
+                scaleY = 1f - pressDepth.pressScaleCompact * press
             },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -238,12 +234,9 @@ fun GlassCircleButton(
     val colors = Aurora.colors
     val haptics = LocalHapticEngine.current
     val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val press by animateFloatAsState(
-        targetValue = if (pressed) 1f else 0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh),
-        label = "circle press"
-    )
+    val press by rememberPressProgress(interaction)
+    // Read here: graphicsLayer's lambda is not a composable scope.
+    val pressDepth = Aurora.motion
 
     GlassSurface(
         // The surface answers the finger too, not just the transform: the refraction
@@ -252,8 +245,8 @@ fun GlassCircleButton(
         modifier = modifier
             .size(size)
             .graphicsLayer {
-                scaleX = 1f - 0.06f * press
-                scaleY = 1f - 0.06f * press
+                scaleX = 1f - pressDepth.pressScaleControl * press
+                scaleY = 1f - pressDepth.pressScaleControl * press
             }
             .selectable(
                 selected = selected,

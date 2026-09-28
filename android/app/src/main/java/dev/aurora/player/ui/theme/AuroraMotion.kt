@@ -47,6 +47,24 @@ data class AuroraMotion(
     val springStandardResponse: Float = 0.4f,
     val springSoftDamping: Float = Spring.DampingRatioNoBouncy,
     val springSoftResponse: Float = 0.6f,
+    /*
+     * How far a surface goes back under a finger.
+     *
+     * Three steps, and the rule is that the movement should feel the same size whatever it
+     * is attached to: a 6% shrink on a 132dp card travels 8dp and reads as the card
+     * collapsing, while the same 6% on a 40dp chip travels 2dp and barely registers. So
+     * bigger surfaces take a shallower fraction.
+     *
+     * These replaced five different hand-picked values - 3, 4, 5, 6 and 8 percent - spread
+     * across three files, each arrived at by eye and none of them written down.
+     */
+    /** Cards, rows, artwork: anything wider than about 96dp. */
+    val pressScaleSurface: Float = 0.03f,
+    /** Buttons and circular controls, roughly 44-96dp. */
+    val pressScaleControl: Float = 0.05f,
+    /** Small inline items - nav labels, chips - where a shallow press would not be seen. */
+    val pressScaleCompact: Float = 0.08f,
+
     val springSettleDamping: Float = 0.8f,
     val springSettleResponse: Float = 0.3f,
 ) {

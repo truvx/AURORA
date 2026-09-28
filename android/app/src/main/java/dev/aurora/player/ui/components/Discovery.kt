@@ -6,7 +6,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -104,17 +103,14 @@ fun SectionHeader(
 @Composable
 private fun Modifier.pressable(onClick: () -> Unit): Modifier {
     val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val press by animateFloatAsState(
-        targetValue = if (pressed) 1f else 0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh),
-        label = "card press"
-    )
+    val press by rememberPressProgress(interaction)
+    // Read here: graphicsLayer's lambda is not a composable scope.
+    val pressDepth = Aurora.motion
     val haptics = LocalHapticEngine.current
     return this
         .graphicsLayer {
-            scaleX = 1f - 0.03f * press
-            scaleY = 1f - 0.03f * press
+            scaleX = 1f - pressDepth.pressScaleSurface * press
+            scaleY = 1f - pressDepth.pressScaleSurface * press
         }
         .clickable(interactionSource = interaction, indication = null) {
             haptics.fire(HapticEvent.Tap)

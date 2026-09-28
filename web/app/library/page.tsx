@@ -225,8 +225,12 @@ export default function LibraryPage() {
           tracks={tracks}
           label={view === "albums" ? "album" : "artist"}
           onOpen={setOpenGroup}
-          onPlay={(track) =>
-            dispatch({ type: "load", track: toMediaItem(track), playWhenReady: true })
+          onPlay={(inGroup, index) =>
+            dispatch({
+              type: "playList",
+              items: inGroup.map(toMediaItem),
+              startIndex: index,
+            })
           }
         />
       )}
@@ -291,11 +295,12 @@ export default function LibraryPage() {
                   <li key={track.id} className={styles.trackItem}>
                     <TrackRow
                       track={track}
+                      // The visible list is the context, so the whole of it queues.
                       onPlay={() =>
                         dispatch({
-                          type: "load",
-                          track: toMediaItem(track),
-                          playWhenReady: true,
+                          type: "playList",
+                          items: visibleTracks.map(toMediaItem),
+                          startIndex: visibleTracks.indexOf(track),
                         })
                       }
                       onQueue={() =>
@@ -364,7 +369,8 @@ function GroupedView({
   tracks: StoredTrack[];
   label: string;
   onOpen: (group: TrackGroup | undefined) => void;
-  onPlay: (track: StoredTrack) => void;
+  /** The group is the context: its tracks, and which one was tapped. */
+  onPlay: (tracks: StoredTrack[], index: number) => void;
 }) {
   if (groups.length === 0) {
     return (
@@ -394,23 +400,24 @@ function GroupedView({
           <h2>{current.name}</h2>
         </div>
         <ul className={styles.trackList}>
-          {current.trackIds.map((id) => {
-            const track = byId.get(id);
-            if (!track) return null;
-            return (
-              <li key={id}>
+          {(() => {
+            const inGroup = current.trackIds
+              .map((id) => byId.get(id))
+              .filter((track): track is StoredTrack => !!track);
+            return inGroup.map((track, index) => (
+              <li key={track.id}>
                 <button
                   type="button"
                   className={styles.trackRow}
-                  onClick={() => onPlay(track)}
+                  onClick={() => onPlay(inGroup, index)}
                   aria-label={`Play ${track.title}`}
                 >
                   <span className={styles.trackTitle}>{track.title}</span>
                   <span className={styles.trackArtist}>{track.artist ?? "Unknown artist"}</span>
                 </button>
               </li>
-            );
-          })}
+            ));
+          })()}
         </ul>
       </div>
     );

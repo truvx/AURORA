@@ -62,16 +62,30 @@ private fun playAll(
     shuffled: Boolean
 ) {
     val ordered = if (shuffled) tracks.shuffled() else tracks
-    val first = ordered.firstOrNull() ?: return
-    playNow(container, first)
-    ordered.drop(1).forEach { track ->
-        container.playerCoordinator.dispatch(
-            dev.aurora.player.domain.player.PlayerCommand.AddToQueue(track)
-        )
-    }
+    if (ordered.isEmpty()) return
+    container.playerCoordinator.dispatch(
+        dev.aurora.player.domain.player.PlayerCommand.PlayList(ordered, startIndex = 0)
+    )
 }
 
-/** Load a track and start it: the two commands every "play this" in the UI sends. */
+/**
+ * Play a list from the track that was tapped.
+ *
+ * The list, not the one item: a queue of one has nothing for next or previous to reach,
+ * which is why those controls were dead everywhere - in the app, on the notification, on
+ * the lock screen and over a headset.
+ */
+private fun playFrom(
+    container: dev.aurora.player.app.AppContainer,
+    items: List<dev.aurora.player.domain.models.MediaItem>,
+    index: Int,
+) {
+    container.playerCoordinator.dispatch(
+        dev.aurora.player.domain.player.PlayerCommand.PlayList(items, index)
+    )
+}
+
+/** One track arriving on its own - from the AI - which joins the queue without replacing it. */
 private fun playNow(container: dev.aurora.player.app.AppContainer, item: dev.aurora.player.domain.models.MediaItem) {
     container.playerCoordinator.dispatch(dev.aurora.player.domain.player.PlayerCommand.Load(item))
     container.playerCoordinator.dispatch(dev.aurora.player.domain.player.PlayerCommand.Play)
@@ -182,7 +196,7 @@ fun AuroraNavigation(
                     profile = profile,
                     onOpenWhatsNew = { navController.navigate(WHATS_NEW_ROUTE) },
                     onOpenProfile = { navigateToTab(AuroraDestination.Settings) },
-                    onPlay = { item -> playNow(container, item) },
+                    onPlay = { items, index -> playFrom(container, items, index) },
                     onAddToQueue = { item ->
                         container.playerCoordinator.dispatch(
                             dev.aurora.player.domain.player.PlayerCommand.AddToQueue(item)
@@ -201,7 +215,7 @@ fun AuroraNavigation(
                 }
                 SearchScreen(
                     viewModel = searchViewModel,
-                    onPlay = { item -> playNow(container, item) },
+                    onPlay = { items, index -> playFrom(container, items, index) },
                     onAddToQueue = { item ->
                         container.playerCoordinator.dispatch(
                             dev.aurora.player.domain.player.PlayerCommand.AddToQueue(item)
@@ -253,7 +267,7 @@ fun AuroraNavigation(
                 dev.aurora.player.ui.screens.WhatsNewScreen(
                     releases = ready?.releases.orEmpty(),
                     unseen = ready?.unseen.orEmpty(),
-                    onPlay = { item -> playNow(container, item) },
+                    onPlay = { items, index -> playFrom(container, items, index) },
                     onBack = { navController.popBackStack() },
                     onSeen = homeViewModel::markReleasesSeen
                 )

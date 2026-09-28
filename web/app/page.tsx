@@ -64,13 +64,19 @@ export default function HomePage() {
         </h2>
         {recent.length > 0 ? (
           <ul className={styles.shelf}>
-            {recent.map((track) => (
+            {recent.map((track, index) => (
               <li key={track.id}>
                 <TrackCard
                   track={track}
                   subtitle={track.artist ?? "Unknown artist"}
+                  // The shelf is the context: tapping one plays the shelf from there, so
+                  // next and previous have somewhere to go.
                   onPlay={() =>
-                    dispatch({ type: "load", track: toMediaItem(track), playWhenReady: true })
+                    dispatch({
+                      type: "playList",
+                      items: recent.map(toMediaItem),
+                      startIndex: index,
+                    })
                   }
                 />
               </li>
@@ -102,13 +108,15 @@ export default function HomePage() {
                     const inAlbum = album.trackIds
                       .map((id) => tracks.find((track) => track.id === id))
                       .filter((track): track is StoredTrack => !!track);
-                    const [first, ...rest] = inAlbum;
-                    if (!first) return;
-                    dispatch({ type: "load", track: toMediaItem(first), playWhenReady: true });
-                    // The rest queue behind it, so an album plays as an album.
-                    for (const track of rest) {
-                      dispatch({ type: "addToQueue", track: toMediaItem(track) });
-                    }
+                    // One command, so the album *is* the queue. Loading the first track
+                    // and appending the rest stopped working the day `load` started
+                    // joining the queue rather than replacing it: the album queued behind
+                    // whatever was already there.
+                    dispatch({
+                      type: "playList",
+                      items: inAlbum.map(toMediaItem),
+                      startIndex: 0,
+                    });
                   }}
                 />
               </li>
@@ -123,12 +131,16 @@ export default function HomePage() {
             From your library
           </h2>
           <ul className={styles.rows}>
-            {tracks.slice(0, 8).map((track) => (
+            {tracks.slice(0, 8).map((track, index) => (
               <li key={track.id}>
                 <TrackRow
                   track={track}
                   onPlay={() =>
-                    dispatch({ type: "load", track: toMediaItem(track), playWhenReady: true })
+                    dispatch({
+                      type: "playList",
+                      items: tracks.slice(0, 8).map(toMediaItem),
+                      startIndex: index,
+                    })
                   }
                   onQueue={() => dispatch({ type: "addToQueue", track: toMediaItem(track) })}
                 />

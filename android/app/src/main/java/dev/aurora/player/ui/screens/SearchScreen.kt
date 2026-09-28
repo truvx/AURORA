@@ -44,7 +44,13 @@ import dev.aurora.player.ui.theme.Aurora
 @Composable
 fun SearchScreen(
     viewModel: SearchViewModel? = null,
-    onPlay: (MediaItem) -> Unit = {},
+    /**
+     * Play a list from one of its tracks.
+     *
+     * The list rather than the one item, so the queue has somewhere for next and previous
+     * to go. Tapping a row means "play this list from here".
+     */
+    onPlay: (List<MediaItem>, Int) -> Unit = { _, _ -> },
     onAddToQueue: (MediaItem) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -161,14 +167,14 @@ fun SearchScreen(
 @Composable
 private fun TrackList(
     items: List<MediaItem>,
-    onPlay: (MediaItem) -> Unit,
+    onPlay: (List<MediaItem>, Int) -> Unit,
     onAddToQueue: (MediaItem) -> Unit,
 ) {
     Column {
-        items.forEach { item ->
+        items.forEachIndexed { index, item ->
             TrackRow(
                 item = item,
-                onPlay = { onPlay(item) },
+                onPlay = { onPlay(items, index) },
                 onAddToQueue = { onAddToQueue(item) },
                 modifier = Modifier.padding(horizontal = Aurora.spacing.space4)
             )

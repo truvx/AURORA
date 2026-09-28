@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.rounded.Notifications
@@ -48,7 +49,13 @@ import dev.aurora.player.ui.theme.Aurora
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel? = null,
-    onPlay: (MediaItem) -> Unit = {},
+    /**
+     * Play a list from one of its tracks.
+     *
+     * The list rather than the one item, so the queue has somewhere for next and previous
+     * to go. Tapping a row means "play this list from here".
+     */
+    onPlay: (List<MediaItem>, Int) -> Unit = { _, _ -> },
     onOpenArtist: (String) -> Unit = {},
     onAddToQueue: (MediaItem) -> Unit = {},
     onOpenWhatsNew: () -> Unit = {},
@@ -125,13 +132,15 @@ fun HomeScreen(
                                 contentPadding = PaddingValues(horizontal = spacing.space4),
                                 horizontalArrangement = Arrangement.spacedBy(spacing.space3)
                             ) {
-                                items(state.releases, key = { it.release.item.id }) { release ->
+                                itemsIndexed(state.releases, key = { _, it -> it.release.item.id }) { index, release ->
                                     ReleaseCard(
                                         title = release.title,
                                         artist = release.artist,
                                         coverUrl = release.coverUrl,
                                         isNew = release.release.item.id in state.unseen,
-                                        onClick = { onPlay(release.release.item) }
+                                        onClick = {
+                                            onPlay(state.releases.map { it.release.item }, index)
+                                        }
                                     )
                                 }
                             }
@@ -190,7 +199,7 @@ fun HomeScreen(
                     recentlyPlayed.forEach { item ->
                         TrackRow(
                             item = item,
-                            onPlay = { onPlay(item) },
+                            onPlay = { onPlay(recentlyPlayed, recentlyPlayed.indexOf(item)) },
                             isFavorite = item.id in favorites,
                             onToggleFavorite = { viewModel?.setFavorite(item.id, item.id !in favorites) },
                             onAddToQueue = { onAddToQueue(item) },

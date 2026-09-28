@@ -40,6 +40,7 @@ export function MiniPlayer() {
   const status = usePlayerState(selectStatus);
   const autoplayBlocked = usePlayerState(selectAutoplayBlocked);
   const error = usePlayerState(selectError);
+  const capabilities = usePlayerState(selectCapabilities);
   const artwork = useArtworkById(track?.id);
 
   const surface = useRef<HTMLDivElement>(null);
@@ -181,6 +182,7 @@ export function MiniPlayer() {
           <button
             type="button"
             onClick={() => dispatch({ type: "skipPrevious" })}
+            disabled={!capabilities.canSkipPrevious}
             aria-label="Previous track"
             className={styles.control}
           >
@@ -201,6 +203,7 @@ export function MiniPlayer() {
           <button
             type="button"
             onClick={() => dispatch({ type: "skipNext" })}
+            disabled={!capabilities.canSkipNext}
             aria-label="Next track"
             className={styles.control}
           >
@@ -298,6 +301,7 @@ const selectStatus = (state: PlayerState) => state.status;
 const selectPosition = (state: PlayerState) => state.position;
 const selectError = (state: PlayerState) => state.error;
 const selectAutoplayBlocked = (state: PlayerState) => state.capabilities.autoplayBlocked;
+const selectCapabilities = (state: PlayerState) => state.capabilities;
 
 function formatTime(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));

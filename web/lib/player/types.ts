@@ -72,6 +72,14 @@ export interface QueueState {
 export interface WebCapabilities {
   /** navigator.mediaSession exists. */
   readonly mediaSession: boolean;
+  /*
+   * Whether the transport can actually do the thing, so a control is never dead.
+   *
+   * Derived rather than stored: it is a question about the queue, the repeat mode and how
+   * far into the track we are, all of which already live in the state.
+   */
+  readonly canSkipNext: boolean;
+  readonly canSkipPrevious: boolean;
   /** showDirectoryPicker exists (Chromium today). */
   readonly directoryPicker: boolean;
   /** Playback was blocked by autoplay policy and needs a user gesture. */
@@ -93,11 +101,27 @@ export const initialPlayerState: PlayerState = {
   position: { elapsedMs: 0 },
   queue: { items: [], currentIndex: -1, repeatMode: "Off", shuffleMode: "Off", shuffledOrder: [] },
   volume: 1,
-  capabilities: { mediaSession: false, directoryPicker: false, autoplayBlocked: false },
+  capabilities: {
+    mediaSession: false,
+    directoryPicker: false,
+    autoplayBlocked: false,
+    canSkipNext: false,
+    canSkipPrevious: false,
+  },
 };
 
 export type PlayerCommand =
   | { type: "load"; track: MediaItem; playWhenReady?: boolean }
+  /**
+   * Play a list from one of its tracks.
+   *
+   * Distinct from `load`, which is one track arriving on its own - from the AI, say - and
+   * joins the queue without disturbing it. A list is a *context*: tapping the third song
+   * of an album means "play this album from here", so it replaces the queue. Without this
+   * every entry point loaded a single track, a fresh play left nothing to skip to, and
+   * next and previous were dead controls.
+   */
+  | { type: "playList"; items: readonly MediaItem[]; startIndex: number }
   | { type: "play" }
   | { type: "pause" }
   | { type: "seek"; positionMs: number }

@@ -133,8 +133,12 @@ export function PlaylistsSection({ organization, tracks }: Props) {
         onBack={() => setOpenId(undefined)}
         onMove={move}
         onRemoveEntry={removeEntry}
-        onPlay={(track) =>
-          dispatch({ type: "load", track: toMediaItem(track), playWhenReady: true })
+        onPlay={(playable, index) =>
+          dispatch({
+            type: "playList",
+            items: playable.map(toMediaItem),
+            startIndex: index,
+          })
         }
       />
     );
@@ -222,7 +226,8 @@ function PlaylistDetail({
   onBack: () => void;
   onMove: (from: number, to: number) => void;
   onRemoveEntry: (entryId: string) => void;
-  onPlay: (track: StoredTrack) => void;
+  /** The playlist is the context: its resolvable tracks, and which one was tapped. */
+  onPlay: (tracks: StoredTrack[], index: number) => void;
 }) {
   const byId = new Map(tracks.map((track) => [track.id, track]));
 
@@ -267,7 +272,18 @@ function PlaylistDetail({
                   type="button"
                   className={styles.rowButton}
                   disabled={!track}
-                  onClick={() => track && onPlay(track)}
+                  /*
+                   * The playlist queues, not the one track. Entries whose file the
+                   * library cannot resolve are left out rather than queued as gaps -
+                   * a track that cannot play is not a position you can skip to.
+                   */
+                  onClick={() => {
+                    const playable = entries
+                      .map((candidate) => byId.get(candidate.mediaId))
+                      .filter((candidate): candidate is StoredTrack => !!candidate);
+                    const at = track ? playable.indexOf(track) : -1;
+                    if (at >= 0) onPlay(playable, at);
+                  }}
                   aria-label={
                     track
                       ? `Play ${track.title}, track ${index + 1} of ${entries.length}`

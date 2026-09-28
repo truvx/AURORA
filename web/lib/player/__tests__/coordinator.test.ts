@@ -338,4 +338,82 @@ describe("PlayerCoordinator", () => {
     }
   });
 
+  describe("playing from a list", () => {
+    const list = ["a", "b", "c", "d"].map(track);
+
+    it("queues the whole list, starting at the track that was tapped", async () => {
+      // Every entry point used to load one track, so a fresh play left a one-item queue
+      // and next/previous had nowhere to go.
+      await coordinator.dispatch({ type: "playList", items: list, startIndex: 2 });
+
+      const { queue, currentTrack } = coordinator.getState();
+      expect(queue.items.map((i) => i.id)).toEqual(["a", "b", "c", "d"]);
+      expect(queue.currentIndex).toBe(2);
+      expect(currentTrack?.id).toBe("c");
+    });
+
+    it("replaces what was queued, because a list is a new context", async () => {
+      await coordinator.dispatch({ type: "addToQueue", track: track("old") });
+
+      await coordinator.dispatch({ type: "playList", items: list, startIndex: 0 });
+
+      expect(coordinator.getState().queue.items.map((i) => i.id)).toEqual(["a", "b", "c", "d"]);
+    });
+
+    it("ignores an out-of-range start rather than playing nothing", async () => {
+      await coordinator.dispatch({ type: "playList", items: list, startIndex: 99 });
+
+      expect(coordinator.getState().queue.currentIndex).toBe(0);
+      expect(coordinator.getState().currentTrack?.id).toBe("a");
+    });
+
+    it("does nothing with an empty list", async () => {
+      await coordinator.dispatch({ type: "playList", items: [], startIndex: 0 });
+
+      expect(coordinator.getState().currentTrack).toBeUndefined();
+    });
+  });
+
+  describe("what the transport can do", () => {
+    const list = ["a", "b", "c"].map(track);
+
+    const capsAt = async (startIndex: number, repeatMode: "Off" | "All" | "One") => {
+      await coordinator.dispatch({ type: "playList", items: list, startIndex });
+      await coordinator.dispatch({ type: "setRepeat", mode: repeatMode });
+      const { canSkipNext, canSkipPrevious } = coordinator.getState().capabilities;
+      return { canSkipNext, canSkipPrevious };
+    };
+
+    it("cannot skip past either end of a queue with repeat off", async () => {
+      expect(await capsAt(0, "Off")).toEqual({ canSkipNext: true, canSkipPrevious: false });
+      expect(await capsAt(1, "Off")).toEqual({ canSkipNext: true, canSkipPrevious: true });
+      expect(await capsAt(2, "Off")).toEqual({ canSkipNext: false, canSkipPrevious: true });
+    });
+
+    it("can skip in both directions at either end when repeat wraps", async () => {
+      expect(await capsAt(0, "All")).toEqual({ canSkipNext: true, canSkipPrevious: true });
+      expect(await capsAt(2, "All")).toEqual({ canSkipNext: true, canSkipPrevious: true });
+    });
+
+    it("can always restart the track once it is more than three seconds in", async () => {
+      await coordinator.dispatch({ type: "playList", items: list, startIndex: 0 });
+      expect(coordinator.getState().capabilities.canSkipPrevious).toBe(false);
+
+      adapter.listener.onPosition(4000, 200000);
+
+      expect(coordinator.getState().capabilities.canSkipPrevious).toBe(true);
+    });
+
+    it("a single track alone can do neither, whatever repeat says", async () => {
+      await coordinator.dispatch({ type: "playList", items: [track("only")], startIndex: 0 });
+      await coordinator.dispatch({ type: "setRepeat", mode: "All" });
+
+      const { canSkipNext, canSkipPrevious } = coordinator.getState().capabilities;
+      expect({ canSkipNext, canSkipPrevious }).toEqual({
+        canSkipNext: false,
+        canSkipPrevious: false,
+      });
+    });
+  });
+
 });

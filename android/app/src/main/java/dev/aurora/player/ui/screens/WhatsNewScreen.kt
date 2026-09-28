@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit
 fun WhatsNewScreen(
     releases: List<ResolvedRelease>,
     unseen: Set<String>,
-    onPlay: (MediaItem) -> Unit,
+    onPlay: (List<MediaItem>, Int) -> Unit,
     onBack: () -> Unit,
     onSeen: () -> Unit,
     modifier: Modifier = Modifier,
@@ -91,10 +91,12 @@ fun WhatsNewScreen(
         } else {
             item {
                 Column {
-                    releases.forEach { card ->
+                    releases.forEachIndexed { index, card ->
                         TrackRow(
                             item = card.release.item,
-                            onPlay = { onPlay(card.release.item) },
+                            onPlay = {
+                                onPlay(releases.map { it.release.item }, index)
+                            },
                             trailingLabel = relativeAge(card.release.publishedAtMs, now),
                             modifier = Modifier.padding(horizontal = spacing.space4)
                         )

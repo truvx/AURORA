@@ -15,6 +15,7 @@ const selectQueue = (state: PlayerState) => state.queue;
 const selectStatus = (state: PlayerState) => state.status;
 const selectError = (state: PlayerState) => state.error;
 const selectPosition = (state: PlayerState) => state.position;
+const selectCapabilities = (state: PlayerState) => state.capabilities;
 
 export default function NowPlayingPage() {
   const track = usePlayerState(selectTrack);
@@ -22,6 +23,7 @@ export default function NowPlayingPage() {
   const status = usePlayerState(selectStatus);
   const error = usePlayerState(selectError);
   const position = usePlayerState(selectPosition);
+  const capabilities = usePlayerState(selectCapabilities);
   const dispatch = usePlayerCommands();
   const artwork = useArtworkById(track?.id);
   const [queueOpen, setQueueOpen] = useState(false);
@@ -116,6 +118,9 @@ export default function NowPlayingPage() {
             type="button"
             className={styles.control}
             onClick={() => dispatch({ type: "skipPrevious" })}
+            // Disabled rather than dead: a control that is visible and does nothing
+            // teaches people the app is broken.
+            disabled={!capabilities.canSkipPrevious}
             aria-label="Previous track"
           >
             <span className="material-symbols-outlined" aria-hidden="true">skip_previous</span>
@@ -134,6 +139,7 @@ export default function NowPlayingPage() {
             type="button"
             className={styles.control}
             onClick={() => dispatch({ type: "skipNext" })}
+            disabled={!capabilities.canSkipNext}
             aria-label="Next track"
           >
             <span className="material-symbols-outlined" aria-hidden="true">skip_next</span>

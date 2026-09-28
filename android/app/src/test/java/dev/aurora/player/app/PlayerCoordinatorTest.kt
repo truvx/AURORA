@@ -179,6 +179,97 @@ class PlayerCoordinatorTest {
             assertEquals(b.id, coordinator.state.value.currentTrack?.id)
         }
 
+    @Test
+    fun `playing from a list queues the list, starting where it was tapped`() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Every entry point loaded a single track, so a fresh play left a one-item
+            // queue and next and previous had nowhere to go.
+            coordinator = PlayerCoordinator(fakeAdapter, fakeResolver, backgroundScope)
+            val list = listOf(trackWithId("a"), trackWithId("b"), trackWithId("c"))
+
+            coordinator.dispatch(PlayerCommand.PlayList(list, startIndex = 1))
+            testScheduler.advanceUntilIdle()
+
+            val state = coordinator.state.value
+            assertEquals(listOf("a", "b", "c"), state.queue.items.map { it.id })
+            assertEquals(1, state.queue.currentIndex)
+            assertEquals("b", state.currentTrack?.id)
+        }
+
+    @Test
+    fun `a list replaces what was queued, because a list is a new context`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coordinator = PlayerCoordinator(fakeAdapter, fakeResolver, backgroundScope)
+            coordinator.dispatch(PlayerCommand.AddToQueue(trackWithId("old")))
+            testScheduler.advanceUntilIdle()
+
+            coordinator.dispatch(
+                PlayerCommand.PlayList(listOf(trackWithId("a"), trackWithId("b")), startIndex = 0)
+            )
+            testScheduler.advanceUntilIdle()
+
+            assertEquals(listOf("a", "b"), coordinator.state.value.queue.items.map { it.id })
+        }
+
+    @Test
+    fun `an out-of-range start plays the list from the beginning`() =
+        runTest(UnconfinedTestDispatcher()) {
+            // A stale index means the caller's idea of the list is old. Clamping to the
+            // end would play one track and stop.
+            coordinator = PlayerCoordinator(fakeAdapter, fakeResolver, backgroundScope)
+
+            coordinator.dispatch(
+                PlayerCommand.PlayList(listOf(trackWithId("a"), trackWithId("b")), startIndex = 99)
+            )
+            testScheduler.advanceUntilIdle()
+
+            assertEquals("a", coordinator.state.value.currentTrack?.id)
+        }
+
+    @Test
+    fun `next at the end of the queue stops, or wraps when repeat is all`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coordinator = PlayerCoordinator(fakeAdapter, fakeResolver, backgroundScope)
+            val list = listOf(trackWithId("a"), trackWithId("b"))
+
+            coordinator.dispatch(PlayerCommand.PlayList(list, startIndex = 1))
+            coordinator.dispatch(PlayerCommand.SkipNext)
+            testScheduler.advanceUntilIdle()
+            assertEquals(PlaybackStatus.Completed, coordinator.state.value.status)
+
+            coordinator.dispatch(PlayerCommand.PlayList(list, startIndex = 1))
+            coordinator.dispatch(PlayerCommand.SetRepeat(RepeatMode.All))
+            coordinator.dispatch(PlayerCommand.SkipNext)
+            testScheduler.advanceUntilIdle()
+            assertEquals("a", coordinator.state.value.currentTrack?.id)
+        }
+
+    @Test
+    fun `previous restarts the track once past three seconds, and steps back before it`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coordinator = PlayerCoordinator(fakeAdapter, fakeResolver, backgroundScope)
+            val list = listOf(trackWithId("a"), trackWithId("b"))
+
+            coordinator.dispatch(PlayerCommand.PlayList(list, startIndex = 1))
+            testScheduler.advanceUntilIdle()
+            adapterEvents.emit(EngineEvent.PositionChanged(elapsed = 1_000L, duration = 200_000L, buffered = null))
+            testScheduler.advanceUntilIdle()
+
+            coordinator.dispatch(PlayerCommand.SkipPrevious)
+            testScheduler.advanceUntilIdle()
+            assertEquals("a", coordinator.state.value.currentTrack?.id)
+
+            coordinator.dispatch(PlayerCommand.PlayList(list, startIndex = 1))
+            testScheduler.advanceUntilIdle()
+            adapterEvents.emit(EngineEvent.PositionChanged(elapsed = 9_000L, duration = 200_000L, buffered = null))
+            testScheduler.advanceUntilIdle()
+
+            coordinator.dispatch(PlayerCommand.SkipPrevious)
+            testScheduler.advanceUntilIdle()
+            // Restarted, not moved.
+            assertEquals("b", coordinator.state.value.currentTrack?.id)
+        }
+
     private fun trackWithId(id: String) = fakeTrack.copy(id = id, title = "Track $id")
 
     @Test

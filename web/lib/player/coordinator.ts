@@ -128,6 +128,32 @@ export class PlayerCoordinator {
           },
         }));
         break;
+      case "playList": {
+        /*
+         * The list becomes the queue, and the tapped track becomes the position in it.
+         *
+         * Replacing rather than appending is the point: a list is a context, and "play the
+         * album from here" means the album is now what is playing. `load` is the other
+         * intent - one track arriving alone - and it still joins without disturbing
+         * anything.
+         */
+        if (command.items.length === 0) break;
+        /*
+         * An index outside the list starts from the beginning, rather than clamping to
+         * the end. An out-of-range index means the caller's idea of the list is stale, and
+         * starting at the last track would play one song and stop - "play this list" is
+         * the recoverable reading.
+         */
+        const asked = command.startIndex;
+        const start = asked >= 0 && asked < command.items.length ? asked : 0;
+        const items = [...command.items];
+        this.update((state) => ({
+          ...state,
+          queue: { ...state.queue, items, currentIndex: start, shuffledOrder: [] },
+        }));
+        await this.loadTrack(items[start], true, start);
+        break;
+      }
       case "clearQueue":
         this.update((state) => ({
           ...state,
@@ -254,7 +280,7 @@ export class PlayerCoordinator {
   private async skipPrevious(): Promise<void> {
     const { queue, position } = this.state;
     // Past a few seconds, "previous" restarts the track, as every music player does.
-    if (position.elapsedMs > 3000) {
+    if (position.elapsedMs > RESTART_THRESHOLD_MS) {
       this.adapter.seek(0);
       return;
     }
@@ -341,8 +367,13 @@ export class PlayerCoordinator {
   }
 
   private update(reducer: (state: PlayerState) => PlayerState): void {
-    const next = reducer(this.state);
-    if (next === this.state) return;
+    const reduced = reducer(this.state);
+    if (reduced === this.state) return;
+    /*
+     * Capability is recomputed here rather than at each call site, so there is no path
+     * that changes the queue and forgets to say what the transport can now do.
+     */
+    const next = withTransportCapability(reduced);
     this.state = next;
     this.listeners.forEach((listener) => listener(next));
   }
@@ -397,6 +428,42 @@ const RECOVERING_COMMANDS: ReadonlySet<PlayerCommand["type"]> = new Set([
   "skipPrevious",
   "load",
 ]);
+
+/**
+ * What the transport can do from here.
+ *
+ * A control that is visible and does nothing is worse than one that is visibly
+ * unavailable: the first teaches people the app is broken, the second tells them where
+ * they are. Previous is always available once you are far enough into a track, because
+ * there it restarts rather than moves.
+ */
+/**
+ * Past this, "previous" restarts the track instead of leaving it.
+ *
+ * Named because two places need to agree: the behaviour, and the capability flag that
+ * tells the UI whether the button does anything.
+ */
+const RESTART_THRESHOLD_MS = 3000;
+
+function withTransportCapability(state: PlayerState): PlayerState {
+  const { items, currentIndex, repeatMode } = state.queue;
+  const hasNeighbours = items.length > 1;
+  const wraps = repeatMode !== "Off" && hasNeighbours;
+
+  const canSkipNext = hasNeighbours && (currentIndex < items.length - 1 || wraps);
+  const canSkipPrevious =
+    (hasNeighbours && (currentIndex > 0 || wraps)) ||
+    (state.currentTrack !== undefined && state.position.elapsedMs > RESTART_THRESHOLD_MS);
+
+  const { capabilities } = state;
+  if (
+    capabilities.canSkipNext === canSkipNext &&
+    capabilities.canSkipPrevious === canSkipPrevious
+  ) {
+    return state;
+  }
+  return { ...state, capabilities: { ...capabilities, canSkipNext, canSkipPrevious } };
+}
 
 function isTerminal(state: PlayerState): boolean {
   return state.status === "Completed" || state.status === "Error";

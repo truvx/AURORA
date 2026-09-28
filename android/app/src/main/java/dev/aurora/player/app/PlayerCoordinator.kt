@@ -55,6 +55,7 @@ class PlayerCoordinator(
             is PlayerCommand.Pause -> pause()
             is PlayerCommand.Seek -> seekTo(command.target)
             is PlayerCommand.SkipNext -> skipNext()
+            is PlayerCommand.PlayList -> playList(command.items, command.startIndex)
             is PlayerCommand.SkipPrevious -> skipPrevious()
             is PlayerCommand.Replay -> replay()
             is PlayerCommand.SetShuffle -> setShuffle(command.mode)
@@ -70,6 +71,32 @@ class PlayerCoordinator(
             is PlayerCommand.SetCrossfade -> setCrossfade(command.durationMs)
             is PlayerCommand.SetEqEnabled -> setEqEnabled(command.enabled)
         }
+    }
+
+    /**
+     * The list becomes the queue, and the tapped track becomes the position in it.
+     *
+     * One state change rather than a load followed by a run of appends: the old shape
+     * queued the rest *behind whatever was already playing*, and it depended on Load
+     * replacing the queue, which is not what Load does.
+     *
+     * An index outside the list starts from the beginning rather than clamping to the end.
+     * Out of range means the caller's idea of the list is stale, and starting at the last
+     * track would play one song and stop.
+     */
+    private fun playList(items: List<dev.aurora.player.domain.models.MediaItem>, startIndex: Int) {
+        if (items.isEmpty()) return
+        val start = if (startIndex in items.indices) startIndex else 0
+        _state.update { current ->
+            current.copy(
+                queue = current.queue.copy(
+                    items = items,
+                    currentIndex = start,
+                    shuffledOrder = emptyList()
+                )
+            )
+        }
+        loadTrack(items[start], playWhenReady = true)
     }
 
     private fun loadTrack(track: dev.aurora.player.domain.models.MediaItem, playWhenReady: Boolean) {

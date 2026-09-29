@@ -5,6 +5,18 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!--
+      Read a headset's own battery message, and nothing else.
+
+      Optional: AURORA never asks for it. Headphones are detected through the audio
+      system, which needs no permission; this only adds the level a headset volunteers
+      over the vendor-specific AT channel, and without it the capsule shows the icon
+      alone. See data/headphones/HeadphoneMonitor.kt.
+    -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.INTERNET" />

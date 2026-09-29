@@ -2,9 +2,12 @@ package dev.aurora.player.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
@@ -68,18 +71,30 @@ fun <T> SegmentedControl(
         backdrop = backdrop,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // The travelling fill, behind the labels.
+            /*
+             * The travelling fill, behind the labels.
+             *
+             * Width is a fraction of the row; height is all of it. This was one call to
+             * `fillMaxSize(fraction)`, which applies the fraction to both - so with three
+             * options the fill was a third as tall as well as a third as wide, and drew as
+             * a short bar pinned to the top of the segment instead of a capsule behind the
+             * word.
+             */
             Box(
                 modifier = Modifier
-                    .fillMaxSize(1f / options.size)
+                    .fillMaxHeight()
+                    .fillMaxWidth(1f / options.size)
                     .graphicsLayer {
                         translationX = offset * size.width
                     }
                     .padding(SEGMENT_INSET)
-                    .clip(RoundedCornerShape(percent = 50))
+                    .clip(CapsuleShape)
                     // A flat fill rather than another glass layer: glass on glass stops
                     // reading as glass, which is the one thing the material has to do.
                     .background(colors.surfaceGlassElevated)
+                    // The lit edge that says the capsule is raised off the track, rather
+                    // than a lighter patch of the same surface.
+                    .border(HAIRLINE, colors.glassHighlight, CapsuleShape)
             )
 
             Row(
@@ -112,7 +127,15 @@ fun <T> SegmentedControl(
                             } else {
                                 androidx.compose.ui.text.font.FontWeight.Normal
                             },
-                            color = if (isSelected) colors.textPrimary else colors.textSecondary,
+                            /*
+                             * Accent on the selected word.
+                             *
+                             * The fill alone was carrying the selection, and on a dark
+                             * track a slightly lighter capsule is a quiet signal. Colour
+                             * and weight together mean the choice is legible at a glance
+                             * and still legible without colour, which is the rule.
+                             */
+                            color = if (isSelected) colors.accentPrimary else colors.textSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -125,3 +148,9 @@ fun <T> SegmentedControl(
 
 private val SEGMENT_HEIGHT = 44.dp
 private val SEGMENT_INSET = 3.dp
+
+/** Fully rounded ends, so the fill reads as a capsule at whatever width a segment is. */
+private val CapsuleShape = RoundedCornerShape(percent = 50)
+
+/** One device pixel at most densities: an edge, not an outline. */
+private val HAIRLINE = 1.dp

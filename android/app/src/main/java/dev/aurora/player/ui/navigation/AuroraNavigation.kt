@@ -379,6 +379,7 @@ fun AuroraNavigation(
                 onNavigate = ::navigateToTab,
                 onExpandPlayer = { playerExpanded = true },
                 backdrop = chromeBackdrop,
+                headphones = container.headphones.state,
                 modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
             )
         }

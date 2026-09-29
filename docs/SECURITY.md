@@ -30,6 +30,37 @@ Listening history, playlists, local paths/URIs, technical metadata, conversation
 
 As implemented (`android/app/src/main/res/xml/backup_rules.xml`, `data_extraction_rules.xml`): the app allows backup, so settings survive a reinstall, but `aurora-database` and its write-ahead log are excluded from cloud backup on every API level. Listening history, completions and skips do not reach a Google account. Device transfer is treated as a separate decision and keeps the library, because it is a direct person-initiated move to their next phone with nothing left on a server. The encrypted secrets are excluded from both: the Keystore key that decrypts them does not travel, so the ciphertext would restore useless. Measured with the local backup transport: 592,896 bytes leave the device without these rules, 219,136 bytes with them.
 
+## Reading a headset's battery
+
+As implemented (`android/.../data/headphones/HeadphoneMonitor.kt`,
+`android/.../domain/headphones/AppleAccessoryEvent.kt`): the floating player bar shows
+whether headphones are connected and, when the headset volunteers one, its battery level.
+Two sources, because the two facts differ in what they cost.
+
+Whether headphones are the output comes from `AudioManager`'s list of output devices. It
+needs no permission, it covers a wired pair as well as a wireless one, and it is the same
+fact the audio system is already acting on.
+
+The battery level has no public accessor at all. Nothing on `BluetoothDevice` or
+`BluetoothHeadset` returns one, and the members that hold it are `@SystemApi` or hidden, so
+the common answer is reflection against a non-SDK interface. AURORA does not do that. What
+is public is `ACTION_VENDOR_SPECIFIC_HEADSET_EVENT`: the headset's own AT message, delivered
+verbatim, with its command, type and arguments in documented extras. The message read is
+`+IPHONEACCEV`, which nearly every headset sends because they all want to show a level on an
+iPhone. Its command name is not a public constant, so it is spelled out as the string the
+headset sent - read from a public extra, not reached by another route.
+
+Receiving that broadcast needs `BLUETOOTH_CONNECT`. The permission is declared and never
+requested: it is read only where the user has already granted it for some other reason, and
+a dialog raised by opening a music player to play music would be asking for something in
+exchange for nothing yet. Without it the connected state still shows, with the level
+unknown. No scanning permission is involved and nothing is discovered, paired or written -
+the app receives one message about a device the user has already connected.
+
+Parsing is all-or-nothing: a message that does not match the documented shape yields
+nothing rather than a salvaged fragment, because the figure is shown as fact. The level is
+dropped on disconnect, so the next pair of headphones never wears the last pair's battery.
+
 ## Logging and observability
 
 Allowlist operational fields such as event category, stable non-secret correlation ID, elapsed time, retryability, and coarse failure reason. Redact authorization headers, tokens, cookies, raw provider/media URLs, private prompts, file paths, personal metadata, and full listening history. Test redaction and inspect crash reports before enabling telemetry.

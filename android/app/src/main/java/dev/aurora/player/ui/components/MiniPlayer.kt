@@ -72,6 +72,14 @@ private val BarShape = androidx.compose.foundation.shape.RoundedCornerShape(22.d
 fun MiniPlayer(
     modifier: Modifier = Modifier,
     backdrop: com.kyant.backdrop.Backdrop? = null,
+    /**
+     * What is on the listener's head, if anything.
+     *
+     * Defaulted so a preview or a test that does not care about headphones renders the
+     * bar without them, which is also what an emulator with no output device shows.
+     */
+    headphones: dev.aurora.player.domain.headphones.HeadphoneState =
+        dev.aurora.player.domain.headphones.HeadphoneState.Disconnected,
     onExpand: () -> Unit
 ) {
     val coordinator = LocalPlayerCoordinator.current
@@ -229,6 +237,16 @@ fun MiniPlayer(
                             append("Now playing: ")
                             append(resolved.title ?: currentTrack.title)
                             resolved.artist?.let { append(" by ").append(it) }
+                            /*
+                             * The capsule's own words, said here.
+                             *
+                             * This row is one merged node with an explicit description, so
+                             * anything written on a child inside it is never spoken. The
+                             * headphone state is worth hearing, so it joins the sentence
+                             * that does reach the screen reader rather than being set on a
+                             * node that cannot be focused.
+                             */
+                            headphoneAnnouncement(headphones)?.let { append(". ").append(it) }
                         }
                         role = Role.Button
                         onClick(label = "Open full player") {
@@ -317,6 +335,13 @@ fun MiniPlayer(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+
+                    HeadphoneCapsule(
+                        state = headphones,
+                        // Space on both sides: without the leading gap a long title runs
+                        // straight into the capsule and the two read as one shape.
+                        modifier = Modifier.padding(horizontal = Aurora.spacing.space2)
+                    )
 
                     val isPlaying = state.status == PlaybackStatus.Playing || state.status == PlaybackStatus.Buffering
                     GlassIconButton(

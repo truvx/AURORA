@@ -83,6 +83,8 @@ fun AuroraFloatingChrome(
     onNavigate: (AuroraDestination) -> Unit,
     onExpandPlayer: () -> Unit,
     backdrop: Backdrop?,
+    /** Collected here rather than in the bar, so the bar stays a function of its inputs. */
+    headphones: kotlinx.coroutines.flow.StateFlow<dev.aurora.player.domain.headphones.HeadphoneState>? = null,
     modifier: Modifier = Modifier,
 ) {
     val spacing = Aurora.spacing
@@ -100,7 +102,18 @@ fun AuroraFloatingChrome(
             DockedYouTubePlayer(modifier = Modifier.align(Alignment.End))
         }
 
-        MiniPlayer(backdrop = backdrop, onExpand = onExpandPlayer)
+        val headphoneState by (headphones?.collectAsState()
+            ?: remember {
+                androidx.compose.runtime.mutableStateOf<dev.aurora.player.domain.headphones.HeadphoneState>(
+                    dev.aurora.player.domain.headphones.HeadphoneState.Disconnected
+                )
+            })
+
+        MiniPlayer(
+            backdrop = backdrop,
+            headphones = headphoneState,
+            onExpand = onExpandPlayer
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),

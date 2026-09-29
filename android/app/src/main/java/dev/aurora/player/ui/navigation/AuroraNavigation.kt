@@ -238,6 +238,7 @@ fun AuroraNavigation(
                 }
                 SearchScreen(
                     viewModel = searchViewModel,
+                    onOpenSettings = { navigateToTab(AuroraDestination.Settings) },
                     onPlay = { items, index -> playFrom(container, items, index) },
                     onAddToQueue = { item ->
                         container.playerCoordinator.dispatch(
@@ -292,7 +293,8 @@ fun AuroraNavigation(
                     unseen = ready?.unseen.orEmpty(),
                     onPlay = { items, index -> playFrom(container, items, index) },
                     onBack = { navController.popBackStack() },
-                    onSeen = homeViewModel::markReleasesSeen
+                    onSeen = homeViewModel::markReleasesSeen,
+                    onOpenSearch = { navigateToTab(AuroraDestination.Search) }
                 )
             }
             composable(AuroraDestination.Library.route) {

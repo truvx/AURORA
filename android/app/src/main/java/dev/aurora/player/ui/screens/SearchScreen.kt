@@ -14,7 +14,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -28,8 +31,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import dev.aurora.player.domain.models.MediaItem
-import dev.aurora.player.ui.components.GlassCard
-import dev.aurora.player.ui.components.GlassLevel
 import dev.aurora.player.ui.components.SectionHeader
 import dev.aurora.player.ui.components.TrackRow
 import dev.aurora.player.ui.navigation.LocalChromeInsets
@@ -52,6 +53,7 @@ fun SearchScreen(
      */
     onPlay: (List<MediaItem>, Int) -> Unit = { _, _ -> },
     onAddToQueue: (MediaItem) -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val spacing = Aurora.spacing
@@ -120,7 +122,13 @@ fun SearchScreen(
                 )
             }
             if (trending.isEmpty()) {
-                item { Hint("Trending needs a YouTube API key, or a connection.") }
+                item {
+                    Hint(
+                        Icons.Outlined.CloudOff,
+                        "Couldn't load trending",
+                        "Search for something instead - that doesn't need this to have worked."
+                    )
+                }
             } else {
                 item { TrackList(trending, onPlay, onAddToQueue) }
             }
@@ -134,7 +142,13 @@ fun SearchScreen(
             )
         }
         if (localResults.isEmpty()) {
-            item { Hint("No matches in your library.") }
+            item {
+                Hint(
+                    Icons.Outlined.LibraryMusic,
+                    "Nothing in your library",
+                    "No local file matches that. YouTube is below."
+                )
+            }
         } else {
             item { TrackList(localResults, onPlay, onAddToQueue) }
         }
@@ -146,20 +160,61 @@ fun SearchScreen(
             )
         }
         when (val state = remote) {
-            RemoteSearchState.Idle -> item { Hint("Press search to look on YouTube.") }
-            RemoteSearchState.Searching -> item { Hint("Searching YouTube…") }
+            RemoteSearchState.Idle -> item {
+                Hint(
+                    Icons.Rounded.Search,
+                    "Press search to look on YouTube",
+                    "Library results are instant; a YouTube search spends a hundredth of the day's quota, so it waits to be asked."
+                )
+            }
+            // The shape of what is coming, rather than a sentence about waiting.
+            RemoteSearchState.Searching -> item {
+                dev.aurora.player.ui.components.CardRowSkeleton(
+                    modifier = Modifier.padding(horizontal = Aurora.spacing.space4),
+                    contentDescription = "Searching YouTube"
+                )
+            }
             is RemoteSearchState.Results ->
                 if (state.items.isEmpty()) {
-                    item { Hint("Nothing on YouTube for that.") }
+                    item {
+                        Hint(
+                            Icons.Rounded.Search,
+                            "Nothing on YouTube for that",
+                            "Try fewer words, or a different spelling."
+                        )
+                    }
                 } else {
                     item { TrackList(state.items, onPlay, onAddToQueue) }
                 }
-            RemoteSearchState.NotConfigured ->
-                item { Hint("Searching YouTube needs a Data API key. Add one in Settings.") }
-            RemoteSearchState.Rejected ->
-                item { Hint("YouTube turned the request down. Check the key in Settings, that YouTube Data API v3 is enabled for it, and that today's quota isn't spent.") }
-            RemoteSearchState.Unavailable ->
-                item { Hint("Couldn't reach YouTube. Check your connection.") }
+            // Each of these has a different thing to do about it, so each offers it
+            // rather than naming a screen and leaving the listener to find it.
+            RemoteSearchState.NotConfigured -> item {
+                Hint(
+                    Icons.Rounded.Settings,
+                    "No YouTube key",
+                    "This build has no Data API key and nobody is signed in. Either will do.",
+                    "Open Settings",
+                    onOpenSettings
+                )
+            }
+            RemoteSearchState.Rejected -> item {
+                Hint(
+                    Icons.Rounded.Settings,
+                    "YouTube turned the request down",
+                    "The key is wrong, YouTube Data API v3 isn't enabled for its project, or today's quota is spent. Your connection was fine.",
+                    "Open Settings",
+                    onOpenSettings
+                )
+            }
+            RemoteSearchState.Unavailable -> item {
+                Hint(
+                    Icons.Outlined.CloudOff,
+                    "Couldn't reach YouTube",
+                    "Check your connection. Your library still searches.",
+                    "Try again",
+                    { viewModel?.submit() }
+                )
+            }
         }
     }
 }
@@ -183,11 +238,19 @@ private fun TrackList(
 }
 
 @Composable
-private fun Hint(text: String) {
-    GlassCard(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Aurora.spacing.space4),
-        level = GlassLevel.Secondary
-    ) {
-        Text(text = text, style = Aurora.typography.body, color = Aurora.colors.textSecondary)
-    }
+private fun Hint(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    headline: String,
+    detail: String,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+) {
+    dev.aurora.player.ui.components.SectionNotice(
+        icon = icon,
+        headline = headline,
+        detail = detail,
+        actionLabel = actionLabel,
+        onAction = onAction,
+        modifier = Modifier.padding(horizontal = Aurora.spacing.space4)
+    )
 }

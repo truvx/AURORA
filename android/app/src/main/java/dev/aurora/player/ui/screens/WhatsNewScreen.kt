@@ -9,16 +9,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.outlined.Album
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import dev.aurora.player.domain.models.MediaItem
-import dev.aurora.player.ui.components.GlassCard
 import dev.aurora.player.ui.components.GlassIconButton
-import dev.aurora.player.ui.components.GlassLevel
 import dev.aurora.player.ui.components.TrackRow
 import dev.aurora.player.ui.navigation.LocalChromeInsets
 import dev.aurora.player.ui.theme.Aurora
@@ -37,6 +36,7 @@ fun WhatsNewScreen(
     onPlay: (List<MediaItem>, Int) -> Unit,
     onBack: () -> Unit,
     onSeen: () -> Unit,
+    onOpenSearch: () -> Unit = {},
     modifier: Modifier = Modifier,
     now: Long = System.currentTimeMillis(),
 ) {
@@ -62,7 +62,7 @@ fun WhatsNewScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 GlassIconButton(
-                    icon = Icons.Rounded.ArrowBack,
+                    icon = Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDesc = "Back",
                     onClick = onBack
                 )
@@ -77,16 +77,14 @@ fun WhatsNewScreen(
 
         if (releases.isEmpty()) {
             item {
-                GlassCard(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.space4),
-                    level = GlassLevel.Secondary
-                ) {
-                    Text(
-                        text = "Nothing new yet. Releases from the artists you play show up here.",
-                        style = Aurora.typography.body,
-                        color = Aurora.colors.textSecondary
-                    )
-                }
+                dev.aurora.player.ui.components.SectionNotice(
+                    icon = Icons.Outlined.Album,
+                    headline = "Nothing new yet",
+                    detail = "Releases from the artists you play show up here, from the last six months.",
+                    actionLabel = "Find music",
+                    onAction = onOpenSearch,
+                    modifier = Modifier.padding(horizontal = spacing.space4)
+                )
             }
         } else {
             item {

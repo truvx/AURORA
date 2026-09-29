@@ -409,10 +409,28 @@ fun SettingsScreen(
                 icon = Icons.Outlined.PlayCircle,
                 name = "Data API key",
                 setText = "Saved",
-                unsetText = "Not set",
-                explanation = "An alternative to signing in: a YouTube Data API v3 key from your own " +
-                    "Google Cloud project. Signing in is used in preference to this when both are " +
-                    "present. It's encrypted on this device and never built into the app.",
+                /*
+                 * What "not set" means depends on whether this build carries a key.
+                 *
+                 * Saying "Not set" while YouTube plainly works would be the app lying
+                 * about where its results come from, and the whole point of this row is
+                 * to tell the truth about which credential is in use.
+                 */
+                unsetText = if (dev.aurora.player.BuildConfig.YOUTUBE_API_KEY.isNotBlank()) {
+                    "Using this build's key"
+                } else {
+                    "Not set"
+                },
+                explanation = if (dev.aurora.player.BuildConfig.YOUTUBE_API_KEY.isNotBlank()) {
+                    "This build carries a YouTube Data API v3 key, so search and discovery work " +
+                        "without setup. Enter one here to spend a different project's quota " +
+                        "instead; it's encrypted on this device and takes precedence. Signing in " +
+                        "takes precedence over both."
+                } else {
+                    "An alternative to signing in: a YouTube Data API v3 key from your own " +
+                        "Google Cloud project. Signing in is used in preference to this when both " +
+                        "are present. It's encrypted on this device and never built into the app."
+                },
                 placeholder = "API key",
                 clearLabel = "Remove",
                 saveLabel = "Save",
@@ -614,7 +632,11 @@ private fun GoogleAccountSection(
                 )
                 Spacer(modifier = Modifier.height(spacing.space3))
                 Text(
-                    text = "Until then, the Data API key below is the way in.",
+                    text = if (dev.aurora.player.BuildConfig.YOUTUBE_API_KEY.isNotBlank()) {
+                        "YouTube works regardless: this build carries its own Data API key."
+                    } else {
+                        "Until then, the Data API key below is the way in."
+                    },
                     style = typography.caption,
                     color = colors.textTertiary
                 )

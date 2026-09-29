@@ -215,7 +215,16 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     private suspend fun youTubeCredential(): dev.aurora.player.domain.auth.YouTubeCredential =
         dev.aurora.player.domain.auth.YouTubeCredential.of(
             accessToken = googleAuth.accessToken(),
-            apiKey = youTubeKeyStore.get(),
+            /*
+             * A key typed in Settings, or the one this build carries.
+             *
+             * The typed one wins: someone who has entered a key on this device has said
+             * which project's quota to spend, and a build-time default must not quietly
+             * override a deliberate choice. The built-in key is what makes a fresh
+             * install work with no setup at all.
+             */
+            apiKey = youTubeKeyStore.get()?.takeIf { it.isNotBlank() }
+                ?: dev.aurora.player.BuildConfig.YOUTUBE_API_KEY,
         )
 
     override val googleAuth: dev.aurora.player.data.auth.GoogleAuthRepository by lazy {

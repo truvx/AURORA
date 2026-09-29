@@ -29,9 +29,29 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // No YouTube key here on purpose. A buildConfigField ships the key inside every
-        // copy of the APK, where `strings` finds it in seconds. It is entered in Settings
-        // instead and kept in the Keystore - see data/security/SecretStore.kt.
+        /*
+         * The YouTube Data API key the app is built with.
+         *
+         * This does ship inside the APK, where `strings` finds it in seconds. That is
+         * understood and chosen: this is a personal build installed on its author's own
+         * devices, and the alternative - typing the key into Settings on each of them -
+         * buys nothing while the APK stays in their hands. What the key can do is bounded:
+         * it reads public YouTube data and spends one project's daily quota. It cannot
+         * reach an account.
+         *
+         * It is read from local.properties, never written here, so the key itself stays
+         * out of the repository. Keep the key's API restriction set to YouTube Data API
+         * v3, and do not add an Android application restriction: enforcing one needs
+         * X-Android-Package and X-Android-Cert headers this client does not send, so it
+         * would reject every request.
+         *
+         * A key entered in Settings still wins over this one, and a signed-in session
+         * wins over both. See domain/auth/YouTubeCredential.kt.
+         */
+        val youTubeApiKey: String = localProperties.getProperty("YOUTUBE_API_KEY")
+            ?: System.getenv("YOUTUBE_API_KEY")
+            ?: ""
+        buildConfigField("String", "YOUTUBE_API_KEY", "\"$youTubeApiKey\"")
 
         /*
          * The Google OAuth client ID, which is a different kind of thing from a key.

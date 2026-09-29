@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,7 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.QueueMusic
+import androidx.compose.material.icons.automirrored.outlined.QueueMusic
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material3.DropdownMenu
@@ -37,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -213,6 +215,124 @@ fun ReleaseCard(
 }
 
 /**
+ * What a section says when it has nothing to show.
+ *
+ * Always a reason, never a blank space - and where the reason has an answer, the answer is
+ * a button rather than a sentence telling the listener where to go and leaving them to
+ * find it. The mark repeats the section's own, so the notice reads as that section being
+ * empty rather than as an error about the page.
+ */
+@Composable
+fun SectionNotice(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    headline: String,
+    detail: String,
+    modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+    /** Announce it when it replaces something, e.g. after a retry. */
+    announce: Boolean = false,
+) {
+    val colors = Aurora.colors
+    val spacing = Aurora.spacing
+    GlassCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (announce) {
+                    Modifier.semantics {
+                        liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite
+                    }
+                } else {
+                    Modifier
+                }
+            ),
+        level = GlassLevel.Secondary
+    ) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = colors.textSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(spacing.space3))
+                Text(
+                    text = headline,
+                    style = Aurora.typography.trackTitle,
+                    color = colors.textPrimary
+                )
+            }
+            Spacer(modifier = Modifier.height(spacing.space1))
+            Text(
+                text = detail,
+                style = Aurora.typography.body,
+                color = colors.textSecondary
+            )
+            if (actionLabel != null && onAction != null) {
+                Spacer(modifier = Modifier.height(spacing.space3))
+                GlassButton(
+                    text = actionLabel,
+                    onClick = onAction,
+                    style = GlassButtonStyle.Secondary
+                )
+            }
+        }
+    }
+}
+
+/**
+ * A row of cards that have not arrived yet.
+ *
+ * The shape of what is coming, so the page does not jump when it lands, and so waiting
+ * looks different from having nothing. Static on purpose: a shimmer is motion spent on a
+ * placeholder, and it would need a reduced-motion variant to say the same thing.
+ */
+@Composable
+fun CardRowSkeleton(
+    modifier: Modifier = Modifier,
+    count: Int = 3,
+    contentDescription: String = "Loading",
+) {
+    val colors = Aurora.colors
+    Row(
+        modifier = modifier.semantics(mergeDescendants = true) {
+            this.contentDescription = contentDescription
+            liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite
+        },
+        horizontalArrangement = Arrangement.spacedBy(Aurora.spacing.space3)
+    ) {
+        repeat(count) {
+            Column(modifier = Modifier.width(CardWidth)) {
+                Box(
+                    modifier = Modifier
+                        .size(CardWidth)
+                        .clip(Aurora.shapes.card)
+                        .background(colors.surfaceGlassSecondary)
+                )
+                Spacer(modifier = Modifier.height(Aurora.spacing.space2))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(colors.surfaceGlassSecondary)
+                )
+                Spacer(modifier = Modifier.height(Aurora.spacing.space1))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(colors.surfaceGlassSecondary)
+                )
+            }
+        }
+    }
+}
+
+/**
  * A playlist the listener made, as a card in the Home row.
  *
  * No cover, because a playlist has none. The reference fills these with generated
@@ -240,7 +360,7 @@ fun PlaylistCard(
             shape = Aurora.shapes.card,
         ) {
             Icon(
-                imageVector = Icons.Outlined.QueueMusic,
+                imageVector = Icons.AutoMirrored.Outlined.QueueMusic,
                 contentDescription = null,
                 tint = colors.textTertiary,
                 modifier = Modifier.align(Alignment.Center).size(32.dp)

@@ -72,8 +72,14 @@ class HomeViewModel(
     private val _releases = MutableStateFlow<ReleasesState>(ReleasesState.Loading)
     val releases: StateFlow<ReleasesState> = _releases.asStateFlow()
 
-    private val _recentlyPlayed = MutableStateFlow<List<MediaItem>>(emptyList())
-    val recentlyPlayed: StateFlow<List<MediaItem>> = _recentlyPlayed.asStateFlow()
+    /**
+     * Null until the history has been read once, then the list - which may be empty.
+     *
+     * "Not read yet" and "nothing here" are different things to say, and a section that
+     * starts empty and fills a moment later shows the wrong one first.
+     */
+    private val _recentlyPlayed = MutableStateFlow<List<MediaItem>?>(null)
+    val recentlyPlayed: StateFlow<List<MediaItem>?> = _recentlyPlayed.asStateFlow()
 
     private val _topArtists = MutableStateFlow<List<String>>(emptyList())
 
@@ -95,9 +101,9 @@ class HomeViewModel(
      * already carries its size, so the header can say how many there are without a second
      * query, and a hand-made collection of playlists is not a table that needs paging.
      */
-    val playlists: StateFlow<List<dev.aurora.player.domain.library.Playlist>> =
+    val playlists: StateFlow<List<dev.aurora.player.domain.library.Playlist>?> =
         organization.observePlaylists()
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Favorite ids for every provider, so a favorited YouTube track shows as one. */
     val favoriteIds: StateFlow<Set<String>> = organization.observeFavoriteIds()
@@ -228,6 +234,20 @@ class HomeViewModel(
             )
         }
         return cards
+    }
+
+    /**
+     * Ask again, for the listener who has just reconnected.
+     *
+     * The ranked artists are already in hand, so this is the one failed request repeated
+     * rather than the whole feed rebuilt. It does nothing when there is nobody to ask
+     * about, which is a different state with its own answer on screen.
+     */
+    fun retryReleases() {
+        val artists = _topArtists.value
+        if (artists.isEmpty()) return
+        _releases.value = ReleasesState.Loading
+        viewModelScope.launch { loadReleases(artists) }
     }
 
     fun markReleasesSeen() = whatsNew.markSeen(now())

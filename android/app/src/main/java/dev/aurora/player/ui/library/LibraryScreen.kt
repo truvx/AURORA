@@ -27,9 +27,9 @@ import androidx.compose.material.icons.outlined.Album
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.PlaylistAdd
+import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -360,7 +360,7 @@ fun LibraryScreen(
                             }
 
                             GlassIconButton(
-                                icon = Icons.Outlined.PlaylistAdd,
+                                icon = Icons.AutoMirrored.Outlined.PlaylistAdd,
                                 contentDesc = "Add ${item.title} to a playlist",
                                 onClick = {
                                     haptics.fire(HapticEvent.Selection)
@@ -474,7 +474,7 @@ private fun GroupedTracks(
             verticalAlignment = Alignment.CenterVertically
         ) {
             GlassIconButton(
-                icon = Icons.Rounded.ArrowBack,
+                icon = Icons.AutoMirrored.Rounded.ArrowBack,
                 contentDesc = "Back to all ${label}s",
                 onClick = { onOpen(null) }
             )

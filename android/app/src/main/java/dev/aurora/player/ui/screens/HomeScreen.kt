@@ -20,11 +20,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Album
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.QueueMusic
+import androidx.compose.material.icons.automirrored.outlined.QueueMusic
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Settings
@@ -108,11 +109,11 @@ fun HomeScreen(
         })
     val recentlyPlayed by (viewModel?.recentlyPlayed?.collectAsState()
         ?: androidx.compose.runtime.remember {
-            androidx.compose.runtime.mutableStateOf(emptyList<MediaItem>())
+            androidx.compose.runtime.mutableStateOf<List<MediaItem>?>(emptyList())
         })
     val playlists by (viewModel?.playlists?.collectAsState()
         ?: androidx.compose.runtime.remember {
-            androidx.compose.runtime.mutableStateOf(emptyList<dev.aurora.player.domain.library.Playlist>())
+            androidx.compose.runtime.mutableStateOf<List<dev.aurora.player.domain.library.Playlist>?>(emptyList())
         })
     val hasUnseen = (releases as? ReleasesState.Ready)?.unseen?.isNotEmpty() == true
     val favorites by (viewModel?.favoriteIds?.collectAsState()
@@ -183,7 +184,7 @@ fun HomeScreen(
                     QuickDestination(Icons.Rounded.Favorite, "Liked songs") {
                         onOpenLibrary(dev.aurora.player.ui.library.LibraryView.Tracks, true)
                     },
-                    QuickDestination(Icons.Outlined.QueueMusic, "Playlists") {
+                    QuickDestination(Icons.AutoMirrored.Outlined.QueueMusic, "Playlists") {
                         onOpenLibrary(dev.aurora.player.ui.library.LibraryView.Playlists, false)
                     },
                     QuickDestination(Icons.Outlined.Album, "Albums") {
@@ -231,8 +232,10 @@ fun HomeScreen(
                 when (val state = releases) {
                     is ReleasesState.Ready -> {
                         if (state.releases.isEmpty()) {
-                            Explainer(
-                                "Nothing new from the artists you play, in the last six months."
+                            Notice(
+                                icon = Icons.Outlined.Album,
+                                headline = "Nothing new",
+                                detail = "The artists you play haven't released anything in the last six months."
                             )
                         } else {
                             LazyRow(
@@ -253,46 +256,83 @@ fun HomeScreen(
                             }
                         }
                     }
-                    ReleasesState.Loading -> Explainer("Looking for new releases…")
-                    // Each of these is a different problem with a different answer, so each
-                    // says which one it is rather than showing an empty row.
-                    ReleasesState.NoHistory ->
-                        Explainer("Play something first, and new releases from those artists appear here.")
-                    ReleasesState.NotConfigured ->
-                        Explainer("New releases need a YouTube Data API key. Add one in Settings.")
-                    ReleasesState.Unavailable ->
-                        Explainer("Couldn't reach YouTube for new releases. It'll retry later.")
+                    // The shape of what is coming, rather than a sentence about waiting.
+                    ReleasesState.Loading -> dev.aurora.player.ui.components.CardRowSkeleton(
+                        modifier = Modifier.padding(horizontal = spacing.space4),
+                        contentDescription = "Looking for new releases"
+                    )
+                    /*
+                     * Each of these is a different problem with a different answer, so each
+                     * says which one it is - and where there is something to do about it,
+                     * it is a button rather than directions to a screen.
+                     */
+                    ReleasesState.NoHistory -> Notice(
+                        icon = Icons.Outlined.Album,
+                        headline = "Play something first",
+                        detail = "New releases from the artists you play appear here.",
+                        actionLabel = "Find music",
+                        onAction = onOpenSearch
+                    )
+                    ReleasesState.NotConfigured -> Notice(
+                        icon = Icons.Rounded.Settings,
+                        headline = "No YouTube key yet",
+                        detail = "New releases come from the YouTube Data API, which needs a key of your own.",
+                        actionLabel = "Open Settings",
+                        onAction = onOpenSettings
+                    )
+                    ReleasesState.Unavailable -> Notice(
+                        icon = Icons.Outlined.CloudOff,
+                        headline = "Couldn't reach YouTube",
+                        detail = "Check your connection. Nothing else on this page needs it.",
+                        actionLabel = "Try again",
+                        onAction = { viewModel?.retryReleases() },
+                        announce = true
+                    )
                 }
             }
         }
 
         // --- Playlists --------------------------------------------------------------------
-        if (playlists.isNotEmpty()) {
+        // Nothing until the table has been read: an empty list and an unread one are
+        // different things, and showing "no playlists" for a frame is the wrong one.
+        playlists?.let { made ->
             item {
                 Column {
                     SectionHeader(
                         title = "Playlists",
-                        icon = Icons.Outlined.QueueMusic,
+                        icon = Icons.AutoMirrored.Outlined.QueueMusic,
                         // Countable, so counted. The reference also totals their running
                         // time; AURORA does not know every track's duration, and a total
                         // that quietly omits the unknown ones is a wrong number.
-                        subtitle = "${playlists.size} ${if (playlists.size == 1) "playlist" else "playlists"}",
+                        subtitle = "${made.size} ${if (made.size == 1) "playlist" else "playlists"}",
                         actionLabel = "See all",
                         onAction = {
                             onOpenLibrary(dev.aurora.player.ui.library.LibraryView.Playlists, false)
                         },
                         modifier = Modifier.padding(horizontal = spacing.space4)
                     )
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = spacing.space4),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.space3)
-                    ) {
-                        items(playlists, key = { it.id }) { playlist ->
-                            dev.aurora.player.ui.components.PlaylistCard(
-                                name = playlist.name,
-                                trackCount = playlist.trackCount,
-                                onClick = { onOpenPlaylist(playlist.id) }
-                            )
+                    if (made.isEmpty()) {
+                        Notice(
+                            icon = Icons.AutoMirrored.Outlined.QueueMusic,
+                            headline = "No playlists yet",
+                            detail = "Make one in your library, then add tracks to it from anywhere.",
+                            actionLabel = "Open Playlists",
+                            onAction = {
+                                onOpenLibrary(dev.aurora.player.ui.library.LibraryView.Playlists, false)
+                            }
+                        )
+                    } else {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = spacing.space4),
+                            horizontalArrangement = Arrangement.spacedBy(spacing.space3)
+                        ) {
+                            items(made, key = { it.id }) { playlist ->
+                                dev.aurora.player.ui.components.PlaylistCard(
+                                    name = playlist.name,
+                                    trackCount = playlist.trackCount,
+                                    onClick = { onOpenPlaylist(playlist.id) }
+                                )
+                            }
                         }
                     }
                 }
@@ -333,28 +373,39 @@ fun HomeScreen(
         }
 
         // --- Recently played ------------------------------------------------------------
-        item {
-            SectionHeader(
-                title = "Recently Played",
-                icon = Icons.Outlined.History,
-                modifier = Modifier.padding(horizontal = spacing.space4)
-            )
-        }
-        if (recentlyPlayed.isEmpty()) {
-            item { Explainer("Nothing played yet.") }
-        } else {
-            // One item, so the spacing between sections does not also push the rows apart.
+        recentlyPlayed?.let { played ->
             item {
-                Column {
-                    recentlyPlayed.forEach { item ->
-                        TrackRow(
-                            item = item,
-                            onPlay = { onPlay(recentlyPlayed, recentlyPlayed.indexOf(item)) },
-                            isFavorite = item.id in favorites,
-                            onToggleFavorite = { viewModel?.setFavorite(item.id, item.id !in favorites) },
-                            onAddToQueue = { onAddToQueue(item) },
-                            modifier = Modifier.padding(horizontal = spacing.space4)
-                        )
+                SectionHeader(
+                    title = "Recently Played",
+                    icon = Icons.Outlined.History,
+                    subtitle = if (played.isEmpty()) null else "Private to this device",
+                    modifier = Modifier.padding(horizontal = spacing.space4)
+                )
+            }
+            if (played.isEmpty()) {
+                item {
+                    Notice(
+                        icon = Icons.Outlined.History,
+                        headline = "Nothing played yet",
+                        detail = "What you listen to is kept on this device, and you can clear it at any time.",
+                        actionLabel = "Find music",
+                        onAction = onOpenSearch
+                    )
+                }
+            } else {
+                // One item, so the spacing between sections does not also push the rows apart.
+                item {
+                    Column {
+                        played.forEach { item ->
+                            TrackRow(
+                                item = item,
+                                onPlay = { onPlay(played, played.indexOf(item)) },
+                                isFavorite = item.id in favorites,
+                                onToggleFavorite = { viewModel?.setFavorite(item.id, item.id !in favorites) },
+                                onAddToQueue = { onAddToQueue(item) },
+                                modifier = Modifier.padding(horizontal = spacing.space4)
+                            )
+                        }
                     }
                 }
             }
@@ -424,19 +475,23 @@ private fun RowScope.QuickTile(
     }
 }
 
-/** One quiet line saying why a section is empty. Always a reason, never a blank space. */
+/** A section's empty, loading-failed or unconfigured state, inset to the page's margin. */
 @Composable
-private fun Explainer(text: String) {
-    GlassCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Aurora.spacing.space4),
-        level = GlassLevel.Secondary
-    ) {
-        Text(
-            text = text,
-            style = Aurora.typography.body,
-            color = Aurora.colors.textSecondary
-        )
-    }
+private fun Notice(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    headline: String,
+    detail: String,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+    announce: Boolean = false,
+) {
+    dev.aurora.player.ui.components.SectionNotice(
+        icon = icon,
+        headline = headline,
+        detail = detail,
+        actionLabel = actionLabel,
+        onAction = onAction,
+        announce = announce,
+        modifier = Modifier.padding(horizontal = Aurora.spacing.space4)
+    )
 }

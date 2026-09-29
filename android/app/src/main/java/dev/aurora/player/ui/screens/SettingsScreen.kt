@@ -394,8 +394,11 @@ fun SettingsScreen(
             )
         }
 
-        if (googleAuth != null && googleAuth.isConfigured) {
+        if (googleAuth != null) {
             Spacer(modifier = Modifier.height(spacing.space6))
+            // Shown whether or not a client ID was built in. Hiding it left someone looking
+            // for a sign-in option with no option and no reason, which reads as the feature
+            // not existing rather than as one step of setup being outstanding.
             GoogleAccountSection(auth = googleAuth, haptics = haptics)
         }
 
@@ -570,6 +573,8 @@ private fun GoogleAccountSection(
                                 current.email ?: "Signed in"
                             is dev.aurora.player.domain.auth.GoogleSignInState.Failed ->
                                 current.reason.sentence()
+                            dev.aurora.player.domain.auth.GoogleSignInState.NotConfigured ->
+                                "Not available in this build"
                             else -> "Not signed in"
                         },
                         style = typography.body,
@@ -585,6 +590,37 @@ private fun GoogleAccountSection(
                 style = typography.caption,
                 color = colors.textTertiary
             )
+
+            /*
+             * No client ID was built in, so there is nothing to sign in to.
+             *
+             * It cannot be typed here, and saying so is the honest thing: an installed-app
+             * client ID also determines the redirect Google sends the browser back to, and
+             * that redirect is registered in the manifest when the app is built. A field
+             * offering to accept one at runtime would collect a value the flow could never
+             * use. So this says what is missing and where it goes, and stops.
+             */
+            if (state is dev.aurora.player.domain.auth.GoogleSignInState.NotConfigured) {
+                Spacer(modifier = Modifier.height(spacing.space3))
+                Text(
+                    text = "This build has no Google OAuth client ID. Create an Android OAuth " +
+                        "client in your Google Cloud project - matching this app's package name " +
+                        "and signing certificate - then put it in local.properties as " +
+                        "GOOGLE_OAUTH_CLIENT_ID and rebuild. It sets the redirect the browser " +
+                        "comes back to, which is fixed when the app is built, so it cannot be " +
+                        "entered here.",
+                    style = typography.body,
+                    color = colors.textSecondary
+                )
+                Spacer(modifier = Modifier.height(spacing.space3))
+                Text(
+                    text = "Until then, the Data API key below is the way in.",
+                    style = typography.caption,
+                    color = colors.textTertiary
+                )
+                return@Column
+            }
+
             Spacer(modifier = Modifier.height(spacing.space4))
 
             if (state is dev.aurora.player.domain.auth.GoogleSignInState.SignedIn) {

@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -48,6 +49,24 @@ import dev.aurora.player.domain.player.PlayerCommand
 import dev.aurora.player.ui.haptics.HapticEvent
 import dev.aurora.player.ui.haptics.LocalHapticEngine
 import dev.aurora.player.ui.theme.Aurora
+
+/**
+ * How tall the floating bar is.
+ *
+ * Shared, because the chrome reserves exactly this much room at the bottom of every
+ * scrolling screen: two numbers that have to agree, kept as one.
+ */
+val MiniPlayerHeight = 64.dp
+
+/**
+ * The bar is a rounded rectangle rather than a pill.
+ *
+ * A pill's ends curve away from the square sleeve sitting inside it, leaving two crescents
+ * of empty glass; a radius near the sleeve's own lets the two shapes nest, which is what
+ * the reference does and why its bar reads as a container for the record rather than as a
+ * capsule with a picture stuck on.
+ */
+private val BarShape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp)
 
 @Composable
 fun MiniPlayer(
@@ -126,11 +145,11 @@ fun MiniPlayer(
     ) {
         if (currentTrack != null) {
             GlassSurface(
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(percent = 50),
+                shape = BarShape,
                 backdrop = backdrop,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp)
+                    .height(MiniPlayerHeight)
                     .offset { IntOffset(0, lift.value.roundToInt()) }
                     .graphicsLayer {
                         // Hint the destination: the surface grows slightly as it rises, so
@@ -223,10 +242,37 @@ fun MiniPlayer(
                     },
                 level = GlassLevel.Elevated
             ) {
+                /*
+                 * How far through the track, as a fill behind the row.
+                 *
+                 * The bar named what was playing but never said where in it playback had
+                 * got to, which is the one thing a glance at a mini-player is usually for.
+                 * Drawn only when the duration is actually known - a live stream and a
+                 * YouTube track still resolving its metadata have no end to be a fraction
+                 * of, and a bar that fills against an invented length would be a lie about
+                 * the track rather than a missing feature.
+                 *
+                 * Decorative: the full player's scrubber is the accessible control, and
+                 * this row is one merged node that announces what is playing.
+                 */
+                val duration = state.position.duration?.takeIf { it > 0 }
+                if (duration != null) {
+                    val progress = (state.position.elapsed.toFloat() / duration).coerceIn(0f, 1f)
+                    if (progress > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(progress)
+                                .background(Aurora.colors.surfaceGlassSecondary)
+                                .clearAndSetSemantics {}
+                        )
+                    }
+                }
+
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(start = Aurora.spacing.space2, end = Aurora.spacing.space2),
+                        .padding(horizontal = Aurora.spacing.space2),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     /*
@@ -244,7 +290,7 @@ fun MiniPlayer(
                         // twice.
                         altText = "",
                         artworkUri = resolved.artworkUri,
-                        modifier = Modifier.size(44.dp),
+                        modifier = Modifier.size(48.dp),
                     )
 
                     Spacer(modifier = Modifier.width(Aurora.spacing.space3))

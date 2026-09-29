@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import com.kyant.backdrop.Backdrop
 import dev.aurora.player.domain.models.ProviderKind
 import dev.aurora.player.ui.components.GlassLevel
@@ -48,6 +50,7 @@ import dev.aurora.player.ui.components.LocalPlayerCoordinator
 import dev.aurora.player.ui.components.YouTubePlayerSurface
 import dev.aurora.player.ui.components.GlassSurface
 import dev.aurora.player.ui.components.MiniPlayer
+import dev.aurora.player.ui.components.MiniPlayerHeight
 import dev.aurora.player.ui.haptics.HapticEvent
 import dev.aurora.player.ui.haptics.LocalHapticEngine
 import dev.aurora.player.ui.theme.Aurora
@@ -276,14 +279,41 @@ fun GlassCircleButton(
     }
 }
 
-/** The room the chrome occupies: both bars, their gaps, and the navigation-bar inset. */
+/**
+ * The room the chrome occupies: the bars that are actually on screen, their gaps, and the
+ * navigation-bar inset.
+ *
+ * The mini-player's height counts only while something is playing. It was always counted,
+ * which left a bar's worth of dead space under every list before the first track of a
+ * session - room reserved for a surface that was not there.
+ */
 @Composable
 fun rememberChromeInsets(): PaddingValues {
     val spacing = Aurora.spacing
+    val coordinator = LocalPlayerCoordinator.current
+
+    /*
+     * Whether there is a mini-player, and nothing else about it.
+     *
+     * This value is handed to every screen through a composition local, so reading the
+     * whole player state here would rebuild the navigation host four times a second as
+     * the playhead ticks - the cost of a position tick, paid by the entire tree. The flow
+     * is narrowed to one boolean and de-duplicated before it is collected, and the result
+     * is remembered, so the local's identity changes only when a track starts or stops.
+     */
+    val hasMiniPlayer by androidx.compose.runtime.produceState(false, coordinator) {
+        coordinator.state
+            .map { it.currentTrack != null }
+            .distinctUntilChanged()
+            .collect { value = it }
+    }
+
     val bottomInset = androidx.compose.foundation.layout.WindowInsets.navigationBars
         .asPaddingValues()
         .calculateBottomPadding()
-    return PaddingValues(
-        bottom = 60.dp + BarHeight + spacing.space2 + spacing.space3 * 2 + bottomInset
-    )
+
+    return remember(hasMiniPlayer, bottomInset, spacing) {
+        val miniPlayer = if (hasMiniPlayer) MiniPlayerHeight + spacing.space2 else 0.dp
+        PaddingValues(bottom = miniPlayer + BarHeight + spacing.space3 * 2 + bottomInset)
+    }
 }

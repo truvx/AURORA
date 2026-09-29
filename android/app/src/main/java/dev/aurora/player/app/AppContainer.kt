@@ -38,6 +38,7 @@ interface AppContainer {
     val coverArtRepository: dev.aurora.player.data.discovery.CoverArtRepository
     val lyricsRepository: dev.aurora.player.data.lyrics.LyricsRepository
     val googleAuth: dev.aurora.player.data.auth.GoogleAuthRepository
+    val audioQualityStore: dev.aurora.player.data.discovery.AudioQualityStore
     val waveformRepository: dev.aurora.player.data.audio.WaveformRepository
     val mediaResolver: dev.aurora.player.data.discovery.MediaResolver
     val latestReleasesRepository: dev.aurora.player.data.discovery.LatestReleasesRepository
@@ -267,6 +268,14 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             api = youTubeDataApi,
             credentials = { youTubeCredential() },
             cache = discoveryCache
+        )
+    }
+
+    override val audioQualityStore: dev.aurora.player.data.discovery.AudioQualityStore by lazy {
+        dev.aurora.player.data.discovery.AudioQualityStore(
+            dev.aurora.player.data.discovery.SharedPreferencesStore(
+                context.getSharedPreferences("aurora_settings", Context.MODE_PRIVATE)
+            )
         )
     }
 

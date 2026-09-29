@@ -45,6 +45,42 @@ class LibraryViewModel(
         viewModelScope.launch { organization.setFavorite(mediaId, isFavorite) }
     }
 
+    // --- what is on screen --------------------------------------------------------------
+    /*
+     * The view lives here rather than in the composable because Home's quick-access tiles
+     * open the library at a particular view, and they cannot reach into its composition to
+     * say which. Route arguments would be the other way, but they collide with the tab
+     * back stack's saved state: restoring a library entry restores the view it was left
+     * on, which is not the one the tile just asked for.
+     */
+
+    private val _view = MutableStateFlow(LibraryView.Tracks)
+    val view: StateFlow<LibraryView> = _view.asStateFlow()
+
+    /** Tracks, narrowed to favourites. Only meaningful in [LibraryView.Tracks]. */
+    private val _favoritesOnly = MutableStateFlow(false)
+    val favoritesOnly: StateFlow<Boolean> = _favoritesOnly.asStateFlow()
+
+    /** The album or artist being looked inside, by [dev.aurora.player.domain.library.TrackGroup.key]. */
+    private val _openGroupKey = MutableStateFlow<String?>(null)
+    val openGroupKey: StateFlow<String?> = _openGroupKey.asStateFlow()
+
+    fun show(view: LibraryView, favoritesOnly: Boolean = false) {
+        _view.value = view
+        _favoritesOnly.value = favoritesOnly
+        // A view change lands on the list, never inside whatever was open in the last one.
+        _openGroupKey.value = null
+        if (view != LibraryView.Playlists) _openPlaylistId.value = null
+    }
+
+    fun setFavoritesOnly(enabled: Boolean) {
+        _favoritesOnly.value = enabled
+    }
+
+    fun openGroup(key: String?) {
+        _openGroupKey.value = key
+    }
+
     // --- playlists ----------------------------------------------------------------------
 
     val playlists: StateFlow<List<Playlist>> = organization.observePlaylists()

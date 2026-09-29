@@ -154,3 +154,39 @@ class FollowedArtistsStore(private val store: KeyValueStore) {
         const val LIMIT = 50
     }
 }
+
+/**
+ * The listener's Preferred Audio Quality.
+ *
+ * A preference, and the policy is emphatic that it is not a promise:
+ * `RequestedQuality + ProviderCapabilities + TrackCapabilities = ActualQuality`. Nothing
+ * reads this to decide what to *say* about a track - Now Playing discloses what is
+ * actually playing, with its provenance. This only expresses what to ask for.
+ *
+ * Defaults to Auto, which is the policy's own default and the only honest starting point:
+ * AURORA has not seen the network or the file yet.
+ */
+class AudioQualityStore(private val store: KeyValueStore) {
+
+    private val _preferred = MutableStateFlow(read())
+    val preferred: StateFlow<dev.aurora.player.domain.audio.RequestedQuality> = _preferred.asStateFlow()
+
+    fun set(quality: dev.aurora.player.domain.audio.RequestedQuality) {
+        if (_preferred.value == quality) return
+        _preferred.value = quality
+        store.put(KEY, quality.name)
+    }
+
+    private fun read(): dev.aurora.player.domain.audio.RequestedQuality {
+        val saved = store.get(KEY) ?: return dev.aurora.player.domain.audio.RequestedQuality.Auto
+        // Written by an older build, or hand-edited: an unreadable value is not a reason
+        // to crash, and Auto is the safe reading of "we do not know what you wanted".
+        return runCatching {
+            dev.aurora.player.domain.audio.RequestedQuality.valueOf(saved)
+        }.getOrDefault(dev.aurora.player.domain.audio.RequestedQuality.Auto)
+    }
+
+    private companion object {
+        const val KEY = "preferred_audio_quality"
+    }
+}

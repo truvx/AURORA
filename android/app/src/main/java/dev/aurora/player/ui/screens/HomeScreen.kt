@@ -1,13 +1,16 @@
 package dev.aurora.player.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -16,8 +19,15 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Album
 import androidx.compose.material.icons.outlined.LibraryMusic
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.QueueMusic
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -59,8 +69,26 @@ fun HomeScreen(
     onOpenArtist: (String) -> Unit = {},
     onAddToQueue: (MediaItem) -> Unit = {},
     onOpenWhatsNew: () -> Unit = {},
-    onOpenProfile: () -> Unit = {},
-    profile: dev.aurora.player.data.discovery.Profile = dev.aurora.player.data.discovery.Profile(null, null),
+    onOpenSearch: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    /**
+     * Open the library at one of its views, optionally narrowed to favourites.
+     *
+     * Every tile leads somewhere that already exists. A grid of six that includes two
+     * destinations the app does not have would look like the reference and behave like a
+     * dead end, which is worse than five tiles.
+     */
+    onOpenLibrary: (dev.aurora.player.ui.library.LibraryView, Boolean) -> Unit = { _, _ -> },
+    /**
+     * Preferred Audio Quality, which is a request and not a promise.
+     *
+     * Home offers the three that make sense to change between listening contexts; Auto,
+     * Low and Hi-Res live in Settings, where there is room to say what each one means.
+     * Nothing reads this to describe a track - Now Playing discloses what actually played.
+     */
+    preferredQuality: dev.aurora.player.domain.audio.RequestedQuality =
+        dev.aurora.player.domain.audio.RequestedQuality.Auto,
+    onSelectQuality: (dev.aurora.player.domain.audio.RequestedQuality) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val spacing = Aurora.spacing
@@ -94,23 +122,89 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(spacing.space6)
     ) {
         item {
+            /*
+             * Controls, not a title.
+             *
+             * The screen names itself well enough through what is on it, and the reference
+             * spends the top row on the two things a listener reaches for - finding
+             * something, and how good it should sound - rather than on a word they have
+             * already read. What's new moved into the Latest Releases header, beside the
+             * thing it is about.
+             */
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.space4),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(spacing.space3),
             ) {
-                Text(
-                    text = "Listen Now",
-                    style = typography.display,
-                    color = colors.textPrimary,
-                    modifier = Modifier.weight(1f)
-                )
                 dev.aurora.player.ui.components.GlassIconButton(
-                    icon = if (hasUnseen) Icons.Rounded.NotificationsActive else Icons.Rounded.Notifications,
-                    contentDesc = if (hasUnseen) "What's new, new releases available" else "What's new",
-                    onClick = onOpenWhatsNew
+                    icon = Icons.Rounded.Search,
+                    contentDesc = "Search",
+                    onClick = onOpenSearch,
                 )
-                Spacer(modifier = Modifier.size(spacing.space2))
-                ProfileAvatar(profile = profile, onClick = onOpenProfile)
+
+                dev.aurora.player.ui.components.SegmentedControl(
+                    options = dev.aurora.player.domain.audio.RequestedQuality.onHome,
+                    selected = preferredQuality,
+                    label = { it.label },
+                    onSelect = onSelectQuality,
+                    modifier = Modifier.weight(1f),
+                )
+
+                dev.aurora.player.ui.components.GlassIconButton(
+                    icon = Icons.Rounded.Settings,
+                    contentDesc = "Settings",
+                    onClick = onOpenSettings,
+                )
+            }
+        }
+
+        // --- Quick access ---------------------------------------------------------------
+        item {
+            /*
+             * Six ways in, above the feed.
+             *
+             * Two columns rather than three: these are labelled destinations, not icons,
+             * and at a large text size a third column turns "New releases" into "New…".
+             * A LazyVerticalGrid cannot live inside a LazyColumn - it has no height to
+             * measure against - so this is three plain rows, which is what six items need.
+             */
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.space4),
+                verticalArrangement = Arrangement.spacedBy(spacing.space2)
+            ) {
+                val destinations = listOf(
+                    QuickDestination(Icons.Rounded.Favorite, "Liked songs") {
+                        onOpenLibrary(dev.aurora.player.ui.library.LibraryView.Tracks, true)
+                    },
+                    QuickDestination(Icons.Outlined.QueueMusic, "Playlists") {
+                        onOpenLibrary(dev.aurora.player.ui.library.LibraryView.Playlists, false)
+                    },
+                    QuickDestination(Icons.Outlined.Album, "Albums") {
+                        onOpenLibrary(dev.aurora.player.ui.library.LibraryView.Albums, false)
+                    },
+                    QuickDestination(Icons.Outlined.Person, "Artists") {
+                        onOpenLibrary(dev.aurora.player.ui.library.LibraryView.Artists, false)
+                    },
+                    QuickDestination(Icons.Outlined.MusicNote, "Songs") {
+                        onOpenLibrary(dev.aurora.player.ui.library.LibraryView.Tracks, false)
+                    },
+                    QuickDestination(
+                        if (hasUnseen) Icons.Rounded.NotificationsActive else Icons.Rounded.Notifications,
+                        "New releases",
+                        onOpenWhatsNew
+                    ),
+                )
+                destinations.chunked(2).forEach { pair ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.space2)) {
+                        pair.forEach { destination ->
+                            QuickTile(
+                                icon = destination.icon,
+                                label = destination.label,
+                                onClick = destination.onClick
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -119,6 +213,11 @@ fun HomeScreen(
             Column {
                 SectionHeader(
                     title = "Latest Releases",
+                    // What's new sits beside the thing it is about, rather than as a bell
+                    // in a corner that could mean anything. The label says when there is
+                    // something unread, because a dot alone is colour-only status.
+                    actionLabel = if (hasUnseen) "New" else "See all",
+                    onAction = onOpenWhatsNew,
                     modifier = Modifier.padding(horizontal = spacing.space4)
                 )
                 when (val state = releases) {
@@ -208,6 +307,68 @@ fun HomeScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/** One of the six ways into the library from the top of Home. */
+private data class QuickDestination(
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val label: String,
+    val onClick: () -> Unit,
+)
+
+/**
+ * A quick-access tile: an icon, a word, and somewhere real to go.
+ *
+ * It answers on touch-down rather than on release - the glass bends under the finger and
+ * the haptic fires with it, so the tile is responding while the press is still happening.
+ */
+@Composable
+private fun RowScope.QuickTile(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    val interaction = androidx.compose.runtime.remember {
+        androidx.compose.foundation.interaction.MutableInteractionSource()
+    }
+    val press by dev.aurora.player.ui.components.rememberPressProgress(interaction)
+    val haptics = dev.aurora.player.ui.haptics.LocalHapticEngine.current
+
+    dev.aurora.player.ui.components.GlassSurface(
+        modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+        level = GlassLevel.Secondary,
+        pressProgress = { press },
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    interactionSource = interaction,
+                    indication = null,
+                    role = androidx.compose.ui.semantics.Role.Button,
+                ) {
+                    haptics.fire(dev.aurora.player.ui.haptics.HapticEvent.Tap)
+                    onClick()
+                }
+                .padding(Aurora.spacing.space3),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Aurora.colors.accentPrimary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.size(Aurora.spacing.space3))
+            Text(
+                text = label,
+                style = Aurora.typography.label,
+                color = Aurora.colors.textPrimary,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
         }
     }
 }

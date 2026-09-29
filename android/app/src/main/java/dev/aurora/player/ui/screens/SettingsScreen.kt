@@ -74,6 +74,8 @@ fun SettingsScreen(
     gatewayTokenStore: SecretStore? = null,
     youTubeKeyStore: SecretStore? = null,
     googleAuth: dev.aurora.player.data.auth.GoogleAuthRepository? = null,
+    audioQuality: dev.aurora.player.domain.audio.RequestedQuality? = null,
+    onSelectQuality: ((dev.aurora.player.domain.audio.RequestedQuality) -> Unit)? = null,
     profileStore: dev.aurora.player.data.discovery.ProfileStore? = null,
     modifier: Modifier = Modifier
 ) {
@@ -195,6 +197,95 @@ fun SettingsScreen(
                 modifier = Modifier.padding(bottom = spacing.space3)
             )
             
+            /*
+             * All six, where there is room to say what they mean.
+             *
+             * Home offers the middle three as a segmented control, for changing between
+             * listening contexts. Auto is the default and the honest one - AURORA has not
+             * seen the network or the file yet - and it belongs somewhere it can be
+             * explained rather than sitting unlabelled in a three-way pill.
+             */
+            if (audioQuality != null && onSelectQuality != null) {
+                GlassCard(modifier = Modifier.fillMaxWidth(), level = GlassLevel.Primary) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = spacing.space3),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.GraphicEq,
+                                contentDescription = null,
+                                tint = colors.accentPrimary,
+                                modifier = Modifier.padding(end = spacing.space3)
+                            )
+                            Column {
+                                Text(
+                                    text = "Preferred Audio Quality",
+                                    style = typography.title,
+                                    color = colors.textPrimary,
+                                )
+                                Text(
+                                    // The policy's own words, near enough: a preference is
+                                    // not a promise, and the player says what actually
+                                    // played.
+                                    text = "What to ask for. What you get depends on the " +
+                                        "track and the source, and Now Playing says which.",
+                                    style = typography.body,
+                                    color = colors.textSecondary,
+                                )
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(spacing.space1)
+                        ) {
+                            dev.aurora.player.domain.audio.RequestedQuality.entries.forEach { quality ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        // The row is the control, as with normalization:
+                                        // a separate radio button is a second stop for a
+                                        // screen reader that announces nothing.
+                                        .selectable(
+                                            selected = audioQuality == quality,
+                                            role = Role.RadioButton,
+                                            onClick = {
+                                                haptics.fire(HapticEvent.Selection)
+                                                onSelectQuality(quality)
+                                            }
+                                        )
+                                        .heightIn(min = 48.dp)
+                                        .padding(vertical = spacing.space2),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = audioQuality == quality,
+                                        onClick = null,
+                                        colors = RadioButtonDefaults.colors(
+                                            selectedColor = colors.accentPrimary,
+                                            unselectedColor = colors.textSecondary
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.width(spacing.space3))
+                                    Text(
+                                        text = quality.label,
+                                        style = typography.title,
+                                        color = if (audioQuality == quality) {
+                                            colors.textPrimary
+                                        } else {
+                                            colors.textSecondary
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(spacing.space4))
+            }
+
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 level = GlassLevel.Primary

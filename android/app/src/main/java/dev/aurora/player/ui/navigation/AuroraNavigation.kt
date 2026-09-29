@@ -146,6 +146,18 @@ fun AuroraNavigation(
 
     // One instance for the whole shell: Home and What's New show the same releases, and
     // building a second view model would fetch them twice.
+    /*
+     * Also one instance: Home's quick-access tiles open the library at a particular view,
+     * and the view lives on this holder rather than in the library's composition so a tile
+     * can set it before navigating.
+     */
+    val libraryViewModel = androidx.compose.runtime.remember {
+        dev.aurora.player.ui.library.LibraryViewModel(
+            container.localLibraryProvider,
+            container.libraryOrganizationRepository
+        )
+    }
+
     val homeViewModel = androidx.compose.runtime.remember {
         dev.aurora.player.ui.screens.HomeViewModel(
             organization = container.libraryOrganizationRepository,
@@ -190,19 +202,25 @@ fun AuroraNavigation(
             startDestination = AuroraDestination.Home.route,
         ) {
             composable(AuroraDestination.Home.route) {
-                val profile by container.profileStore.profile.collectAsState()
+                val preferredQuality by container.audioQualityStore.preferred.collectAsState()
                 HomeScreen(
                     viewModel = homeViewModel,
-                    profile = profile,
                     onOpenWhatsNew = { navController.navigate(WHATS_NEW_ROUTE) },
-                    onOpenProfile = { navigateToTab(AuroraDestination.Settings) },
+                    onOpenSearch = { navigateToTab(AuroraDestination.Search) },
+                    onOpenSettings = { navigateToTab(AuroraDestination.Settings) },
+                    preferredQuality = preferredQuality,
+                    onSelectQuality = container.audioQualityStore::set,
                     onPlay = { items, index -> playFrom(container, items, index) },
                     onAddToQueue = { item ->
                         container.playerCoordinator.dispatch(
                             dev.aurora.player.domain.player.PlayerCommand.AddToQueue(item)
                         )
                     },
-                    onOpenArtist = { artist -> navController.navigate(artistRoute(artist)) }
+                    onOpenArtist = { artist -> navController.navigate(artistRoute(artist)) },
+                    onOpenLibrary = { libraryView, favoritesOnly ->
+                        libraryViewModel.show(libraryView, favoritesOnly)
+                        navigateToTab(AuroraDestination.Library)
+                    }
                 )
             }
             composable(AuroraDestination.Search.route) {
@@ -273,33 +291,29 @@ fun AuroraNavigation(
                 )
             }
             composable(AuroraDestination.Library.route) {
-                val libraryViewModel = androidx.compose.runtime.remember {
-                    dev.aurora.player.ui.library.LibraryViewModel(
-                        container.localLibraryProvider,
-                        container.libraryOrganizationRepository
-                    )
-                }
                 val items by libraryViewModel.items.collectAsState()
                 val favoriteIds by libraryViewModel.favoriteIds.collectAsState()
                 val playlists by libraryViewModel.playlists.collectAsState()
+                val libraryView by libraryViewModel.view.collectAsState()
+                val favoritesOnly by libraryViewModel.favoritesOnly.collectAsState()
+                val openGroupKey by libraryViewModel.openGroupKey.collectAsState()
                 val openPlaylistId by libraryViewModel.openPlaylistId.collectAsState()
                 val openPlaylistTracks by libraryViewModel.openPlaylistTracks.collectAsState()
                 LibraryScreen(
                     items = items,
                     favoriteIds = favoriteIds,
                     playlists = playlists,
+                    view = libraryView,
+                    favoritesOnly = favoritesOnly,
+                    openGroupKey = openGroupKey,
                     openPlaylistId = openPlaylistId,
                     openPlaylistTracks = openPlaylistTracks,
+                    onSelectView = { libraryViewModel.show(it) },
+                    onSetFavoritesOnly = libraryViewModel::setFavoritesOnly,
+                    onOpenGroup = libraryViewModel::openGroup,
                     onScanRequested = libraryViewModel::scan,
                     onToggleFavorite = libraryViewModel::setFavorite,
-                    onPlayTrack = { item ->
-                        container.playerCoordinator.dispatch(
-                            dev.aurora.player.domain.player.PlayerCommand.Load(item)
-                        )
-                        container.playerCoordinator.dispatch(
-                            dev.aurora.player.domain.player.PlayerCommand.Play
-                        )
-                    },
+                    onPlayFrom = { tracks, index -> playFrom(container, tracks, index) },
                     onOpenPlaylist = libraryViewModel::openPlaylist,
                     onCreatePlaylist = libraryViewModel::createPlaylist,
                     onDeletePlaylist = libraryViewModel::deletePlaylist,
@@ -337,12 +351,15 @@ fun AuroraNavigation(
                         dev.aurora.player.ui.screens.PrivacyViewModel.exportDirFor(navContext)
                     )
                 }
+                val settingsQuality by container.audioQualityStore.preferred.collectAsState()
                 SettingsScreen(
                     playerCoordinator = container.playerCoordinator,
                     privacyViewModel = privacyViewModel,
                     gatewayTokenStore = container.gatewayTokenStore,
                     youTubeKeyStore = container.youTubeKeyStore,
                     googleAuth = container.googleAuth,
+                    audioQuality = settingsQuality,
+                    onSelectQuality = container.audioQualityStore::set,
                     profileStore = container.profileStore
                 )
             }

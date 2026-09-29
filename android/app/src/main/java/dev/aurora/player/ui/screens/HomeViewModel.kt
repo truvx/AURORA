@@ -88,6 +88,17 @@ class HomeViewModel(
     private val _artists = MutableStateFlow<List<TopArtist>>(emptyList())
     val artists: StateFlow<List<TopArtist>> = _artists.asStateFlow()
 
+    /**
+     * The listener's own playlists, newest activity first, for the Home row.
+     *
+     * The whole list rather than a page of it: [dev.aurora.player.domain.library.Playlist]
+     * already carries its size, so the header can say how many there are without a second
+     * query, and a hand-made collection of playlists is not a table that needs paging.
+     */
+    val playlists: StateFlow<List<dev.aurora.player.domain.library.Playlist>> =
+        organization.observePlaylists()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     /** Favorite ids for every provider, so a favorited YouTube track shows as one. */
     val favoriteIds: StateFlow<Set<String>> = organization.observeFavoriteIds()
         .map { it.toSet() }

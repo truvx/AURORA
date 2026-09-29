@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.QueueMusic
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material3.DropdownMenu
@@ -59,6 +60,15 @@ private val CardWidth = 132.dp
 fun SectionHeader(
     title: String,
     modifier: Modifier = Modifier,
+    /** A mark for the section, as in the reference. Decorative: the title already names it. */
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    /**
+     * What the section holds, in a line under its name.
+     *
+     * A count, or a sentence - never both, and never a figure AURORA cannot actually
+     * count. An empty section says so in its own body rather than here.
+     */
+    subtitle: String? = null,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
@@ -67,14 +77,33 @@ fun SectionHeader(
         modifier = modifier.fillMaxWidth().padding(bottom = Aurora.spacing.space3),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = colors.textSecondary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(Aurora.spacing.space3))
+        }
+        Column(modifier = Modifier.weight(1f)) {
         // Small caps, letter-spaced, quiet: in the reference these label a section without
         // competing with the artwork and titles inside it.
         Text(
             text = title.uppercase(),
             style = Aurora.typography.section,
-            color = colors.textSecondary,
-            modifier = Modifier.weight(1f)
+            color = colors.textSecondary
         )
+        if (subtitle != null) {
+            Text(
+                text = subtitle,
+                style = Aurora.typography.caption,
+                color = colors.textTertiary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        }
         if (actionLabel != null && onAction != null) {
             Row(
                 modifier = Modifier
@@ -179,6 +208,57 @@ fun ReleaseCard(
             color = colors.textSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+/**
+ * A playlist the listener made, as a card in the Home row.
+ *
+ * No cover, because a playlist has none. The reference fills these with generated
+ * gradients; a gradient here would be decoration standing in for a record sleeve that does
+ * not exist, so the card carries its mark and says how many tracks are in it instead - the
+ * one fact about a playlist worth knowing before opening it.
+ */
+@Composable
+fun PlaylistCard(
+    name: String,
+    trackCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = Aurora.colors
+    Column(
+        modifier = modifier
+            .width(CardWidth)
+            .pressable(onClick)
+            .semantics(mergeDescendants = true) {}
+    ) {
+        GlassSurface(
+            modifier = Modifier.size(CardWidth),
+            level = GlassLevel.Secondary,
+            shape = Aurora.shapes.card,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.QueueMusic,
+                contentDescription = null,
+                tint = colors.textTertiary,
+                modifier = Modifier.align(Alignment.Center).size(32.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(Aurora.spacing.space2))
+        Text(
+            text = name,
+            style = Aurora.typography.trackTitle,
+            color = colors.textPrimary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = "$trackCount ${if (trackCount == 1) "track" else "tracks"}",
+            style = Aurora.typography.trackArtist,
+            color = colors.textSecondary,
+            maxLines = 1
         )
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Album
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Person
@@ -79,6 +80,8 @@ fun HomeScreen(
      * dead end, which is worse than five tiles.
      */
     onOpenLibrary: (dev.aurora.player.ui.library.LibraryView, Boolean) -> Unit = { _, _ -> },
+    /** Open one playlist, in the library, where the rest of them live. */
+    onOpenPlaylist: (String) -> Unit = {},
     /**
      * Preferred Audio Quality, which is a request and not a promise.
      *
@@ -106,6 +109,10 @@ fun HomeScreen(
     val recentlyPlayed by (viewModel?.recentlyPlayed?.collectAsState()
         ?: androidx.compose.runtime.remember {
             androidx.compose.runtime.mutableStateOf(emptyList<MediaItem>())
+        })
+    val playlists by (viewModel?.playlists?.collectAsState()
+        ?: androidx.compose.runtime.remember {
+            androidx.compose.runtime.mutableStateOf(emptyList<dev.aurora.player.domain.library.Playlist>())
         })
     val hasUnseen = (releases as? ReleasesState.Ready)?.unseen?.isNotEmpty() == true
     val favorites by (viewModel?.favoriteIds?.collectAsState()
@@ -213,6 +220,7 @@ fun HomeScreen(
             Column {
                 SectionHeader(
                     title = "Latest Releases",
+                    icon = Icons.Outlined.Album,
                     // What's new sits beside the thing it is about, rather than as a bell
                     // in a corner that could mean anything. The label says when there is
                     // something unread, because a dot alone is colour-only status.
@@ -258,12 +266,54 @@ fun HomeScreen(
             }
         }
 
+        // --- Playlists --------------------------------------------------------------------
+        if (playlists.isNotEmpty()) {
+            item {
+                Column {
+                    SectionHeader(
+                        title = "Playlists",
+                        icon = Icons.Outlined.QueueMusic,
+                        // Countable, so counted. The reference also totals their running
+                        // time; AURORA does not know every track's duration, and a total
+                        // that quietly omits the unknown ones is a wrong number.
+                        subtitle = "${playlists.size} ${if (playlists.size == 1) "playlist" else "playlists"}",
+                        actionLabel = "See all",
+                        onAction = {
+                            onOpenLibrary(dev.aurora.player.ui.library.LibraryView.Playlists, false)
+                        },
+                        modifier = Modifier.padding(horizontal = spacing.space4)
+                    )
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = spacing.space4),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.space3)
+                    ) {
+                        items(playlists, key = { it.id }) { playlist ->
+                            dev.aurora.player.ui.components.PlaylistCard(
+                                name = playlist.name,
+                                trackCount = playlist.trackCount,
+                                onClick = { onOpenPlaylist(playlist.id) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         // --- The artists behind it --------------------------------------------------------
         if (artists.isNotEmpty()) {
             item {
                 Column {
                     SectionHeader(
                         title = "Your Artists",
+                        icon = Icons.Outlined.Person,
+                        // Not a count of the library's artists: this row is the handful the
+                        // listener actually plays, and saying "8" about it would describe
+                        // the row's length rather than anything about them.
+                        subtitle = "The people behind what you play",
+                        actionLabel = "See all",
+                        onAction = {
+                            onOpenLibrary(dev.aurora.player.ui.library.LibraryView.Artists, false)
+                        },
                         modifier = Modifier.padding(horizontal = spacing.space4)
                     )
                     LazyRow(
@@ -286,6 +336,7 @@ fun HomeScreen(
         item {
             SectionHeader(
                 title = "Recently Played",
+                icon = Icons.Outlined.History,
                 modifier = Modifier.padding(horizontal = spacing.space4)
             )
         }

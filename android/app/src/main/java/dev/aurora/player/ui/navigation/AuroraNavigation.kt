@@ -220,6 +220,11 @@ fun AuroraNavigation(
                     onOpenLibrary = { libraryView, favoritesOnly ->
                         libraryViewModel.show(libraryView, favoritesOnly)
                         navigateToTab(AuroraDestination.Library)
+                    },
+                    onOpenPlaylist = { playlistId ->
+                        libraryViewModel.show(dev.aurora.player.ui.library.LibraryView.Playlists)
+                        libraryViewModel.openPlaylist(playlistId)
+                        navigateToTab(AuroraDestination.Library)
                     }
                 )
             }

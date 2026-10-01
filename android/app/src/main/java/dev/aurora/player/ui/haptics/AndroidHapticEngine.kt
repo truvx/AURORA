@@ -57,7 +57,9 @@ class AndroidHapticEngine(context: Context) : HapticEngine {
     override fun fire(event: HapticEvent) {
         if (!isEnabled) return
 
-        if (event is HapticEvent.Scrub || event is HapticEvent.SliderTick || event is HapticEvent.DragMove) {
+        // The only event that arrives under a moving finger, and so the only one that has
+        // to be held back. Everything else is already once per deliberate action.
+        if (event is HapticEvent.Tick) {
             val now = System.currentTimeMillis()
             if (now - lastTickTime < TICK_INTERVAL_MS) return
             lastTickTime = now
@@ -113,52 +115,3 @@ private val TOUCH_AUDIO_ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()
     .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
     .build()
-
-@SuppressLint("InlinedApi")
-private enum class BeatKind(
-    val primitive: Int,
-    val fallback: Int,
-    val pulseMs: Long,
-    val amplitude: Int
-) {
-    LowTick(VibrationEffect.Composition.PRIMITIVE_LOW_TICK, VibrationEffect.Composition.PRIMITIVE_TICK, 10L, 70),
-    Tick(VibrationEffect.Composition.PRIMITIVE_TICK, VibrationEffect.Composition.PRIMITIVE_TICK, 12L, 110),
-    Click(VibrationEffect.Composition.PRIMITIVE_CLICK, VibrationEffect.Composition.PRIMITIVE_CLICK, 18L, 180),
-    Thud(VibrationEffect.Composition.PRIMITIVE_THUD, VibrationEffect.Composition.PRIMITIVE_CLICK, 30L, 230),
-    Rise(VibrationEffect.Composition.PRIMITIVE_QUICK_RISE, VibrationEffect.Composition.PRIMITIVE_CLICK, 24L, 150),
-    SlowRise(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, VibrationEffect.Composition.PRIMITIVE_CLICK, 44L, 130),
-    Fall(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, VibrationEffect.Composition.PRIMITIVE_CLICK, 24L, 130);
-
-    fun coarsePulseMs(): Long = if (pulseMs >= Click.pulseMs) 25L else 12L
-}
-
-private class Beat(val kind: BeatKind, val scale: Float, val gapMs: Int)
-
-private fun rhythm(event: HapticEvent): List<Beat> = when (event) {
-    HapticEvent.Tap -> listOf(Beat(BeatKind.Click, 0.7f, 0))
-    HapticEvent.Selection -> listOf(Beat(BeatKind.Tick, 0.6f, 0))
-    HapticEvent.Toggle -> listOf(Beat(BeatKind.Tick, 0.5f, 0), Beat(BeatKind.Click, 0.8f, 24))
-    HapticEvent.Scrub, HapticEvent.SliderTick -> listOf(Beat(BeatKind.LowTick, 0.45f, 0))
-    HapticEvent.DragMove -> listOf(Beat(BeatKind.LowTick, 0.35f, 0))
-    HapticEvent.DragStart -> listOf(Beat(BeatKind.Rise, 0.6f, 0))
-    HapticEvent.DragDrop, HapticEvent.QueueReorder ->
-        listOf(Beat(BeatKind.Tick, 0.5f, 0), Beat(BeatKind.Thud, 0.7f, 20))
-
-    HapticEvent.Favorite -> listOf(Beat(BeatKind.Tick, 0.4f, 0), Beat(BeatKind.Click, 0.85f, 14))
-    HapticEvent.Success ->
-        listOf(Beat(BeatKind.Tick, 0.4f, 0), Beat(BeatKind.Tick, 0.55f, 16), Beat(BeatKind.Click, 0.7f, 16))
-
-    HapticEvent.DownloadComplete -> listOf(Beat(BeatKind.Tick, 0.4f, 0), Beat(BeatKind.Click, 0.75f, 18))
-    HapticEvent.Warning -> listOf(Beat(BeatKind.Click, 0.6f, 0), Beat(BeatKind.Click, 0.6f, 90))
-    HapticEvent.Error -> listOf(Beat(BeatKind.Thud, 0.9f, 0), Beat(BeatKind.Thud, 0.7f, 100))
-    // Accelerating: gaps contract into the landing beat.
-    HapticEvent.SkipNext ->
-        listOf(Beat(BeatKind.Tick, 0.35f, 0), Beat(BeatKind.Tick, 0.5f, 40), Beat(BeatKind.Click, 0.75f, 24))
-    // Decelerating mirror of SkipNext.
-    HapticEvent.SkipPrevious ->
-        listOf(Beat(BeatKind.Click, 0.75f, 0), Beat(BeatKind.Tick, 0.5f, 24), Beat(BeatKind.Tick, 0.35f, 40))
-
-    HapticEvent.Resume -> listOf(Beat(BeatKind.SlowRise, 0.5f, 0), Beat(BeatKind.Click, 0.8f, 30))
-    HapticEvent.Pause -> listOf(Beat(BeatKind.Click, 0.8f, 0), Beat(BeatKind.Fall, 0.5f, 30))
-    HapticEvent.Expand -> listOf(Beat(BeatKind.Rise, 0.7f, 0), Beat(BeatKind.Tick, 0.4f, 30))
-}

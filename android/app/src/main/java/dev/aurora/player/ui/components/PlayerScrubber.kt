@@ -101,7 +101,7 @@ fun PlayerScrubber(
                 .pointerInput(isSeekable) {
                     if (!isSeekable) return@pointerInput
                     detectTapGestures { offset ->
-                        haptics.fire(HapticEvent.DragDrop)
+                        haptics.fire(HapticEvent.Commit)
                         seekTo(offset.x / size.width)
                     }
                 }
@@ -111,16 +111,16 @@ fun PlayerScrubber(
                         onDragStart = { offset ->
                             isDragging = true
                             dragFraction = (offset.x / size.width).coerceIn(0f, 1f)
-                            haptics.fire(HapticEvent.DragStart)
+                            haptics.fire(HapticEvent.Lift)
                         },
                         onHorizontalDrag = { change, _ ->
                             dragFraction = (change.position.x / size.width).coerceIn(0f, 1f)
                             // HapticEngine rate-limits these; the spec forbids one per frame.
-                            haptics.fire(HapticEvent.Scrub)
+                            haptics.fire(HapticEvent.Tick)
                         },
                         onDragEnd = {
                             isDragging = false
-                            haptics.fire(HapticEvent.DragDrop)
+                            haptics.fire(HapticEvent.Commit)
                             seekTo(dragFraction)
                         },
                         onDragCancel = { isDragging = false }

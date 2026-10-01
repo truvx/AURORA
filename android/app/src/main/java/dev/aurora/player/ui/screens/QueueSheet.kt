@@ -74,13 +74,13 @@ fun QueueSheet(
                     isCurrent = index == queue.currentIndex,
                     onMoveUp = if (index > 0) {
                         {
-                            haptics.fire(HapticEvent.QueueReorder)
+                            haptics.fire(HapticEvent.Commit)
                             coordinator.dispatch(PlayerCommand.MoveInQueue(index, index - 1))
                         }
                     } else null,
                     onMoveDown = if (index < queue.items.size - 1) {
                         {
-                            haptics.fire(HapticEvent.QueueReorder)
+                            haptics.fire(HapticEvent.Commit)
                             coordinator.dispatch(PlayerCommand.MoveInQueue(index, index + 1))
                         }
                     } else null

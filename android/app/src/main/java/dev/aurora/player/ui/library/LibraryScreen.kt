@@ -381,7 +381,7 @@ fun LibraryScreen(
                                     "Add ${item.title} to favorites"
                                 },
                                 onClick = {
-                                    haptics.fire(HapticEvent.Favorite)
+                                    haptics.fire(HapticEvent.Toggle)
                                     onToggleFavorite(item.id, !isFavorite)
                                 },
                                 selected = isFavorite

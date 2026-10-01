@@ -459,7 +459,7 @@ private fun FavoriteButton(
 
     GlassIconButton(
         onClick = {
-            haptics.fire(if (isFavorite) HapticEvent.Tap else HapticEvent.Success)
+            haptics.fire(HapticEvent.Toggle)
             onToggle(!isFavorite)
         },
         icon = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
@@ -499,7 +499,7 @@ private fun TransportRow(
 
         GlassIconButton(
             onClick = {
-                haptics.fire(HapticEvent.SkipPrevious)
+                haptics.fire(HapticEvent.Tap)
                 onCommand(PlayerCommand.SkipPrevious)
             },
             icon = Icons.Rounded.SkipPrevious,
@@ -512,10 +512,10 @@ private fun TransportRow(
         PrimaryCircleButton(
             onClick = {
                 if (isPlaying) {
-                    haptics.fire(HapticEvent.Pause)
+                    haptics.fire(HapticEvent.Toggle)
                     onCommand(PlayerCommand.Pause)
                 } else {
-                    haptics.fire(HapticEvent.Resume)
+                    haptics.fire(HapticEvent.Toggle)
                     onCommand(PlayerCommand.Play)
                 }
             },
@@ -526,7 +526,7 @@ private fun TransportRow(
 
         GlassIconButton(
             onClick = {
-                haptics.fire(HapticEvent.SkipNext)
+                haptics.fire(HapticEvent.Tap)
                 onCommand(PlayerCommand.SkipNext)
             },
             icon = Icons.Rounded.SkipNext,

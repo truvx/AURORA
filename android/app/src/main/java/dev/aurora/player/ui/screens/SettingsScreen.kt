@@ -500,7 +500,7 @@ private fun PrivacySection(
                     style = GlassButtonStyle.Secondary,
                     onClick = {
                         if (confirmingDelete) {
-                            haptics.fire(HapticEvent.Warning)
+                            haptics.fire(HapticEvent.Refused)
                             viewModel.deleteAllPrivateData()
                             confirmingDelete = false
                         } else {
@@ -813,7 +813,7 @@ private fun SecretSection(
                                 saving = false
                                 failed = !stored
                                 if (stored) {
-                                    haptics.fire(HapticEvent.Success)
+                                    haptics.fire(HapticEvent.Commit)
                                     draft = ""
                                 }
                             }
@@ -861,7 +861,7 @@ private fun ProfileSection(
                 // Decoding and writing a file is not main-thread work.
                 val ok = withContext(Dispatchers.IO) { store.setPhoto(uri) }
                 photoFailed = !ok
-                if (ok) haptics.fire(HapticEvent.Success)
+                if (ok) haptics.fire(HapticEvent.Commit)
             }
         }
     }

@@ -8,22 +8,30 @@ Status: final v1 haptic contract. `HapticEngine` is the only haptic boundary.
 
 ## Events
 
+Seven, and the count is the point. An earlier nineteen were not nineteen sensations:
+several compiled to the same rhythm under different names, and others differed by a tenth
+of a scale factor and a few milliseconds - a difference on paper and nothing at all
+through a phone's chassis. A vocabulary whose words cannot be told apart is not a
+vocabulary, and the ones that could be told apart stopped registering because everything
+buzzed.
+
 | Event | Use | Frequency policy |
 |---|---|---|
-| `tap` | meaningful button activation | once per activation |
-| `selection` | picker/tab/meaningful choice | once on committed change |
-| `toggle` | on/off setting | once on committed change |
-| `scrub` | sparse meaningful scrub snap | rate-limited; never every frame |
-| `sliderTick` | discrete slider boundary/tick | rate-limited |
-| `dragStart` | queue/item drag begins | once |
-| `dragMove` | only meaningful snap/boundary | sparse, rate-limited |
-| `dragDrop` | valid reorder committed | once |
-| `favorite` | favorite state committed | once |
-| `queueReorder` | reorder committed | once |
-| `downloadComplete` | legitimate local import/download completed | once |
-| `success` | meaningful successful operation | once |
-| `warning` | actionable warning | once, not for passive states |
-| `error` | actionable error | once per surfaced failure |
+| `Tap` | a control did the thing it says it does | once per activation |
+| `Selection` | which one of a set is current has changed - tab, segment, picker | once on committed change |
+| `Toggle` | a two-state thing committed: played or paused, favourited, switched on | once on committed change |
+| `Tick` | a boundary crossed under a gesture still in progress - a scrub snap, a slider step, an insertion point passed | rate-limited by the engine; never per frame |
+| `Lift` | something came off the list and is now following the finger | once |
+| `Commit` | it landed, or it worked - a reorder accepted, a playlist made, a secret saved | once |
+| `Refused` | it did not happen, refused on purpose or failed | once per surfaced outcome |
+
+`Tick` is the only event that arrives under a moving finger, so it is the only one the
+engine holds back, and the quietest of the seven. `Refused` is two heavy beats well apart,
+because a single beat of anything reads as "done".
+
+Adding an eighth needs a sensation the other seven do not already produce.
+`HapticEngineTest` asserts no two events compile to the same rhythm, which is the half of
+that claim a machine can check.
 
 ## Capability tiers
 

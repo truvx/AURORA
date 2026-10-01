@@ -123,7 +123,7 @@ private fun PlaylistList(
                 text = "Create",
                 enabled = newName.isNotBlank(),
                 onClick = {
-                    haptics.fire(HapticEvent.Success)
+                    haptics.fire(HapticEvent.Commit)
                     onCreatePlaylist(newName)
                     newName = ""
                 }
@@ -194,7 +194,7 @@ private fun PlaylistList(
                                 icon = Icons.Outlined.Delete,
                                 contentDesc = "Delete playlist ${playlist.name}",
                                 onClick = {
-                                    haptics.fire(HapticEvent.Warning)
+                                    haptics.fire(HapticEvent.Refused)
                                     onDeletePlaylist(playlist.id)
                                 }
                             )
@@ -405,7 +405,7 @@ private fun PlaylistTrackRow(
                         enabled = index > 0,
                         onClick = {
                             menuOpen = false
-                            haptics.fire(HapticEvent.QueueReorder)
+                            haptics.fire(HapticEvent.Commit)
                             onMoveUp()
                         }
                     )
@@ -414,7 +414,7 @@ private fun PlaylistTrackRow(
                         enabled = !isLast,
                         onClick = {
                             menuOpen = false
-                            haptics.fire(HapticEvent.QueueReorder)
+                            haptics.fire(HapticEvent.Commit)
                             onMoveDown()
                         }
                     )
@@ -422,7 +422,7 @@ private fun PlaylistTrackRow(
                         text = { Text("Remove from playlist") },
                         onClick = {
                             menuOpen = false
-                            haptics.fire(HapticEvent.Warning)
+                            haptics.fire(HapticEvent.Refused)
                             onRemove()
                         }
                     )
@@ -482,7 +482,7 @@ fun AddToPlaylistRow(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                haptics.fire(HapticEvent.Success)
+                                haptics.fire(HapticEvent.Commit)
                                 onPick(playlist.id)
                             }
                             .padding(vertical = spacing.space2),

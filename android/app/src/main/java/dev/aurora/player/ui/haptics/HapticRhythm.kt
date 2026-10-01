@@ -22,9 +22,7 @@ internal enum class BeatKind(
     Tick(VibrationEffect.Composition.PRIMITIVE_TICK, VibrationEffect.Composition.PRIMITIVE_TICK, 12L, 110),
     Click(VibrationEffect.Composition.PRIMITIVE_CLICK, VibrationEffect.Composition.PRIMITIVE_CLICK, 18L, 180),
     Thud(VibrationEffect.Composition.PRIMITIVE_THUD, VibrationEffect.Composition.PRIMITIVE_CLICK, 30L, 230),
-    Rise(VibrationEffect.Composition.PRIMITIVE_QUICK_RISE, VibrationEffect.Composition.PRIMITIVE_CLICK, 24L, 150),
-    SlowRise(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, VibrationEffect.Composition.PRIMITIVE_CLICK, 44L, 130),
-    Fall(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, VibrationEffect.Composition.PRIMITIVE_CLICK, 24L, 130);
+    Rise(VibrationEffect.Composition.PRIMITIVE_QUICK_RISE, VibrationEffect.Composition.PRIMITIVE_CLICK, 24L, 150);
 
     fun coarsePulseMs(): Long = if (pulseMs >= Click.pulseMs) 25L else 12L
 }

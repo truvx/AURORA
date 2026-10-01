@@ -13,7 +13,7 @@ The Player Engine is the core component responsible for media playback, lifecycl
 ## Lifecycle and Ownership
 - The `ExoPlayer`, `Media3PlayerAdapter`, and `PlayerCoordinator` are owned strictly by the `AppContainer` (Application scope).
 - They are initialized lazily upon first access (e.g., when the `MainActivity` requests the `PlayerViewModel` or the `AuroraMediaSessionService` is started).
-- The `PlayerViewModel` acts purely as a UI state adapter and does NOT own the player.
+- Screens read the player through `LocalPlayerCoordinator` and send it typed commands. There is no per-screen player view model; one existed, held nothing but a reference to the coordinator, and was referenced by nothing.
 - The `AuroraMediaSessionService` binds a `MediaSession` to the existing application-scoped player; it does not instantiate or release the player upon its own destruction.
 
 ## Features Implemented

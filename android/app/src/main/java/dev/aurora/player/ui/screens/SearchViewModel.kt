@@ -59,7 +59,7 @@ class SearchViewModel(
     /** Shown when nothing has been typed: somewhere to start rather than an empty screen. */
     val trendingNow: StateFlow<List<MediaItem>> = _trending.asStateFlow()
 
-    val regionName: String = Locale("", region).displayCountry.ifBlank { region }
+    val regionName: String = Locale.Builder().setRegion(region).build().displayCountry.ifBlank { region }
 
     private var localJob: Job? = null
 

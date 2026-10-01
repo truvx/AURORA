@@ -77,6 +77,10 @@ class Media3PlayerAdapter(
                     Player.STATE_READY -> _events.tryEmit(EngineEvent.Prepared)
                     Player.STATE_ENDED -> _events.tryEmit(EngineEvent.TrackCompleted)
                     Player.STATE_BUFFERING -> _events.tryEmit(EngineEvent.BufferingChanged(true))
+                    // Idle emits no event of its own; it is one of the three states that
+                    // end buffering, which the line below handles. Named so the `when`
+                    // covers every state and nobody has to check whether one was forgotten.
+                    Player.STATE_IDLE -> Unit
                 }
                 
                 if (playbackState == Player.STATE_READY || playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {

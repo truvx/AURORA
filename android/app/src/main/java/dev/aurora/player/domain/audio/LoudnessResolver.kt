@@ -28,7 +28,6 @@ object LoudnessResolver {
             LoudnessPreference.Quiet -> -18f
             LoudnessPreference.Normal -> -14f
             LoudnessPreference.Loud -> -11f
-            else -> 0f // Unreachable
         }
 
         val attenuationCap = when (preference) {

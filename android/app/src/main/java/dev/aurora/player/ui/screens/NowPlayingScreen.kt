@@ -31,7 +31,7 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.QueueMusic
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
@@ -163,7 +163,7 @@ fun NowPlayingScreen(
                         haptics.fire(HapticEvent.Tap)
                         onOpenQueue()
                     },
-                    icon = Icons.Rounded.QueueMusic,
+                    icon = Icons.AutoMirrored.Rounded.QueueMusic,
                     contentDesc = "Queue",
                 )
             }

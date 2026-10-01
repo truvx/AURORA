@@ -14,11 +14,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.QueueMusic
+import androidx.compose.material.icons.automirrored.outlined.QueueMusic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -41,7 +41,7 @@ import dev.aurora.player.ui.haptics.HapticEvent
 import dev.aurora.player.ui.haptics.LocalHapticEngine
 import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material.icons.outlined.PlaylistAdd
+import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.layout.size
@@ -136,7 +136,7 @@ private fun PlaylistList(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.QueueMusic,
+                    imageVector = Icons.AutoMirrored.Outlined.QueueMusic,
                     contentDescription = null,
                     tint = colors.textSecondary,
                     modifier = Modifier.padding(bottom = spacing.space3)
@@ -170,7 +170,7 @@ private fun PlaylistList(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.QueueMusic,
+                                imageVector = Icons.AutoMirrored.Outlined.QueueMusic,
                                 contentDescription = null,
                                 tint = colors.accentPrimary
                             )
@@ -237,7 +237,7 @@ private fun PlaylistDetail(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 GlassIconButton(
-                    icon = Icons.Outlined.ArrowBack,
+                    icon = Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDesc = "Back to all playlists",
                     onClick = {
                         haptics.fire(HapticEvent.Selection)
@@ -293,7 +293,7 @@ private fun PlaylistDetail(
                     onClick = { onPlayTracks(playable, false) }
                 )
                 dev.aurora.player.ui.navigation.GlassCircleButton(
-                    icon = Icons.Outlined.PlaylistAdd,
+                    icon = Icons.AutoMirrored.Outlined.PlaylistAdd,
                     contentDescription = "Add ${playlist.name} to the queue",
                     // Queues behind what is playing; it does not interrupt it.
                     onClick = { onQueueTracks(playable) },
@@ -381,7 +381,7 @@ private fun PlaylistTrackRow(
                     // "unavailable" for an untagged track would claim something untrue.
                     text = when {
                         entry.item == null -> "Not currently available"
-                        entry.item.artist != null -> entry.item.artist!!
+                        entry.item.artist != null -> entry.item.artist
                         else -> "Unknown artist"
                     },
                     style = typography.body,
@@ -464,7 +464,7 @@ fun AddToPlaylistRow(
                     modifier = Modifier.weight(1f)
                 )
                 GlassIconButton(
-                    icon = Icons.Outlined.ArrowBack,
+                    icon = Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDesc = "Cancel adding to playlist",
                     onClick = onDismiss
                 )

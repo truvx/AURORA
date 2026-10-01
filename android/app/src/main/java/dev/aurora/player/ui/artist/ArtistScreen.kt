@@ -13,10 +13,10 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.PersonAdd
-import androidx.compose.material.icons.outlined.PlaylistAdd
+import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -74,7 +74,7 @@ fun ArtistScreen(
         item {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 GlassCircleButton(
-                    icon = Icons.Outlined.ArrowBack,
+                    icon = Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDescription = "Back",
                     onClick = onBack,
                     size = 44.dp,
@@ -136,7 +136,7 @@ fun ArtistScreen(
                     onClick = { onPlayTracks(topSongs, false) },
                 )
                 GlassCircleButton(
-                    icon = Icons.Outlined.PlaylistAdd,
+                    icon = Icons.AutoMirrored.Outlined.PlaylistAdd,
                     contentDescription = "Add $artist to the queue",
                     onClick = { onQueueTracks(topSongs) },
                     size = 52.dp,
@@ -271,7 +271,7 @@ private fun ArtistTrackRow(
             )
         }
         GlassIconButton(
-            icon = Icons.Outlined.PlaylistAdd,
+            icon = Icons.AutoMirrored.Outlined.PlaylistAdd,
             contentDesc = "Add ${track.title} to the queue",
             onClick = onQueue,
         )

@@ -417,3 +417,29 @@ describe("PlayerCoordinator", () => {
   });
 
 });
+
+describe("a track that cannot be resolved", () => {
+  it("does not blame a missing file for a YouTube track", async () => {
+    // The web client has no YouTube playback, so the resolver returns nothing for one.
+    // "The file may have moved" sent people hunting a folder problem that never existed.
+    const coordinator = new PlayerCoordinator(new FakeAdapter(), async () => undefined);
+    await coordinator.dispatch({
+      type: "load",
+      track: { id: "yt:a", provider: "YOUTUBE", title: "Some Video", isAvailable: true },
+    });
+
+    const { error } = coordinator.getState();
+    expect(error).toContain("YouTube");
+    expect(error).not.toContain("may have moved");
+  });
+
+  it("still blames the file for a local track, because there it is the likely cause", async () => {
+    const coordinator = new PlayerCoordinator(new FakeAdapter(), async () => undefined);
+    await coordinator.dispatch({
+      type: "load",
+      track: { id: "local:1", provider: "LOCAL", title: "A Song", isAvailable: true },
+    });
+
+    expect(coordinator.getState().error).toContain("may have moved");
+  });
+});

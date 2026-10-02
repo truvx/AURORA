@@ -235,11 +235,19 @@ export class PlayerCoordinator {
     if (generation !== this.loadGeneration) return;
 
     if (!source) {
-      this.update((state) => ({
-        ...state,
-        status: "Error",
-        error: `${track.title} could not be opened. The file may have moved or access may have been revoked.`,
-      }));
+      /*
+       * Two different failures wore the same sentence.
+       *
+       * A YouTube track has no local file and never did, so "the file may have moved"
+       * sent people looking for a folder problem that does not exist. The web client
+       * has no YouTube playback - the adapter exists and is wired to nothing - and that
+       * is what it should say until it does.
+       */
+      const message =
+        track.provider === "YOUTUBE"
+          ? `${track.title} is a YouTube track, and the web app can't play those yet. It plays in the Android app.`
+          : `${track.title} could not be opened. The file may have moved or access may have been revoked.`;
+      this.update((state) => ({ ...state, status: "Error", error: message }));
       return;
     }
 

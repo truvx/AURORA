@@ -49,8 +49,9 @@ class WaveformAnalyzer(
                 start()
             }
 
-            Waveform.normalized(decode(extractor, codec, durationUs).toList())
-                .takeUnless { it.isEmpty }
+            decode(extractor, codec, durationUs)
+                ?.let { Waveform.normalized(it.toList()) }
+                ?.takeUnless { it.isEmpty }
         } catch (error: Exception) {
             // A malformed file, an unsupported codec, a revoked permission. Artwork of the
             // sound is decoration: failing to measure it must never look like a failure to
@@ -68,17 +69,38 @@ class WaveformAnalyzer(
             extractor.getTrackFormat(index).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
         }
 
+    /**
+     * Decodes the file into peaks, or gives up.
+     *
+     * Null on the deadline rather than a short waveform: the buckets past the point it
+     * stopped are still zero, and drawing those is the picture of a track that falls
+     * silent halfway. Null is already the "no waveform" answer the scrubber knows how to
+     * draw - plain bars, meaning unknown - and unknown is what this is.
+     */
     private fun decode(
         extractor: MediaExtractor,
         codec: MediaCodec,
         durationUs: Long,
-    ): FloatArray {
+    ): FloatArray? {
         val peaks = FloatArray(bucketCount)
         val info = MediaCodec.BufferInfo()
         var sawInputEnd = false
         var sawOutputEnd = false
 
+        /*
+         * A wall clock on the whole decode.
+         *
+         * The loop's only exits were the codec reporting end-of-stream or reporting
+         * nothing more after the input ended. A codec that does neither - a truncated
+         * file, a stream whose declared length outlives its data - left this spinning on
+         * a worker with a hardware decoder open, and because the repository serialises
+         * decoding behind a mutex, one such file took every later track's waveform with
+         * it for the rest of the session.
+         */
+        val deadline = android.os.SystemClock.elapsedRealtime() + DECODE_BUDGET_MS
+
         while (!sawOutputEnd) {
+            if (android.os.SystemClock.elapsedRealtime() > deadline) return null
             if (!sawInputEnd) {
                 val inputIndex = codec.dequeueInputBuffer(TIMEOUT_US)
                 if (inputIndex >= 0) {
@@ -145,6 +167,14 @@ class WaveformAnalyzer(
     private companion object {
         const val DEFAULT_BUCKETS = 400
         const val TIMEOUT_US = 10_000L
+
+        /**
+         * How long the whole decode may take before it is abandoned.
+         *
+         * Generous: a long track on a slow phone decodes well inside it. It is a bound on
+         * a loop that otherwise has none, not a performance target.
+         */
+        const val DECODE_BUDGET_MS = 15_000L
         const val SAMPLE_STEP = 4
     }
 }

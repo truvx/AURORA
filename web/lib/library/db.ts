@@ -125,6 +125,23 @@ export function openDatabase(): Promise<IDBDatabase> {
 
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
+    /*
+     * Another tab is holding the old version open.
+     *
+     * An upgrade cannot proceed until every other connection closes, and until then this
+     * request neither succeeds nor errors - it simply never settles, so the awaiting
+     * caller waits forever and the library stays empty with nothing on screen to say
+     * why. Saying so is the whole fix: the other tab is the user's to close.
+     */
+    request.onblocked = () => {
+      reject(
+        new Error(
+          "Your library is open in another tab, which is holding the older version of the " +
+            "database. Close the other tabs and reload."
+        )
+      );
+    };
+
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_TRACKS)) {

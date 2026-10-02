@@ -99,3 +99,34 @@ answer.
 - [Data API search.list](https://developers.google.com/youtube/v3/docs/search/list)
 - [Data API videos.list](https://developers.google.com/youtube/v3/docs/videos/list)
 - [Developer Policies](https://developers.google.com/youtube/terms/developer-policies)
+
+## Picture-in-picture
+
+Leaving the app while a YouTube track is playing shrinks the official player into a
+floating window, where it keeps playing. This is the only circumstance in which a YouTube
+track continues when AURORA is not the foreground app, and it is permitted for one reason:
+the player is still there. It is the same WebView, carrying YouTube's own controls,
+branding and advertising - the "Includes paid promotion" disclosure renders inside the
+window - and nothing about the stream is touched.
+
+That is the line between this and a background player, which stays forbidden. The window
+is not a convenience wrapped around audio; the audio is a consequence of the player still
+being on screen.
+
+Consequences, all of them deliberate:
+
+- Only a *playing* YouTube track opens a window. Paused or idle would be a window asking
+  to be dismissed, or showing nothing.
+- Local files never use it. They have a media session and are allowed to play with the
+  screen off, because AURORA owns the file.
+- Closing the window stops the track. So does the screen going off. Both arrive as the
+  Activity no longer being visible, and both mean the player is gone - so the audio goes
+  with it (`PictureInPicturePolicy.shouldPauseOnLeaving`).
+- The window carries previous, play/pause and next. They dispatch `PlayerCommand`s to the
+  one `PlayerCoordinator`, like every other control surface; the play/pause icon is drawn
+  from the same state the button reads, so it cannot say one thing and do another.
+
+The rules this does not change: nothing is extracted, no audio is separated, no stream URL
+is constructed, no media bytes are cached, and there is still no hidden or screen-off
+player. True background YouTube remains available only through YouTube Premium in
+YouTube's own apps.

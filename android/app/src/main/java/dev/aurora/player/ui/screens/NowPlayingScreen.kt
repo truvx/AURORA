@@ -435,7 +435,7 @@ private fun YouTubePlayerCard(modifier: Modifier = Modifier) {
          * apology or a promise to fix it.
          */
         Text(
-            text = "Keeps playing only while the player is on screen",
+            text = "Leaving the app shrinks this into a floating window, and it keeps playing there. Closing the window, or the screen going off, stops it.",
             style = Aurora.typography.caption,
             color = Aurora.colors.textTertiary,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,

@@ -38,9 +38,20 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Aurora">
 
+        <!--
+          supportsPictureInPicture, so a YouTube track can keep playing in a window the
+          listener can still see. That visibility is the whole licence for it: AURORA is
+          not allowed a background player, and a floating official player is not one.
+
+          configChanges keeps this Activity alive across the resize into and out of the
+          window. Without them the system recreates it, which tears down the WebView and
+          stops the video the window exists to carry.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:supportsPictureInPicture="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

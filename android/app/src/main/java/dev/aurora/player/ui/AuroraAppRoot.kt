@@ -12,6 +12,7 @@ import dev.aurora.player.ui.components.LocalYouTubePlayerAdapter
 import dev.aurora.player.ui.navigation.AuroraNavigation
 import dev.aurora.player.ui.theme.AuroraTheme
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
@@ -47,6 +48,27 @@ fun AuroraAppRoot() {
         dev.aurora.player.ui.accessibility.LocalAccessibilityPreferences provides accessibility
     ) {
         AuroraTheme {
+            /*
+             * In the floating window, the app is the player and nothing else.
+             *
+             * At that size the chrome, the feed and the mini-player are not smaller
+             * versions of themselves - they are clutter around a video the listener is
+             * watching while doing something else. Returning early also keeps the whole
+             * navigation graph out of composition while the window is up.
+             */
+            if (LocalPictureInPicture.current.active) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(androidx.compose.ui.graphics.Color.Black)
+                ) {
+                    dev.aurora.player.ui.components.YouTubePlayerSurface(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                return@AuroraTheme
+            }
+
             val navController = rememberNavController()
             // Two captured layers, for two different jobs.
             //

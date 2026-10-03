@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
@@ -66,6 +67,14 @@ val LocalChromeInsets = staticCompositionLocalOf { PaddingValues(bottom = 0.dp) 
 
 /** Height of the nav pill and of the circular buttons beside it. */
 private val BarHeight = 60.dp
+
+/**
+ * Above this text scale the pill shows icons only.
+ *
+ * 1.3 is where the longest label ("Settings") stops fitting its quarter of the pill at
+ * the narrowest width AURORA supports. Past it the label is not shortened, it is clipped.
+ */
+private const val LABEL_MAX_FONT_SCALE = 1.3f
 
 /**
  * The floating glass chrome: mini-player above, navigation pill and search button below.
@@ -219,20 +228,36 @@ private fun NavPillItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        /*
+         * The label goes away before it gets cut in half.
+         *
+         * Four labels share the pill's width, so at a large text scale they do not fit:
+         * measured at 1.5x, "Library" rendered as "Libraru" and "Settings" as "Se" - not
+         * truncated with an ellipsis, simply clipped mid-letter, which reads as a
+         * rendering fault rather than as a shortened word. An icon alone is honest about
+         * being an icon.
+         *
+         * The accessible name moves with it. It was on the label precisely so it would not
+         * be said twice; with no label, the icon carries it, so a screen reader still hears
+         * "Library, tab" at every text size.
+         */
+        val labelFits = LocalDensity.current.fontScale <= LABEL_MAX_FONT_SCALE
+
         Icon(
             imageVector = destination.icon,
-            // The label below is the accessible name; repeating it here says it twice.
-            contentDescription = null,
+            contentDescription = if (labelFits) null else destination.label,
             tint = tint,
             modifier = Modifier.size(22.dp)
         )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = destination.label,
-            style = Aurora.typography.caption,
-            color = tint,
-            maxLines = 1
-        )
+        if (labelFits) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = destination.label,
+                style = Aurora.typography.caption,
+                color = tint,
+                maxLines = 1
+            )
+        }
     }
 }
 

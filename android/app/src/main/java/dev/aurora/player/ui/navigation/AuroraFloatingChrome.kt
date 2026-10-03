@@ -50,6 +50,7 @@ import dev.aurora.player.ui.components.rememberPressProgress
 import dev.aurora.player.ui.components.LocalPlayerCoordinator
 import dev.aurora.player.ui.components.YouTubePlayerSurface
 import dev.aurora.player.ui.components.GlassSurface
+import dev.aurora.player.ui.components.SelectionCapsule
 import dev.aurora.player.ui.components.MiniPlayer
 import dev.aurora.player.ui.components.MiniPlayerHeight
 import dev.aurora.player.ui.haptics.HapticEvent
@@ -135,12 +136,33 @@ fun AuroraFloatingChrome(
                 shape = RoundedCornerShape(percent = 50),
                 backdrop = backdrop
             ) {
+                /*
+                 * The pill gains the lozenge the quality control already had.
+                 *
+                 * Four tabs with only a tinted icon to mark the current one meant the
+                 * selection was carried by colour alone - the thing the design rules rule
+                 * out. It now has a shape as well, and the same one, because two rows of
+                 * mutually exclusive choices that mark themselves differently are two
+                 * controls to learn instead of one.
+                 */
+                val destinations = AuroraDestination.pillDestinations
+                val selectedIndex = destinations.indexOfFirst { it.route == currentRoute }
+                if (selectedIndex >= 0) {
+                    SelectionCapsule(
+                        index = selectedIndex,
+                        count = destinations.size,
+                        backdrop = backdrop,
+                        modifier = Modifier.padding(horizontal = spacing.space2),
+                        inset = 6.dp,
+                    )
+                }
+
                 Row(
                     modifier = Modifier.fillMaxSize().padding(horizontal = spacing.space2),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    AuroraDestination.pillDestinations.forEach { destination ->
+                    destinations.forEach { destination ->
                         NavPillItem(
                             destination = destination,
                             selected = currentRoute == destination.route,

@@ -54,16 +54,6 @@ fun <T> SegmentedControl(
     val haptics = LocalHapticEngine.current
     val index = options.indexOf(selected).coerceAtLeast(0)
 
-    // Position in segments, animated: one fill that travels, not three that blink.
-    val offset by animateFloatAsState(
-        targetValue = index.toFloat(),
-        animationSpec = androidx.compose.animation.core.spring(
-            dampingRatio = Aurora.motion.springStandardDamping,
-            stiffness = Aurora.motion.springStandardStiffness,
-        ),
-        label = "segment",
-    )
-
     GlassSurface(
         modifier = modifier.height(SEGMENT_HEIGHT),
         level = GlassLevel.Elevated,
@@ -71,30 +61,12 @@ fun <T> SegmentedControl(
         backdrop = backdrop,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            /*
-             * The travelling fill, behind the labels.
-             *
-             * Width is a fraction of the row; height is all of it. This was one call to
-             * `fillMaxSize(fraction)`, which applies the fraction to both - so with three
-             * options the fill was a third as tall as well as a third as wide, and drew as
-             * a short bar pinned to the top of the segment instead of a capsule behind the
-             * word.
-             */
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(1f / options.size)
-                    .graphicsLayer {
-                        translationX = offset * size.width
-                    }
-                    .padding(SEGMENT_INSET)
-                    .clip(CapsuleShape)
-                    // A flat fill rather than another glass layer: glass on glass stops
-                    // reading as glass, which is the one thing the material has to do.
-                    .background(colors.surfaceGlassElevated)
-                    // The lit edge that says the capsule is raised off the track, rather
-                    // than a lighter patch of the same surface.
-                    .border(HAIRLINE, colors.glassHighlight, CapsuleShape)
+            // One lozenge, refracting the page behind the bar. See SelectionCapsule.
+            SelectionCapsule(
+                index = index,
+                count = options.size,
+                backdrop = backdrop,
+                inset = SEGMENT_INSET,
             )
 
             Row(

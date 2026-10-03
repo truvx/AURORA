@@ -11,6 +11,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The YouTube Data API key is injected from local.properties at build time, which is
+  # gitignored - so the key reaches the APK without reaching the repository. Nothing
+  # enforced that until now. This fails the build if a credential is committed, because
+  # the alternative is finding out from Google's scanner after it has been revoked.
+  secrets:
+    name: No committed secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan tracked files for credentials
+        run: |
+          set -uo pipefail
+          # Google API keys, OAuth client secrets, private key blocks.
+          PATTERN='AIza[0-9A-Za-z_-]{35}|GOCSPX-[0-9A-Za-z_-]+|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+          # Only what AURORA ships. Vendored tooling elsewhere in the tree carries its own
+          # test fixtures - a secret *detector* has fake keys in its tests by necessity -
+          # and failing this build on someone else's fixture teaches people to ignore it.
+          HITS=$(git ls-files -z -- android web docs .github '*.md' '*.json' \
+                 | xargs -0 grep -nIE "$PATTERN" 2>/dev/null || true)
+          if [ -n "$HITS" ]; then
+            echo "$HITS"
+            echo "::error::A credential is committed. Revoke it first, then remove it from history."
+            exit 1
+          fi
+          echo "No credentials in anything AURORA ships."
+
+      - name: local.properties must stay untracked
+        run: |
+          if git ls-files --error-unmatch android/local.properties 2>/dev/null; then
+            echo "::error::android/local.properties is tracked. It holds the signing password and the API key."
+            exit 1
+          fi
+          echo "local.properties is untracked."
+
   android:
     name: Android
     runs-on: ubuntu-latest

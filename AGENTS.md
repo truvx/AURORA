@@ -1,5 +1,9 @@
 # AURORA agent instructions
 
+AURORA is released under the **GNU General Public License v3.0** (`LICENSE`). Anything
+added to it must be compatible with that, and anything derived from another GPL project
+keeps its attribution - see "Reuse before rewriting" below and `docs/THIRD_PARTY.md`.
+
 AURORA is a personal-use music player for Android and Web. It combines high-quality playback of user-owned local files with legitimate YouTube discovery and visible foreground playback where permitted, a shared queue/player model, an interface that follows Apple's Liquid Glass, restrained motion and meaningful haptics, accessible cross-platform controls, and optional Gemini/OpenAI music assistance.
 
 ## Current repository phase
@@ -27,6 +31,25 @@ BEFORE a major implementation:
 Never make large speculative rewrites.
 
 Commit once verification passes, as `CLAUDE.md` requires: build, lint, typecheck and the relevant tests green, with evidence. Do not commit work that has not been verified, and do not push or open a pull request unless asked.
+
+## Reuse before rewriting
+
+If working code already exists that does the job, port it. Do not rewrite from scratch
+what can be taken, adapted and credited. A rewrite from a screenshot is a guess at
+someone's decisions; their source is the decisions themselves.
+
+This is the first thing to check, not the last resort: before building any mechanism,
+look for an existing implementation - in this repository, in a dependency already present,
+in the platform, or in a compatibly licensed project.
+
+The one gate is the licence, and it is absolute. Code may be taken only when its licence
+permits it and AURORA complies with that licence. AURORA is GPL-3.0, so GPL-2.0-or-later,
+GPL-3.0, LGPL, MIT, BSD and Apache-2.0 sources are all available to it. Proprietary code,
+code with no licence at all, and code under a licence AURORA cannot satisfy are not
+available at any speed advantage. "It was faster" is not a defence to a licence violation.
+
+Ported code keeps its attribution: name the project, the file and the licence in a comment
+at the top of anything derived from it, and record the dependency in `docs/THIRD_PARTY.md`.
 
 ## Architecture boundaries
 

@@ -86,3 +86,47 @@ These need a physical Android device and are the remaining Phase 19 work:
   Run `./gradlew :benchmark:connectedBenchmarkAndroidTest` with a device attached.
 - Heap snapshots and artwork decode traces.
 - Throttled mobile-web measurement.
+
+## Measured results (2026-10-03) — minified release build
+
+The first measurements taken against `assembleRelease` rather than a debug build, which
+matters: R8 and resource shrinking change both startup and draw cost, and a debug number
+is not evidence about the thing people install. Emulator `Nothing_Phone_A015`, Android 17
+(API 37), 1080x2400 at 420dpi.
+
+### Cold start
+
+`am start -W`, process force-stopped between runs.
+
+| Run | TotalTime | WaitTime |
+|---|---|---|
+| 1 | 413 ms | 418 ms |
+| 2 | 373 ms | 376 ms |
+| 3 | 363 ms | 366 ms |
+
+Budget is 2.0 s to interactive on a mid-tier device. Measured well inside it, though an
+emulator on a desktop CPU flatters this; the number to trust is from the phone.
+
+### Frame time
+
+`dumpsys gfxinfo`, reset then driven: six fast scrolls down the Home feed, three back up,
+then four through the library list. 377 frames.
+
+| Percentile | Result | Budget |
+|---|---|---|
+| 50th | 11 ms | — |
+| 90th | 15 ms | 16.7 ms |
+| 95th | 17 ms | 16.7 ms |
+| 99th | 28 ms | 16.7 ms |
+
+Janky frames 3.98%; 1 missed vsync; 3 slow UI-thread frames; 15 slow draw commands; 0 slow
+bitmap uploads.
+
+**Within budget at the 90th percentile, over it at the tail.** The p95 overshoot is 0.3 ms
+and not worth chasing. The p99 of 28 ms is roughly one frame dropped per scroll gesture,
+and the 15 slow draw commands against 0 slow bitmap uploads point at the glass rather than
+at artwork decoding - which is the expected cost of `drawBackdrop` sampling a scrolling
+layer, and already has its reduced-transparency fallback.
+
+**Not measured and still owed:** the same two numbers on the physical phone, where the GPU
+is the real one; memory under a large library; AI first-useful-response latency.

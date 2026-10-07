@@ -157,16 +157,18 @@ fun AuroraFloatingChrome(
                     )
                 }
 
+                // Equal slots, so each item's centre is where SelectionCapsule puts the
+                // lozenge. SpaceEvenly spaced content-sized items, and the two disagreed.
                 Row(
                     modifier = Modifier.fillMaxSize().padding(horizontal = spacing.space2),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     destinations.forEach { destination ->
                         NavPillItem(
                             destination = destination,
                             selected = currentRoute == destination.route,
-                            onClick = { onNavigate(destination) }
+                            onClick = { onNavigate(destination) },
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -218,6 +220,7 @@ private fun NavPillItem(
     destination: AuroraDestination,
     selected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = Aurora.colors
     val haptics = LocalHapticEngine.current
@@ -228,7 +231,7 @@ private fun NavPillItem(
     val tint = if (selected) colors.accentPrimary else colors.textSecondary
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(percent = 50))
             .selectable(
                 selected = selected,

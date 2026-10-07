@@ -153,10 +153,13 @@ class YouTubePlayerAdapter : PlayerAdapter {
                           width: '100%',
                           playerVars: {
                             'playsinline': 1,
-                            // YouTube's own controls, keyboard and fullscreen stay. The
-                            // capability matrix requires the player's controls to be
-                            // preserved, and these were all switched off.
-                            'controls': 1,
+                            // No control bar: AURORA's transport drives the player through
+                            // the IFrame API. Every value here is a documented player
+                            // parameter. The title, channel avatar, YouTube logo and ads are
+                            // the player's to show and are left alone.
+                            'controls': 0,
+                            'fs': 0,
+                            'iv_load_policy': 3,
                             'rel': 0,
                             'origin': 'https://aurora.local'
                           },

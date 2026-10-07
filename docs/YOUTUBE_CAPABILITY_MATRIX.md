@@ -22,7 +22,7 @@ Status: final v1 contract, 2026-09-03.
 | Metadata caching | Bounded | Bounded | Data API metadata plus local policy-compliant cache | Conditional | Non-authorized API data has current retention/refresh limits; audiovisual bytes are never cached. | Expire/refresh metadata and artwork according to policy; never make a media-byte cache. |
 | Audio separation / stream extraction | No | No | None; playback remains inside the official player | Unsupported | No separate audio URL, scraping, DRM bypass, or alternate audio path. | Reject any path that requests or returns one. |
 | Authentication | Public discovery can be unauthenticated; OAuth only for authorized user data | Same | Data API public access and documented Google OAuth | Conditional | Never request/store YouTube credentials; service accounts are not used. | Keep public search separate from optional authorized account features. |
-| Branding and attribution | Yes | Yes | Official embedded player and YouTube API branding requirements | Required | Do not obscure attribution, controls, ads, or required player behavior. | Show the official player and provider/source identity. |
+| Branding and attribution | Yes | Yes | Official embedded player and YouTube API branding requirements | Required | Do not obscure attribution, ads, or required player behavior. The control bar may be turned off with the documented `controls=0` parameter where AURORA's own transport drives the player through the IFrame API; the title, channel avatar and YouTube logo are the player's to show. | Show the official player and provider/source identity. Android sets `controls=0`, `fs=0`, `iv_load_policy=3`. |
 | API quota | Yes | Yes | YouTube Data API project quota | Conditional | At research time the default is 10,000 units/day; `search.list` costs 100 units and `videos.list` costs 1 unit. Recheck before implementation because quotas/policies can change. | Debounce, paginate, bound requests, monitor quota, and surface quota errors. |
 
 ## Authentication and quota
@@ -105,7 +105,7 @@ answer.
 Leaving the app while a YouTube track is playing shrinks the official player into a
 floating window, where it keeps playing. This is the only circumstance in which a YouTube
 track continues when AURORA is not the foreground app, and it is permitted for one reason:
-the player is still there. It is the same WebView, carrying YouTube's own controls,
+the player is still there. It is the same WebView, carrying YouTube's
 branding and advertising - the "Includes paid promotion" disclosure renders inside the
 window - and nothing about the stream is touched.
 

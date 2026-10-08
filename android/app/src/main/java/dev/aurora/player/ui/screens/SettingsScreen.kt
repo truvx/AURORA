@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,8 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material3.Icon
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.ui.semantics.Role
@@ -56,6 +53,7 @@ import dev.aurora.player.domain.player.PlayerCommand
 import dev.aurora.player.ui.components.GlassButton
 import dev.aurora.player.ui.components.GlassButtonStyle
 import dev.aurora.player.ui.components.GlassCard
+import dev.aurora.player.ui.components.SegmentedControl
 import dev.aurora.player.ui.components.GlassLevel
 import dev.aurora.player.ui.haptics.HapticEvent
 import dev.aurora.player.ui.haptics.LocalHapticEngine
@@ -109,17 +107,12 @@ fun SettingsScreen(
 
         if (profileStore != null) {
             ProfileSection(profileStore, haptics)
-            Spacer(modifier = Modifier.height(spacing.space6))
+            Spacer(modifier = Modifier.height(spacing.space5))
         }
 
         // ── Haptic Feedback Toggle ────────────────────────────────────────
 
-        Text(
-            text = "Interaction",
-            style = typography.headline,
-            color = colors.textPrimary,
-            modifier = Modifier.padding(bottom = spacing.space3)
-        )
+        SectionLabel("Interaction")
 
         GlassCard(
             modifier = Modifier.fillMaxWidth(),
@@ -146,7 +139,7 @@ fun SettingsScreen(
                             if (checked) haptics.fire(HapticEvent.Toggle)
                         }
                     )
-                    .padding(vertical = spacing.space2),
+                    .heightIn(min = 48.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -155,18 +148,12 @@ fun SettingsScreen(
                     tint = colors.accentPrimary,
                     modifier = Modifier.padding(end = spacing.space3)
                 )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Haptic Feedback",
-                        style = typography.title,
-                        color = colors.textPrimary,
-                    )
-                    Text(
-                        text = "Feel controls respond to your touch.",
-                        style = typography.body,
-                        color = colors.textSecondary,
-                    )
-                }
+                Text(
+                    text = "Haptic Feedback",
+                    style = typography.body,
+                    color = colors.textPrimary,
+                    modifier = Modifier.weight(1f),
+                )
                 Switch(
                     checked = hapticEnabled,
                     // Same as the radio buttons: the row already carries the toggle, and
@@ -182,7 +169,7 @@ fun SettingsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(spacing.space6))
+        Spacer(modifier = Modifier.height(spacing.space5))
 
         // ── Audio ─────────────────────────────────────────────────────────
         
@@ -190,201 +177,42 @@ fun SettingsScreen(
             val state by playerCoordinator.state.collectAsState()
             val currentPref = state.loudnessPreference
             
-            Text(
-                text = "Audio",
-                style = typography.headline,
-                color = colors.textPrimary,
-                modifier = Modifier.padding(bottom = spacing.space3)
-            )
+            SectionLabel("Audio")
             
-            /*
-             * All six, where there is room to say what they mean.
-             *
-             * Home offers the middle three as a segmented control, for changing between
-             * listening contexts. Auto is the default and the honest one - AURORA has not
-             * seen the network or the file yet - and it belongs somewhere it can be
-             * explained rather than sitting unlabelled in a three-way pill.
-             */
+            // Both as segmented controls: the same sliding lozenge as Home's quality pill,
+            // and a radio group to a screen reader, so "3 of 6" is still announced.
             if (audioQuality != null && onSelectQuality != null) {
-                GlassCard(modifier = Modifier.fillMaxWidth(), level = GlassLevel.Primary) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = spacing.space3),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.GraphicEq,
-                                contentDescription = null,
-                                tint = colors.accentPrimary,
-                                modifier = Modifier.padding(end = spacing.space3)
-                            )
-                            Column {
-                                Text(
-                                    text = "Preferred Audio Quality",
-                                    style = typography.title,
-                                    color = colors.textPrimary,
-                                )
-                                Text(
-                                    // The policy's own words, near enough: a preference is
-                                    // not a promise, and the player says what actually
-                                    // played.
-                                    text = "What to ask for. What you get depends on the " +
-                                        "track and the source, and Now Playing says which.",
-                                    style = typography.body,
-                                    color = colors.textSecondary,
-                                )
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(spacing.space1)
-                        ) {
-                            dev.aurora.player.domain.audio.RequestedQuality.entries.forEach { quality ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        // The row is the control, as with normalization:
-                                        // a separate radio button is a second stop for a
-                                        // screen reader that announces nothing.
-                                        .selectable(
-                                            selected = audioQuality == quality,
-                                            role = Role.RadioButton,
-                                            onClick = {
-                                                haptics.fire(HapticEvent.Selection)
-                                                onSelectQuality(quality)
-                                            }
-                                        )
-                                        .heightIn(min = 48.dp)
-                                        .padding(vertical = spacing.space2),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    RadioButton(
-                                        selected = audioQuality == quality,
-                                        onClick = null,
-                                        colors = RadioButtonDefaults.colors(
-                                            selectedColor = colors.accentPrimary,
-                                            unselectedColor = colors.textSecondary
-                                        )
-                                    )
-                                    Spacer(modifier = Modifier.width(spacing.space3))
-                                    Text(
-                                        text = quality.label,
-                                        style = typography.title,
-                                        color = if (audioQuality == quality) {
-                                            colors.textPrimary
-                                        } else {
-                                            colors.textSecondary
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
+                ChoiceCard(icon = Icons.Outlined.GraphicEq, title = "Preferred Audio Quality") {
+                    SegmentedControl(
+                        options = dev.aurora.player.domain.audio.RequestedQuality.entries,
+                        selected = audioQuality,
+                        label = { it.label },
+                        onSelect = onSelectQuality,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(spacing.space4))
+                Spacer(modifier = Modifier.height(spacing.space3))
             }
 
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                level = GlassLevel.Primary
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = spacing.space4),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.GraphicEq,
-                            contentDescription = null,
-                            tint = colors.accentPrimary,
-                            modifier = Modifier.padding(end = spacing.space3)
-                        )
-                        Column {
-                            Text(
-                                text = "Volume Normalization",
-                                style = typography.title,
-                                color = colors.textPrimary,
-                            )
-                            Text(
-                                text = "Adjusts playback volume to a consistent level.",
-                                style = typography.body,
-                                color = colors.textSecondary,
-                            )
-                        }
-                    }
-                    
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(spacing.space1)
-                    ) {
-                        LoudnessPreference.values().forEach { pref ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    /*
-                                     * The row is the control, not the little circle.
-                                     *
-                                     * With both clickable, a screen reader stopped twice
-                                     * per option: once on the row, which reads "Quiet",
-                                     * and once on an unlabelled radio button that said
-                                     * nothing at all. selectable also gives the row its
-                                     * role and its selected state, so it is announced as
-                                     * "Quiet, radio button, selected" rather than just
-                                     * as a word.
-                                     */
-                                    .selectable(
-                                        selected = currentPref == pref,
-                                        role = Role.RadioButton,
-                                        onClick = {
-                                            haptics.fire(HapticEvent.Selection)
-                                            playerCoordinator.dispatch(PlayerCommand.SetLoudnessPreference(pref))
-                                        }
-                                    )
-                                    // 46dp with the padding alone, and the radio button
-                                    // is no longer its own target to make up the
-                                    // difference. 48dp is the floor in ACCESSIBILITY_SPEC.
-                                    .heightIn(min = 48.dp)
-                                    .padding(vertical = spacing.space2),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = currentPref == pref,
-                                    // Drawn, not operated: the row above handles the click.
-                                    onClick = null,
-                                    colors = RadioButtonDefaults.colors(
-                                        selectedColor = colors.accentPrimary,
-                                        unselectedColor = colors.textSecondary
-                                    )
-                                )
-                                Spacer(modifier = Modifier.width(spacing.space3))
-                                Column {
-                                    Text(
-                                        text = pref.name,
-                                        style = typography.title,
-                                        color = if (currentPref == pref) colors.textPrimary else colors.textSecondary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+            ChoiceCard(icon = Icons.Outlined.GraphicEq, title = "Volume Normalization") {
+                SegmentedControl(
+                    options = LoudnessPreference.values().toList(),
+                    selected = currentPref,
+                    label = { it.name },
+                    onSelect = { playerCoordinator.dispatch(PlayerCommand.SetLoudnessPreference(it)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
 
         if (gatewayTokenStore != null) {
-            Spacer(modifier = Modifier.height(spacing.space6))
+            Spacer(modifier = Modifier.height(spacing.space5))
             SecretSection(
                 sectionTitle = "AI",
                 icon = Icons.Outlined.AutoAwesome,
                 name = "AI gateway",
                 setText = "Connected",
                 unsetText = "Not connected",
-                explanation = "Paste the access token set as AURORA_GATEWAY_TOKEN on your gateway. " +
-                    "It's encrypted on this device.",
                 placeholder = "Gateway token",
                 clearLabel = "Disconnect",
                 saveLabel = "Connect",
@@ -395,7 +223,7 @@ fun SettingsScreen(
         }
 
         if (googleAuth != null) {
-            Spacer(modifier = Modifier.height(spacing.space6))
+            Spacer(modifier = Modifier.height(spacing.space5))
             // Shown whether or not a client ID was built in. Hiding it left someone looking
             // for a sign-in option with no option and no reason, which reads as the feature
             // not existing rather than as one step of setup being outstanding.
@@ -403,7 +231,7 @@ fun SettingsScreen(
         }
 
         if (youTubeKeyStore != null) {
-            Spacer(modifier = Modifier.height(spacing.space6))
+            Spacer(modifier = Modifier.height(spacing.space5))
             SecretSection(
                 sectionTitle = "YouTube",
                 icon = Icons.Outlined.PlayCircle,
@@ -421,16 +249,6 @@ fun SettingsScreen(
                 } else {
                     "Not set"
                 },
-                explanation = if (dev.aurora.player.BuildConfig.YOUTUBE_API_KEY.isNotBlank()) {
-                    "This build carries a YouTube Data API v3 key, so search and discovery work " +
-                        "without setup. Enter one here to spend a different project's quota " +
-                        "instead; it's encrypted on this device and takes precedence. Signing in " +
-                        "takes precedence over both."
-                } else {
-                    "An alternative to signing in: a YouTube Data API v3 key from your own " +
-                        "Google Cloud project. Signing in is used in preference to this when both " +
-                        "are present. It's encrypted on this device and never built into the app."
-                },
                 placeholder = "API key",
                 clearLabel = "Remove",
                 saveLabel = "Save",
@@ -441,7 +259,7 @@ fun SettingsScreen(
         }
 
         if (privacyViewModel != null) {
-            Spacer(modifier = Modifier.height(spacing.space6))
+            Spacer(modifier = Modifier.height(spacing.space5))
             PrivacySection(privacyViewModel, haptics)
         }
     }
@@ -462,27 +280,16 @@ private fun PrivacySection(
     val action by viewModel.action.collectAsState()
     var confirmingDelete by remember { mutableStateOf(false) }
 
-    Text(
-        text = "Privacy",
-        style = typography.headline,
-        color = colors.textPrimary,
-        modifier = Modifier.padding(bottom = spacing.space3)
-    )
+    SectionLabel("Privacy")
 
     GlassCard(modifier = Modifier.fillMaxWidth(), level = GlassLevel.Primary) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "Listening history",
-                style = typography.title,
+                style = typography.body,
                 color = colors.textPrimary
             )
-            Text(
-                text = "Stored only on this device. Exporting or deleting it does not " +
-                    "affect your favorites or playlists.",
-                style = typography.body,
-                color = colors.textSecondary,
-                modifier = Modifier.padding(bottom = spacing.space4)
-            )
+            Spacer(modifier = Modifier.height(spacing.space3))
 
             Row(horizontalArrangement = Arrangement.spacedBy(spacing.space2)) {
                 GlassButton(
@@ -540,10 +347,9 @@ private fun PrivacySection(
 /**
  * Signing in to Google, in place of pasting a key.
  *
- * The explanation is careful about what this does and does not buy, because the natural
- * assumption is wrong and expensive to discover later. Signing in does not hand AURORA a
- * quota - a Google account is an identity, and the requests are still spent against the
- * Cloud project the client ID came from. What it replaces is the typing.
+ * Signing in does not hand AURORA a quota - a Google account is an identity, and the
+ * requests are still spent against the Cloud project the client ID came from. What it
+ * replaces is the typing.
  */
 @Composable
 private fun GoogleAccountSection(
@@ -566,12 +372,7 @@ private fun GoogleAccountSection(
         }
     }
 
-    Text(
-        text = "Google",
-        style = typography.headline,
-        color = colors.textPrimary,
-        modifier = Modifier.padding(bottom = spacing.space3)
-    )
+    SectionLabel("Google")
 
     GlassCard(modifier = Modifier.fillMaxWidth(), level = GlassLevel.Primary) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -583,7 +384,7 @@ private fun GoogleAccountSection(
                     modifier = Modifier.padding(end = spacing.space3)
                 )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Account", style = typography.title, color = colors.textPrimary)
+                    Text(text = "Account", style = typography.body, color = colors.textPrimary)
                     // Status in words, never colour alone.
                     Text(
                         text = when (val current = state) {
@@ -595,55 +396,19 @@ private fun GoogleAccountSection(
                                 "Not available in this build"
                             else -> "Not signed in"
                         },
-                        style = typography.body,
+                        style = typography.label,
                         color = colors.textSecondary
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(spacing.space3))
-            Text(
-                text = "Signs YouTube requests instead of an API key. The quota is still your own " +
-                    "Google Cloud project's - signing in replaces the typing, not the project.",
-                style = typography.caption,
-                color = colors.textTertiary
-            )
-
-            /*
-             * No client ID was built in, so there is nothing to sign in to.
-             *
-             * It cannot be typed here, and saying so is the honest thing: an installed-app
-             * client ID also determines the redirect Google sends the browser back to, and
-             * that redirect is registered in the manifest when the app is built. A field
-             * offering to accept one at runtime would collect a value the flow could never
-             * use. So this says what is missing and where it goes, and stops.
-             */
+            // No client ID was built in: the status line says so, and there is nothing to
+            // press. The client ID is set in local.properties at build time (docs/SECURITY.md).
             if (state is dev.aurora.player.domain.auth.GoogleSignInState.NotConfigured) {
-                Spacer(modifier = Modifier.height(spacing.space3))
-                Text(
-                    text = "This build has no Google OAuth client ID. Create an Android OAuth " +
-                        "client in your Google Cloud project - matching this app's package name " +
-                        "and signing certificate - then put it in local.properties as " +
-                        "GOOGLE_OAUTH_CLIENT_ID and rebuild. It sets the redirect the browser " +
-                        "comes back to, which is fixed when the app is built, so it cannot be " +
-                        "entered here.",
-                    style = typography.body,
-                    color = colors.textSecondary
-                )
-                Spacer(modifier = Modifier.height(spacing.space3))
-                Text(
-                    text = if (dev.aurora.player.BuildConfig.YOUTUBE_API_KEY.isNotBlank()) {
-                        "YouTube works regardless: this build carries its own Data API key."
-                    } else {
-                        "Until then, the Data API key below is the way in."
-                    },
-                    style = typography.caption,
-                    color = colors.textTertiary
-                )
                 return@Column
             }
 
-            Spacer(modifier = Modifier.height(spacing.space4))
+            Spacer(modifier = Modifier.height(spacing.space3))
 
             if (state is dev.aurora.player.domain.auth.GoogleSignInState.SignedIn) {
                 GlassButton(
@@ -702,7 +467,6 @@ private fun SecretSection(
     name: String,
     setText: String,
     unsetText: String,
-    explanation: String,
     placeholder: String,
     clearLabel: String,
     saveLabel: String,
@@ -719,12 +483,7 @@ private fun SecretSection(
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    Text(
-        text = sectionTitle,
-        style = typography.headline,
-        color = colors.textPrimary,
-        modifier = Modifier.padding(bottom = spacing.space3)
-    )
+    SectionLabel(sectionTitle)
 
     GlassCard(modifier = Modifier.fillMaxWidth(), level = GlassLevel.Primary) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -736,11 +495,11 @@ private fun SecretSection(
                     modifier = Modifier.padding(end = spacing.space3)
                 )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = name, style = typography.title, color = colors.textPrimary)
+                    Text(text = name, style = typography.body, color = colors.textPrimary)
                     // Status in words, not only colour.
                     Text(
                         text = if (connected) setText else unsetText,
-                        style = typography.body,
+                        style = typography.label,
                         color = colors.textSecondary
                     )
                 }
@@ -758,12 +517,6 @@ private fun SecretSection(
                     }
                 )
             } else {
-                Text(
-                    text = explanation,
-                    style = typography.body,
-                    color = colors.textSecondary,
-                    modifier = Modifier.padding(bottom = spacing.space3)
-                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = draft,
@@ -866,12 +619,7 @@ private fun ProfileSection(
         }
     }
 
-    Text(
-        text = "You",
-        style = typography.headline,
-        color = colors.textPrimary,
-        modifier = Modifier.padding(bottom = spacing.space3)
-    )
+    SectionLabel("You")
 
     GlassCard(modifier = Modifier.fillMaxWidth(), level = GlassLevel.Primary) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -885,18 +633,12 @@ private fun ProfileSection(
                     )
                 }, size = 56.dp)
                 Spacer(modifier = Modifier.width(spacing.space3))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = profile.name ?: "Add your name",
-                        style = typography.title,
-                        color = colors.textPrimary
-                    )
-                    Text(
-                        text = "Shown on your avatar. Stored only on this device.",
-                        style = typography.body,
-                        color = colors.textSecondary
-                    )
-                }
+                Text(
+                    text = profile.name ?: "Add your name",
+                    style = typography.body,
+                    color = colors.textPrimary,
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             Spacer(modifier = Modifier.height(spacing.space3))
@@ -960,6 +702,43 @@ private fun ProfileSection(
                     modifier = Modifier.padding(top = spacing.space2)
                 )
             }
+        }
+    }
+}
+
+/** A group's name over its cards: small capitals, like the shelves on Home. */
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = Aurora.typography.section,
+        color = Aurora.colors.textSecondary,
+        modifier = Modifier.padding(start = Aurora.spacing.space1, bottom = Aurora.spacing.space2)
+    )
+}
+
+/** One setting whose value is picked from a row of choices underneath its name. */
+@Composable
+private fun ChoiceCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    choices: @Composable () -> Unit,
+) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), level = GlassLevel.Primary) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.padding(bottom = Aurora.spacing.space3),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Aurora.colors.accentPrimary,
+                    modifier = Modifier.padding(end = Aurora.spacing.space3)
+                )
+                Text(text = title, style = Aurora.typography.body, color = Aurora.colors.textPrimary)
+            }
+            choices()
         }
     }
 }

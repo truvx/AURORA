@@ -52,7 +52,9 @@ fun <T> SegmentedControl(
     if (options.isEmpty()) return
     val colors = Aurora.colors
     val haptics = LocalHapticEngine.current
-    val index = options.indexOf(selected).coerceAtLeast(0)
+    // -1 when the current value is not offered here (Home shows three of six qualities):
+    // then nothing is marked, rather than the first option being marked falsely.
+    val index = options.indexOf(selected)
 
     GlassSurface(
         modifier = modifier.height(SEGMENT_HEIGHT),
@@ -62,12 +64,14 @@ fun <T> SegmentedControl(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // One lozenge, refracting the page behind the bar. See SelectionCapsule.
-            SelectionCapsule(
-                index = index,
-                count = options.size,
-                backdrop = backdrop,
-                inset = SEGMENT_INSET,
-            )
+            if (index >= 0) {
+                SelectionCapsule(
+                    index = index,
+                    count = options.size,
+                    backdrop = backdrop,
+                    inset = SEGMENT_INSET,
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxSize().selectableGroup(),

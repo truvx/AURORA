@@ -4,6 +4,10 @@ Status: final v1 specification, accepted by ADR-015.
 
 ## Family and weights
 
+Android: Source Sans Pro, Regular 400 and Bold 700 (ADR-015 update, 2026-10-08), with
+tabular figures (`tnum`) switched on for the numeric roles because its figures are
+proportional. Web: still Space Mono, described below, until it is switched.
+
 Space Mono, in the two weights it ships: Regular 400 and Bold 700. Nothing asks for a
 weight outside those two, because a weight the family does not ship is synthesised, and a
 synthesised medium is a smeared Regular - so a role that wants a 500 takes 400.

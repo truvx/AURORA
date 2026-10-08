@@ -81,7 +81,7 @@ class AuroraTokensTest {
 
     @Test
     fun `no role asks for a weight the family does not ship`() {
-        // Space Mono has Regular and Bold and nothing between. A role asking for a 500 or
+        // AURORA bundles Regular and Bold and nothing between. A role asking for a 500 or
         // a 300 gets a weight the renderer has to invent, which is a smeared Regular - the
         // exact failure docs/TYPOGRAPHY_FINAL.md exists to prevent.
         val shipped = setOf(FontWeight.Normal, FontWeight.Bold)

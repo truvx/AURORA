@@ -4,6 +4,14 @@ AURORA is GPL-3.0. Code taken from other projects is listed here with its origin
 licence, as the licence requires and so that the next person can find the upstream when
 it changes.
 
+## Source Sans Pro
+
+- Source: Adobe, designed by Paul D. Hunt (https://github.com/adobe-fonts/source-sans)
+- Licence: SIL Open Font License 1.1, Reserved Font Name "Source"
+- Shipped unmodified: `android/app/src/main/res/font/source_sans_pro_regular.ttf` and
+  `source_sans_pro_bold.ttf` (v1.036). Licence text in `res/raw/source_sans_pro_ofl.txt`
+  and `docs/licenses/SourceSansPro-OFL.txt`.
+
 ## NomaTune
 
 - Source: https://github.com/Shahdullah/NomaTune

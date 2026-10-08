@@ -13,27 +13,29 @@ import androidx.compose.ui.unit.sp
 /**
  * AURORA typography scale from docs/TYPOGRAPHY_FINAL.md.
  *
- * Space Mono, with the system monospace behind it. One family for the whole interface:
- * hierarchy comes from size, weight and colour, never from a second typeface.
+ * Source Sans Pro (Adobe, SIL OFL 1.1), with the system sans behind it. One family for the
+ * whole interface: hierarchy comes from size, weight and colour, never from a second
+ * typeface.
  *
- * The register is a record sleeve's back cover rather than a magazine's front - catalogue
- * numbers, durations, track listings. A monospaced face is what that reads like, and it
- * has the useful side effect that every numeral is the same width, so a running time does
- * not shift the layout as it ticks.
- *
- * Space Mono ships Regular and Bold, and nothing between. Roles asked for a 500 get 400
+ * AURORA bundles Regular and Bold, and nothing between. Roles asked for a 500 get 400
  * rather than a synthesised weight, which is a smeared Regular and looks like one.
  *
- * Tracking is near zero at large sizes, because a monospaced face is already wide and
- * tightening it closes the counters. It opens only on the small uppercase labels, where a
- * little air is what makes capitals legible at 12-14sp.
+ * Numbers are proportional in this face, so the roles that show a running time switch on
+ * its tabular figures: otherwise "1:11" is narrower than "0:00" and the layout shifts as
+ * it ticks.
+ *
+ * Tracking is near zero at large sizes. It opens only on the small uppercase labels, where
+ * a little air is what makes capitals legible at 12-14sp.
  */
 
-/** The two weights the family actually ships. Nothing asks for a third. */
+/** The two weights AURORA bundles. Nothing asks for a third. */
 val AuroraFontFamily = FontFamily(
-    Font(R.font.space_mono_regular, weight = FontWeight.Normal),
-    Font(R.font.space_mono_bold, weight = FontWeight.Bold),
+    Font(R.font.source_sans_pro_regular, weight = FontWeight.Normal),
+    Font(R.font.source_sans_pro_bold, weight = FontWeight.Bold),
 )
+
+/** Equal-width digits, for anything that counts. */
+private const val TABULAR_FIGURES = "tnum"
 
 @Immutable
 data class AuroraTypography(
@@ -51,7 +53,7 @@ data class AuroraTypography(
     val caption: TextStyle,
     /** Small-caps section labels, which are headings: 12/18, bold, uppercase in use */
     val section: TextStyle,
-    /** Duration, position, counters: 14/20, regular. Monospaced, so already tabular. */
+    /** Duration, position, counters: 14/20, regular, tabular figures. */
     val numeric: TextStyle,
     /** Large player timing values: 30/36, regular */
     val playerNumeric: TextStyle,
@@ -65,13 +67,6 @@ data class AuroraTypography(
     val trackArtistCompact: TextStyle,
 )
 
-/*
- * Sizes are a step down from the previous scale.
- *
- * Space Mono sets about 15% wider than Montserrat at the same point size, so holding the
- * old sizes would have pushed every title into an ellipsis. Stepping down keeps the same
- * number of characters on a line, which is what the layout was actually built around.
- */
 val AuroraTypographyTokens = AuroraTypography(
     display = TextStyle(
         fontFamily = AuroraFontFamily,
@@ -121,6 +116,7 @@ val AuroraTypographyTokens = AuroraTypography(
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.0.sp,
+        fontFeatureSettings = TABULAR_FIGURES,
     ),
     playerNumeric = TextStyle(
         fontFamily = AuroraFontFamily,
@@ -128,6 +124,7 @@ val AuroraTypographyTokens = AuroraTypography(
         fontSize = 30.sp,
         lineHeight = 36.sp,
         letterSpacing = (-0.4).sp,
+        fontFeatureSettings = TABULAR_FIGURES,
     ),
     section = TextStyle(
         fontFamily = AuroraFontFamily,
@@ -169,7 +166,7 @@ val AuroraTypographyTokens = AuroraTypography(
 )
 
 /**
- * Space Mono for everything Material draws on its own.
+ * The same family for everything Material draws on its own.
  *
  * AURORA styles its own text from [AuroraTypographyTokens], but Material's components -
  * menu items, dialogs, anything that falls through to a default - carry M3's own scale,
@@ -178,23 +175,23 @@ val AuroraTypographyTokens = AuroraTypography(
  * design asks to avoid. Setting it here means no component has to ask for the font.
  */
 val AuroraMaterialTypography: Typography = Typography().run {
-    fun TextStyle.mono() = copy(fontFamily = AuroraFontFamily)
+    fun TextStyle.aurora() = copy(fontFamily = AuroraFontFamily)
     copy(
-        displayLarge = displayLarge.mono(),
-        displayMedium = displayMedium.mono(),
-        displaySmall = displaySmall.mono(),
-        headlineLarge = headlineLarge.mono(),
-        headlineMedium = headlineMedium.mono(),
-        headlineSmall = headlineSmall.mono(),
-        titleLarge = titleLarge.mono(),
-        titleMedium = titleMedium.mono(),
-        titleSmall = titleSmall.mono(),
-        bodyLarge = bodyLarge.mono(),
-        bodyMedium = bodyMedium.mono(),
-        bodySmall = bodySmall.mono(),
-        labelLarge = labelLarge.mono(),
-        labelMedium = labelMedium.mono(),
-        labelSmall = labelSmall.mono(),
+        displayLarge = displayLarge.aurora(),
+        displayMedium = displayMedium.aurora(),
+        displaySmall = displaySmall.aurora(),
+        headlineLarge = headlineLarge.aurora(),
+        headlineMedium = headlineMedium.aurora(),
+        headlineSmall = headlineSmall.aurora(),
+        titleLarge = titleLarge.aurora(),
+        titleMedium = titleMedium.aurora(),
+        titleSmall = titleSmall.aurora(),
+        bodyLarge = bodyLarge.aurora(),
+        bodyMedium = bodyMedium.aurora(),
+        bodySmall = bodySmall.aurora(),
+        labelLarge = labelLarge.aurora(),
+        labelMedium = labelMedium.aurora(),
+        labelSmall = labelSmall.aurora(),
     )
 }
 

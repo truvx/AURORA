@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <lint>
     <!--
-      The Open Font License text that ships with Space Mono.
+      The Open Font License text that ships with Source Sans Pro.
 
       Nothing references it, and nothing should: the OFL requires the licence to travel
       with the font, so it is in the APK to be present rather than to be read by code.
       Deleting it on lint's advice would make the build non-compliant.
     -->
     <issue id="UnusedResources">
-        <ignore path="src/main/res/raw/space_mono_ofl.txt" />
+        <ignore path="src/main/res/raw/source_sans_pro_ofl.txt" />
     </issue>
 </lint>

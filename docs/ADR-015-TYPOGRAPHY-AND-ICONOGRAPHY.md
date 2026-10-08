@@ -5,6 +5,8 @@
 
 ## Decision
 
+**Update 2026-10-08:** the Android client moves to **Source Sans Pro** (Adobe, Paul D. Hunt), at the owner's request. It is under the SIL Open Font License 1.1 with Reserved Font Name "Source"; the files ship unmodified as `android/app/src/main/res/font/source_sans_pro_{regular,bold}.ttf`, and the licence travels with them in `res/raw/source_sans_pro_ofl.txt` and `docs/licenses/SourceSansPro-OFL.txt`. Two weights, Regular 400 and Bold 700, as before. Its figures are proportional, so the numeric roles enable the `tnum` OpenType feature rather than relying on a monospaced face. The web client still uses Space Mono until it is switched; the rest of this record describes the Space Mono decision it replaces.
+
 AURORA uses Space Mono as its primary type family across Android and Web (raised from Montserrat, 2026-09-25, which was itself raised from Inter). It is licensed under the SIL Open Font License, which permits bundling; the licence ships with the app in `res/raw/space_mono_ofl.txt` and at `docs/licenses/SpaceMono-OFL.txt`. One primary family keeps the bundle and rendering behaviour predictable, and it is declared once per client - the Android theme's Material typography, the web's root `font-family` plus a form-control `font: inherit` reset - rather than per component.
 
 The design is a music archive rather than a magazine: catalogue numbers, durations, track

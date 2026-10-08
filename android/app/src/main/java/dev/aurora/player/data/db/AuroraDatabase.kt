@@ -13,7 +13,6 @@ import androidx.room.RoomDatabase
         MediaItemArtistCrossRef::class,
         ArtworkEntity::class,
         TrackLoudnessEntity::class,
-        TrackWaveformEntity::class,
         LibraryEntryEntity::class,
         PlaylistEntity::class,
         PlaylistEntryEntity::class,
@@ -22,7 +21,7 @@ import androidx.room.RoomDatabase
         QueueSnapshotEntity::class,
         QueueSnapshotItemEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class AuroraDatabase : RoomDatabase() {
@@ -77,6 +76,15 @@ abstract class AuroraDatabase : RoomDatabase() {
                     """.trimIndent()
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_track_waveform_mediaId` ON `track_waveform` (`mediaId`)")
+            }
+        }
+
+        val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                // The waveform scrubber is gone: Now Playing draws a flat track. Every row was
+                // re-measurable from its file, so nothing the user made is lost. Its index
+                // goes with the table.
+                db.execSQL("DROP TABLE IF EXISTS `track_waveform`")
             }
         }
 

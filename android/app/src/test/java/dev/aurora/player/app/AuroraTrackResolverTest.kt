@@ -48,8 +48,6 @@ class AuroraTrackResolverTest {
         override suspend fun insertLocalFile(file: dev.aurora.player.data.db.LocalFileEntity) {}
         override suspend fun insertTrackMetadata(metadata: dev.aurora.player.data.db.TrackTechnicalMetadataEntity) {}
         override suspend fun insertTrackLoudness(loudness: dev.aurora.player.data.db.TrackLoudnessEntity) {}
-        override suspend fun insertTrackWaveform(waveform: dev.aurora.player.data.db.TrackWaveformEntity) {}
-        override suspend fun getTrackWaveform(mediaId: String): dev.aurora.player.data.db.TrackWaveformEntity? = null
         override suspend fun getTrackLoudness(mediaId: String): dev.aurora.player.domain.audio.TrackLoudnessData? = null
         override suspend fun insertAlbum(album: dev.aurora.player.data.db.AlbumEntity) {}
         override suspend fun insertArtist(artist: dev.aurora.player.data.db.ArtistEntity) {}

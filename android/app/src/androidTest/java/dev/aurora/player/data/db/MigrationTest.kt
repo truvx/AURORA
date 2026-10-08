@@ -168,4 +168,27 @@ class MigrationTest {
         waveform.close()
     }
 
+    @Test
+    fun migrate6To7_dropsWaveformTableAndPreservesExistingData() {
+        var db = helper.createDatabase(TEST_DB, 6)
+
+        db.execSQL(
+            "INSERT INTO media_items (id, provider, kind, title, provenance, isAvailable, albumId) " +
+            "VALUES ('keep', 'LOCAL', 'TRACK', 'Existing Track', 'LOCAL', 1, NULL)"
+        )
+        db.execSQL("INSERT INTO track_waveform (mediaId, peaks, analysisVersion) VALUES ('keep', 'ff80', 1)")
+        db.close()
+
+        db = helper.runMigrationsAndValidate(TEST_DB, 7, true, AuroraDatabase.MIGRATION_6_7)
+
+        val existing = db.query("SELECT title FROM media_items WHERE id = 'keep'")
+        assertTrue(existing.moveToFirst())
+        assertEquals("Existing Track", existing.getString(0))
+        existing.close()
+
+        val table = db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'track_waveform'")
+        assertEquals(0, table.count)
+        table.close()
+    }
+
 }

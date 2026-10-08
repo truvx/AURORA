@@ -34,11 +34,6 @@ interface LocalLibraryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTrackLoudness(loudness: TrackLoudnessEntity)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertTrackWaveform(waveform: TrackWaveformEntity)
-
-    @Query("SELECT * FROM track_waveform WHERE mediaId = :mediaId")
-    suspend fun getTrackWaveform(mediaId: String): TrackWaveformEntity?
 
     @Transaction
     suspend fun upsertLocalTrack(

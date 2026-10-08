@@ -449,6 +449,7 @@ fun AuroraNavigation(
         dev.aurora.player.ui.screens.NowPlayingScreen(
             onClose = { playerExpanded = false },
             onOpenQueue = { queueVisible = true },
+            sleepTimer = container.sleepTimer,
             isFavorite = isFavorite,
             onToggleFavorite = { wanted ->
                 val id = playingId ?: return@NowPlayingScreen

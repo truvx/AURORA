@@ -23,6 +23,7 @@ interface AppContainer {
     val media3PlayerAdapter: PlayerAdapter
     val playerAdapter: PlayerAdapter
     val playerCoordinator: PlayerCoordinator
+    val sleepTimer: SleepTimer
     val localLibraryProvider: dev.aurora.player.data.providers.LocalLibraryProvider
     val libraryOrganizationRepository: dev.aurora.player.domain.library.LibraryOrganizationRepository
 
@@ -330,6 +331,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     override val playerCoordinator: PlayerCoordinator by lazy {
         PlayerCoordinator(playerAdapter, trackResolver, applicationScope)
+    }
+
+    override val sleepTimer: SleepTimer by lazy {
+        SleepTimer(applicationScope, pause = { playerCoordinator.dispatch(dev.aurora.player.domain.player.PlayerCommand.Pause) })
     }
 
     override val localLibraryProvider: dev.aurora.player.data.providers.LocalLibraryProvider by lazy {

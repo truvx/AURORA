@@ -1,19 +1,27 @@
+/*
+ * The Immersive layout is derived from NomaTune's PlayerDesignStyle.V7
+ * (app/src/main/kotlin/com/shahdullah/nomatune/ui/player/Player.kt: V7PlayerBackdrop,
+ * V7BackdropPalette, v7BackdropTone; PlayerComponents.kt: V8PlayerControlsContent and the
+ * V8 metadata, progress, transport and volume rows), https://github.com/Shahdullah/NomaTune,
+ * GPL-3.0. Rewritten against AURORA's PlayerCoordinator; see docs/THIRD_PARTY.md.
+ */
 package dev.aurora.player.ui.screens
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,72 +29,91 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.FastForward
+import androidx.compose.material.icons.rounded.FastRewind
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Lyrics
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import androidx.compose.material.icons.rounded.Repeat
-import androidx.compose.material.icons.rounded.RepeatOne
-import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.aurora.player.app.SleepTimer
 import dev.aurora.player.domain.models.ProviderKind
 import dev.aurora.player.domain.player.PlaybackStatus
 import dev.aurora.player.domain.player.PlayerCommand
 import dev.aurora.player.domain.player.RepeatMode
 import dev.aurora.player.domain.player.ShuffleMode
-import dev.aurora.player.ui.accessibility.LocalAccessibilityPreferences
 import dev.aurora.player.ui.artwork.rememberAlbumArtwork
-import dev.aurora.player.ui.lyrics.rememberLyrics
 import dev.aurora.player.ui.artwork.rememberArtworkBitmap
 import dev.aurora.player.ui.artwork.rememberArtworkPalette
-import dev.aurora.player.ui.components.AmbientArtworkLayer
-import dev.aurora.player.ui.components.GlassIconButton
 import dev.aurora.player.ui.components.LocalPlayerCoordinator
 import dev.aurora.player.ui.components.PlayerScrubber
-import dev.aurora.player.ui.components.PrimaryCircleButton
 import dev.aurora.player.ui.components.YouTubePlayerSurface
+import dev.aurora.player.ui.components.rememberMusicVolume
+import dev.aurora.player.ui.components.rememberOutputDeviceName
+import dev.aurora.player.ui.components.showSystemOutputSwitcher
 import dev.aurora.player.ui.haptics.HapticEvent
 import dev.aurora.player.ui.haptics.LocalHapticEngine
+import dev.aurora.player.ui.lyrics.rememberLyrics
 import dev.aurora.player.ui.theme.Aurora
+import kotlinx.coroutines.delay
 
 /**
- * Now Playing: the record, then its name, then the controls.
+ * Now Playing, as NomaTune's Immersive player.
  *
- * The artwork is a square, centred, at the size a sleeve wants to be. It used to fill the
- * screen, which looked right for a square cover and wrong for everything else - a YouTube
- * thumbnail is a 16:9 still, and cropping one to a tall phone left a face sliced in half
- * behind the glass.
- *
- * YouTube's player takes that same square when a YouTube track is playing. It stays
- * visible and unobstructed, which the capability matrix requires, and it is in the place
- * the eye already goes rather than floating above the artwork it was covering.
+ * A local file's cover fills the top of the screen and fades into a field of its own
+ * darkest colour, where white controls sit. A YouTube track puts the official player in
+ * that place instead, full width and with nothing drawn over it - YouTube's Required
+ * Minimum Functionality forbids anything in front of the player and asks for at least
+ * 200x200px - and the colour field starts below its edge rather than across it.
  */
 @Composable
 fun NowPlayingScreen(
@@ -96,16 +123,12 @@ fun NowPlayingScreen(
     onOpenArtist: (String) -> Unit = {},
     isFavorite: Boolean = false,
     onToggleFavorite: (Boolean) -> Unit = {},
+    sleepTimer: SleepTimer? = null,
 ) {
     val coordinator = LocalPlayerCoordinator.current
-    val haptics = LocalHapticEngine.current
     val state by coordinator.state.collectAsState()
-    val colors = Aurora.colors
-    val spacing = Aurora.spacing
-
     val currentTrack = state.currentTrack
     val artwork by rememberAlbumArtwork(currentTrack)
-    val waveform by dev.aurora.player.ui.artwork.rememberWaveform(currentTrack)
     val lyrics by rememberLyrics(
         identity = artwork.identity,
         // The player's own duration where it has one: it is the length of what is actually
@@ -113,152 +136,101 @@ fun NowPlayingScreen(
         durationMs = state.position.duration ?: currentTrack?.technicalMetadata?.durationMs,
     )
     var lyricsOpen by remember { mutableStateOf(false) }
-    // Closes the lyrics before the player, because it was opened last. Composed inside the
-    // player's own handler, so it is the one that wins.
+    // Closes the lyrics before the player, because it was opened last.
     androidx.activity.compose.BackHandler(enabled = lyricsOpen) { lyricsOpen = false }
-    val palette by rememberArtworkPalette(artwork.artworkUri)
+
+    val dominant by rememberArtworkPalette(artwork.artworkUri)
+    val top by animateColorAsState(immersiveTone(dominant, 0.20f, 0.72f), tween(COLOUR_FADE_MS), label = "top")
+    val floor by animateColorAsState(immersiveTone(dominant, 0.08f, 0.32f), tween(COLOUR_FADE_MS), label = "floor")
     val isYouTube = currentTrack?.provider == ProviderKind.YOUTUBE
-    val isPlaying = state.status == PlaybackStatus.Playing ||
-        state.status == PlaybackStatus.Buffering
 
-    // Flipped after the first composition so the entry actually animates from nothing
-    // rather than starting already settled.
-    var entered by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { entered = true }
+    val controls: @Composable (Modifier) -> Unit = { controlsModifier ->
+        ImmersiveControls(
+            title = artwork.title ?: currentTrack?.title ?: "Nothing is playing",
+            artist = artwork.artist?.takeIf { it.isNotBlank() },
+            // Local files only: YouTube's quality is the provider's and stays unstated.
+            codec = currentTrack?.technicalMetadata
+                ?.takeIf { !isYouTube }
+                ?.let { codecLabel(it.codec, it.container) },
+            isFavorite = isFavorite,
+            hasTrack = currentTrack != null,
+            sleepTimer = sleepTimer,
+            onToggleFavorite = onToggleFavorite,
+            onOpenArtist = onOpenArtist,
+            onOpenQueue = onOpenQueue,
+            onOpenLyrics = { lyricsOpen = true },
+            modifier = controlsModifier,
+        )
+    }
 
-    AmbientArtworkLayer(modifier = modifier.fillMaxSize(), artworkColor = palette) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                /*
-                 * Drawn over the shell rather than inside a Scaffold, so it gets none of
-                 * the Scaffold's inset handling and has to ask for its own. Without it the
-                 * close and queue controls sit under the status bar, where they are
-                 * visible but unreachable - the status bar takes the touches.
-                 */
-                .systemBarsPadding()
-                .padding(horizontal = spacing.space5),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = spacing.space2),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                GlassIconButton(
-                    onClick = {
-                        haptics.fire(HapticEvent.Tap)
-                        onClose()
-                    },
-                    icon = Icons.Rounded.KeyboardArrowDown,
-                    contentDesc = "Close",
+    BoxWithConstraints(modifier = modifier.fillMaxSize().background(floor)) {
+        if (isYouTube) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.fillMaxWidth().background(top).statusBarsPadding()) {
+                    CloseButton(onClose)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                            .background(Color.Black),
+                    ) {
+                        YouTubePlayerSurface(modifier = Modifier.fillMaxSize())
+                    }
+                }
+                // The blend, from the player's edge to the controls rather than over either.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(Brush.verticalGradient(listOf(top, floor))),
                 )
-                Text(
-                    text = "Now Playing",
-                    style = Aurora.typography.label,
-                    color = colors.textPrimary,
-                )
-                GlassIconButton(
-                    onClick = {
-                        haptics.fire(HapticEvent.Tap)
-                        onOpenQueue()
-                    },
-                    icon = Icons.AutoMirrored.Rounded.QueueMusic,
-                    contentDesc = "Queue",
-                )
+                controls(Modifier.navigationBarsPadding())
             }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            AlbumArt(
-                artworkUri = artwork.artworkUri,
-                title = artwork.title ?: currentTrack?.title,
-                modifier = Modifier.staggeredEntry(index = 0, visible = entered),
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Row(
+        } else {
+            val stageHeight = maxHeight * STAGE_FRACTION
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .staggeredEntry(index = 1, visible = entered),
-                verticalAlignment = Alignment.CenterVertically,
+                    .height(stageHeight)
+                    .background(top),
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = artwork.title ?: currentTrack?.title ?: "Nothing is playing",
-                        style = Aurora.typography.trackTitleLarge,
-                        color = colors.textPrimary,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    val artistName = artwork.artist?.takeIf { it.isNotBlank() }
-                    if (artistName != null) {
-                        Text(
-                            text = artistName.uppercase(),
-                            style = Aurora.typography.section,
-                            color = colors.textSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                // The one thing here that is about someone rather than
-                                // about this track.
-                                .clickable(onClickLabel = "Open $artistName") {
-                                    haptics.fire(HapticEvent.Selection)
-                                    onOpenArtist(artistName)
-                                }
-                                .padding(vertical = spacing.space1),
+                AnimatedContent(
+                    targetState = artwork.artworkUri,
+                    transitionSpec = { fadeIn(tween(ARTWORK_FADE_MS)) togetherWith fadeOut(tween(ARTWORK_FADE_MS)) },
+                    label = "artwork",
+                ) { uri ->
+                    val bitmap by rememberArtworkBitmap(uri)
+                    bitmap?.let {
+                        Image(
+                            bitmap = it,
+                            // Decorative: the title is written out below it.
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize().clearAndSetSemantics {},
                         )
                     }
                 }
-
-                if (currentTrack != null) {
-                    FavoriteButton(
-                        isFavorite = isFavorite,
-                        title = artwork.title ?: currentTrack.title,
-                        onToggle = onToggleFavorite,
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(spacing.space4))
-
-            PlayerScrubber(
-                position = state.position,
-                onSeek = { coordinator.dispatch(PlayerCommand.Seek(it)) },
-                modifier = Modifier.staggeredEntry(index = 2, visible = entered),
-                waveform = waveform,
-            )
-
-            Spacer(modifier = Modifier.height(spacing.space5))
-
-            TransportRow(
-                modifier = Modifier.staggeredEntry(index = 3, visible = entered),
-                isPlaying = isPlaying,
-                shuffleOn = state.queue.shuffleMode == ShuffleMode.On,
-                repeatMode = state.queue.repeatMode,
-                onCommand = coordinator::dispatch,
-            )
-
-            if (currentTrack != null) {
-                Spacer(modifier = Modifier.height(spacing.space4))
-                LyricsPill(
-                    onClick = {
-                        haptics.fire(HapticEvent.Tap)
-                        lyricsOpen = true
-                    },
-                    modifier = Modifier.staggeredEntry(index = 4, visible = entered),
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0f to Color.Transparent,
+                                0.40f to Color.Transparent,
+                                0.60f to floor.copy(alpha = 0.18f),
+                                0.76f to floor.copy(alpha = 0.52f),
+                                0.88f to floor.copy(alpha = 0.82f),
+                                1f to floor,
+                            )
+                        ),
                 )
+                CloseButton(onClose, Modifier.statusBarsPadding())
             }
-
-            if (isYouTube) {
-                Spacer(modifier = Modifier.height(spacing.space4))
-                YouTubePlayerCard(
-                    modifier = Modifier.staggeredEntry(index = 5, visible = entered),
-                )
-            }
-
-            Spacer(modifier = Modifier.height(spacing.space5))
+            controls(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+            )
         }
 
         if (lyricsOpen) {
@@ -273,283 +245,448 @@ fun NowPlayingScreen(
     }
 }
 
-/**
- * The way in to the words, from the reference.
- *
- * A pill rather than an icon because it is the only control on this screen whose meaning is
- * not obvious from a glyph, and because the reference puts a named action here - the eye
- * finishes on the transport and then finds one more thing to do.
- */
 @Composable
-private fun LyricsPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    dev.aurora.player.ui.components.GlassButton(
-        text = "Lyrics",
-        onClick = onClick,
-        // Secondary, not the white primary pill: the play button is the one filled control
-        // on this screen, and a second one would argue with it.
-        style = dev.aurora.player.ui.components.GlassButtonStyle.Secondary,
-        modifier = modifier,
+private fun CloseButton(onClose: () -> Unit, modifier: Modifier = Modifier) {
+    val haptics = LocalHapticEngine.current
+    RoundButton(
+        icon = Icons.Rounded.KeyboardArrowDown,
+        contentDescription = "Close",
+        onClick = {
+            haptics.fire(HapticEvent.Tap)
+            onClose()
+        },
+        modifier = modifier.padding(start = 12.dp, top = 8.dp),
     )
 }
 
-/**
- * Entry, one element after another.
- *
- * Everything used to arrive in the same frame, which is the difference between a screen
- * that appears and a screen that assembles. Staggering by a few frames builds the
- * hierarchy the eye should follow - the record, then what it is, then the controls - and
- * costs nothing but a delay per element.
- *
- * Reduced motion gets all of it at once, because this is movement for its own sake and
- * that is exactly what the setting asks to remove.
- */
 @Composable
-private fun Modifier.staggeredEntry(index: Int, visible: Boolean): Modifier {
-    val reducedMotion = LocalAccessibilityPreferences.current.reducedMotion
-    if (reducedMotion) return this
-
-    val progress by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = Aurora.motion.durationStandard,
-            delayMillis = index * STAGGER_MS,
-            easing = Aurora.motion.easingDecelerate,
-        ),
-        label = "entry $index",
-    )
-    val lift = with(LocalDensity.current) { ENTRY_LIFT.toPx() }
-
-    return graphicsLayer {
-        alpha = progress
-        translationY = (1f - progress) * lift
-    }
-}
-
-/** Roughly two frames at 60Hz - enough to read as a sequence, not as a queue. */
-private const val STAGGER_MS = 45
-private val ENTRY_LIFT = 20.dp
-
-/**
- * The sleeve, square and centred.
- *
- * Always the record's own cover, including for YouTube: the video's frame is not a sleeve,
- * and a still of someone's face where the artwork should be is the wrong picture rather
- * than a smaller one. What is playing from YouTube keeps its own player, further down.
- *
- * A new track crossfades in rather than cutting: the covers are the one thing on this
- * screen that changes wholesale, and a hard swap between two photographs reads as a glitch.
- */
-@Composable
-private fun AlbumArt(
-    artworkUri: String?,
-    title: String?,
+private fun ImmersiveControls(
+    title: String,
+    artist: String?,
+    codec: String?,
+    isFavorite: Boolean,
+    hasTrack: Boolean,
+    sleepTimer: SleepTimer?,
+    onToggleFavorite: (Boolean) -> Unit,
+    onOpenArtist: (String) -> Unit,
+    onOpenQueue: () -> Unit,
+    onOpenLyrics: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(24.dp)
+    val coordinator = LocalPlayerCoordinator.current
+    val state by coordinator.state.collectAsState()
+    val haptics = LocalHapticEngine.current
+    val isPlaying = state.status == PlaybackStatus.Playing || state.status == PlaybackStatus.Buffering
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth(0.72f)
-            .aspectRatio(1f)
-            .shadow(elevation = 32.dp, shape = shape, clip = false)
-            .clip(shape)
-            .background(Aurora.colors.surfaceGlassSecondary),
-        contentAlignment = Alignment.Center,
-    ) {
-        AnimatedContent(
-            targetState = artworkUri,
-            transitionSpec = {
-                (fadeIn(tween(320)) + scaleIn(tween(320), initialScale = 0.96f))
-                    .togetherWith(fadeOut(tween(200)))
-            },
-            label = "album art",
-        ) { uri ->
-            val bitmap by rememberArtworkBitmap(uri)
-            val image = bitmap
-            if (image != null) {
-                Image(
-                    bitmap = image,
-                    // Decorative: the title is written out directly below it.
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().clearAndSetSemantics {},
-                )
-            } else {
-                // A record with no sleeve is drawn as one, not left as a hole.
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Aurora.colors.surfaceGlassPrimary),
-                    contentAlignment = Alignment.Center,
-                ) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val sidePadding = if (maxWidth < 380.dp) 22.dp else 24.dp
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = sidePadding)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = title?.take(1)?.uppercase().orEmpty(),
-                        style = Aurora.typography.display,
-                        color = Aurora.colors.textTertiary,
+                        text = title,
+                        style = Aurora.typography.trackTitleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.basicMarquee(),
                     )
+                    if (artist != null) {
+                        Text(
+                            text = artist,
+                            style = Aurora.typography.trackArtist,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .basicMarquee()
+                                .clickable(onClickLabel = "Open $artist") {
+                                    haptics.fire(HapticEvent.Selection)
+                                    onOpenArtist(artist)
+                                },
+                        )
+                    }
                 }
+                if (hasTrack) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        MoreMenu(
+                            shuffleOn = state.queue.shuffleMode == ShuffleMode.On,
+                            repeatMode = state.queue.repeatMode,
+                            artist = artist,
+                            onCommand = coordinator::dispatch,
+                            onOpenArtist = onOpenArtist,
+                        )
+                        RoundButton(
+                            icon = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = if (isFavorite) "Remove $title from favorites" else "Add $title to favorites",
+                            onClick = {
+                                haptics.fire(HapticEvent.Toggle)
+                                onToggleFavorite(!isFavorite)
+                            },
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            PlayerScrubber(
+                position = state.position,
+                onSeek = { coordinator.dispatch(PlayerCommand.Seek(it)) },
+                centerContent = codec?.let { { CodecChip(it) } },
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TransportButton(Icons.Rounded.FastRewind, "Previous", 64.dp, 44.dp) {
+                    haptics.fire(HapticEvent.Tap)
+                    coordinator.dispatch(PlayerCommand.SkipPrevious)
+                }
+                TransportButton(
+                    icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    touch = 72.dp,
+                    iconSize = 52.dp,
+                ) {
+                    haptics.fire(HapticEvent.Toggle)
+                    coordinator.dispatch(if (isPlaying) PlayerCommand.Pause else PlayerCommand.Play)
+                }
+                TransportButton(Icons.Rounded.FastForward, "Next", 64.dp, 44.dp) {
+                    haptics.fire(HapticEvent.Tap)
+                    coordinator.dispatch(PlayerCommand.SkipNext)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            VolumeRow()
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                RoundButton(Icons.AutoMirrored.Rounded.FormatListBulleted, "Queue", onClick = {
+                    haptics.fire(HapticEvent.Tap)
+                    onOpenQueue()
+                })
+                if (hasTrack) {
+                    RoundButton(Icons.Rounded.Lyrics, "Lyrics", onClick = {
+                        haptics.fire(HapticEvent.Tap)
+                        onOpenLyrics()
+                    })
+                }
+                if (sleepTimer != null) SleepButton(sleepTimer)
+                Spacer(modifier = Modifier.weight(1f))
+                OutputChip()
             }
         }
     }
 }
 
+/** NomaTune's V7 action button: a 48dp circle of translucent white. */
+@Composable
+private fun RoundButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconSize: Dp = 24.dp,
+    content: (@Composable () -> Unit)? = null,
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = Color.White.copy(alpha = 0.16f),
+        contentColor = Color.White,
+        modifier = modifier.size(48.dp).semantics { this.contentDescription = contentDescription },
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            if (content != null) {
+                content()
+            } else {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(iconSize))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransportButton(
+    icon: ImageVector,
+    contentDescription: String,
+    touch: Dp,
+    iconSize: Dp,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = Color.Transparent,
+        contentColor = Color.White,
+        modifier = Modifier.size(touch),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = contentDescription, modifier = Modifier.size(iconSize))
+        }
+    }
+}
+
+@Composable
+private fun CodecChip(label: String) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = Color.White.copy(alpha = 0.10f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.13f)),
+        contentColor = Color.White.copy(alpha = 0.72f),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        ) {
+            Icon(Icons.Rounded.GraphicEq, contentDescription = null, modifier = Modifier.size(15.dp))
+            Text(text = label, style = Aurora.typography.caption, maxLines = 1)
+        }
+    }
+}
+
 /**
- * The official YouTube player, where a YouTube track is actually playing.
+ * The overflow: what the reference has no room for on the screen itself.
  *
- * docs/YOUTUBE_CAPABILITY_MATRIX.md requires it visible and unobscured, with its own
- * controls and branding intact, so it is on the screen rather than behind the sleeve - the
- * cover says what the record is, and this says where the sound is coming from. Nothing is
- * drawn over it and it is never resized to nothing.
+ * Shuffle and repeat live here because the Immersive layout's transport is three buttons.
  */
 @Composable
-private fun YouTubePlayerCard(modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(16.dp)
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = "Playing on YouTube",
-            style = Aurora.typography.section,
-            color = Aurora.colors.textTertiary,
-        )
-        Spacer(modifier = Modifier.height(Aurora.spacing.space2))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.62f)
-                .aspectRatio(16f / 9f)
-                .clip(shape)
-                .background(Color.Black),
-        ) {
-            YouTubePlayerSurface(modifier = Modifier.fillMaxSize())
-        }
-        Spacer(modifier = Modifier.height(Aurora.spacing.space2))
-        /*
-         * Said plainly, where it will be read before it is discovered.
-         *
-         * Local files play with the screen off; this one does not, and the capability
-         * matrix asks for the limitation to be exposed rather than left to be found when
-         * the music stops in someone's pocket. It is a YouTube policy boundary, not a
-         * missing feature, so it is stated as a fact about this track rather than as an
-         * apology or a promise to fix it.
-         */
-        Text(
-            text = "Leaving the app shrinks this into a floating window, and it keeps playing there. Closing the window, or the screen going off, stops it.",
-            style = Aurora.typography.caption,
-            color = Aurora.colors.textTertiary,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-        )
-    }
-}
-
-@Composable
-private fun FavoriteButton(
-    isFavorite: Boolean,
-    title: String,
-    onToggle: (Boolean) -> Unit,
-) {
-    val haptics = LocalHapticEngine.current
-    // Springs out when it fills, so the tap feels answered rather than merely recorded.
-    val scale by animateFloatAsState(
-        targetValue = if (isFavorite) 1.12f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "favourite",
-    )
-
-    GlassIconButton(
-        onClick = {
-            haptics.fire(HapticEvent.Toggle)
-            onToggle(!isFavorite)
-        },
-        icon = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-        contentDesc = if (isFavorite) "Remove $title from favorites" else "Add $title to favorites",
-        selected = isFavorite,
-        modifier = Modifier.graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        },
-    )
-}
-
-@Composable
-private fun TransportRow(
-    isPlaying: Boolean,
+private fun MoreMenu(
     shuffleOn: Boolean,
     repeatMode: RepeatMode,
+    artist: String?,
     onCommand: (PlayerCommand) -> Unit,
-    modifier: Modifier = Modifier,
+    onOpenArtist: (String) -> Unit,
 ) {
     val haptics = LocalHapticEngine.current
-
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        GlassIconButton(
-            onClick = {
-                haptics.fire(HapticEvent.Toggle)
-                onCommand(PlayerCommand.SetShuffle(if (shuffleOn) ShuffleMode.Off else ShuffleMode.On))
-            },
-            icon = Icons.Rounded.Shuffle,
-            contentDesc = "Shuffle",
-            selected = shuffleOn,
-        )
-
-        GlassIconButton(
-            onClick = {
-                haptics.fire(HapticEvent.Tap)
-                onCommand(PlayerCommand.SkipPrevious)
-            },
-            icon = Icons.Rounded.SkipPrevious,
-            contentDesc = "Previous",
-            modifier = Modifier.size(56.dp),
-        )
-
-        // The one filled control on the screen, and where the thumb lands. Its icon
-        // animates inside it, so the circle stays put.
-        PrimaryCircleButton(
-            onClick = {
-                if (isPlaying) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        RoundButton(Icons.Rounded.MoreVert, "More options", onClick = {
+            haptics.fire(HapticEvent.Tap)
+            open = true
+        })
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(if (shuffleOn) "Shuffle: on" else "Shuffle: off") },
+                onClick = {
                     haptics.fire(HapticEvent.Toggle)
-                    onCommand(PlayerCommand.Pause)
-                } else {
-                    haptics.fire(HapticEvent.Toggle)
-                    onCommand(PlayerCommand.Play)
-                }
-            },
-            icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-            contentDescription = if (isPlaying) "Pause" else "Play",
-            size = 76.dp,
-        )
-
-        GlassIconButton(
-            onClick = {
-                haptics.fire(HapticEvent.Tap)
-                onCommand(PlayerCommand.SkipNext)
-            },
-            icon = Icons.Rounded.SkipNext,
-            contentDesc = "Next",
-            modifier = Modifier.size(56.dp),
-        )
-
-        GlassIconButton(
-            onClick = {
-                haptics.fire(HapticEvent.Toggle)
-                onCommand(
-                    PlayerCommand.SetRepeat(
+                    onCommand(PlayerCommand.SetShuffle(if (shuffleOn) ShuffleMode.Off else ShuffleMode.On))
+                },
+            )
+            DropdownMenuItem(
+                text = {
+                    Text(
                         when (repeatMode) {
-                            RepeatMode.Off -> RepeatMode.All
-                            RepeatMode.All -> RepeatMode.One
-                            RepeatMode.One -> RepeatMode.Off
+                            RepeatMode.Off -> "Repeat: off"
+                            RepeatMode.All -> "Repeat: all"
+                            RepeatMode.One -> "Repeat: this track"
                         }
                     )
+                },
+                onClick = {
+                    haptics.fire(HapticEvent.Toggle)
+                    onCommand(
+                        PlayerCommand.SetRepeat(
+                            when (repeatMode) {
+                                RepeatMode.Off -> RepeatMode.All
+                                RepeatMode.All -> RepeatMode.One
+                                RepeatMode.One -> RepeatMode.Off
+                            }
+                        )
+                    )
+                },
+            )
+            if (artist != null) {
+                DropdownMenuItem(
+                    text = { Text("Go to $artist") },
+                    onClick = {
+                        open = false
+                        onOpenArtist(artist)
+                    },
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SleepButton(timer: SleepTimer) {
+    val haptics = LocalHapticEngine.current
+    val endsAt by timer.endsAt.collectAsState()
+    var open by remember { mutableStateOf(false) }
+    // Whole minutes left, refreshed often enough for a minute display.
+    val minutesLeft by produceState<Long?>(null, endsAt) {
+        while (endsAt != null) {
+            value = timer.remaining()?.let { (it + 59_999) / 60_000 }
+            delay(5_000)
+        }
+        value = null
+    }
+
+    Box {
+        RoundButton(
+            icon = Icons.Rounded.Bedtime,
+            contentDescription = minutesLeft?.let { "Sleep timer, $it minutes left" } ?: "Sleep timer",
+            onClick = {
+                haptics.fire(HapticEvent.Tap)
+                open = true
             },
-            icon = if (repeatMode == RepeatMode.One) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
-            contentDesc = "Repeat",
-            selected = repeatMode != RepeatMode.Off,
+            content = minutesLeft?.let { left ->
+                { Text("${left}m", style = Aurora.typography.caption, color = Color.White) }
+            },
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            listOf(15, 30, 45, 60).forEach { minutes ->
+                DropdownMenuItem(
+                    text = { Text(if (minutes == 60) "1 hour" else "$minutes minutes") },
+                    onClick = {
+                        haptics.fire(HapticEvent.Commit)
+                        timer.start(minutes)
+                        open = false
+                    },
+                )
+            }
+            if (endsAt != null) {
+                DropdownMenuItem(
+                    text = { Text("Turn off") },
+                    onClick = {
+                        timer.cancel()
+                        open = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VolumeRow() {
+    val volume = rememberMusicVolume()
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.AutoMirrored.Rounded.VolumeOff,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.72f),
+            modifier = Modifier.size(22.dp),
+        )
+        Slider(
+            value = volume.fraction,
+            onValueChange = volume.set,
+            thumb = {},
+            track = { sliderState ->
+                val range = sliderState.valueRange
+                val fraction = ((sliderState.value - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f)
+                Canvas(modifier = Modifier.fillMaxWidth().height(8.dp)) {
+                    val radius = CornerRadius(size.height / 2f)
+                    drawRoundRect(Color.White.copy(alpha = 0.24f), size = size, cornerRadius = radius)
+                    drawRoundRect(
+                        Color.White.copy(alpha = 0.86f),
+                        topLeft = Offset.Zero,
+                        size = Size(size.width * fraction, size.height),
+                        cornerRadius = radius,
+                    )
+                }
+            },
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 18.dp)
+                .semantics { contentDescription = "Volume" },
+        )
+        Icon(
+            Icons.AutoMirrored.Rounded.VolumeUp,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.72f),
+            modifier = Modifier.size(24.dp),
         )
     }
 }
+
+/** Where the sound is going. Opens the system's output picker where Android has one. */
+@Composable
+private fun OutputChip() {
+    val context = LocalContext.current
+    val device = rememberOutputDeviceName()
+    Surface(
+        onClick = { showSystemOutputSwitcher(context) },
+        shape = CircleShape,
+        color = Color.White.copy(alpha = 0.16f),
+        contentColor = Color.White,
+        modifier = Modifier.height(48.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(horizontal = 18.dp),
+        ) {
+            Icon(
+                if (device != null) Icons.Rounded.Bluetooth else Icons.Rounded.PhoneAndroid,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = device ?: "This phone",
+                style = Aurora.typography.label,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = MAX_CHIP_TEXT),
+            )
+        }
+    }
+}
+
+/**
+ * NomaTune's v7BackdropTone: the cover's dominant hue, saturation lifted a little and
+ * brightness clamped, so white text always reads on it.
+ */
+private fun immersiveTone(dominant: Color?, valueMin: Float, valueMax: Float): Color {
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV((dominant ?: Color.Black).toArgb(), hsv)
+    hsv[1] = if (hsv[1] < 0.12f) hsv[1].coerceAtMost(0.08f) else (hsv[1] * 1.22f).coerceIn(0f, 1f)
+    hsv[2] = if (dominant == null) 0.12f else hsv[2].coerceIn(valueMin, valueMax)
+    return Color(android.graphics.Color.HSVToColor(hsv))
+}
+
+/**
+ * The codec's short name, from the MIME types the scanner stores - NomaTune's codecLabel,
+ * extended for MP3 and PCM. Raw PCM is named by its container, since that is what the
+ * listener knows it as. Null when nothing was measured: unknown stays unknown.
+ */
+internal fun codecLabel(codec: String?, container: String?): String? {
+    val raw = codec?.substringAfter("/")?.substringBefore(";")?.trim()?.uppercase()
+    if (raw.isNullOrEmpty()) return null
+    return when {
+        "FLAC" in raw -> "FLAC"
+        "ALAC" in raw -> "ALAC"
+        "OPUS" in raw -> "OPUS"
+        "VORBIS" in raw -> "VORBIS"
+        "MP4A" in raw || "AAC" in raw -> "AAC"
+        raw == "MPEG" || "MP3" in raw -> "MP3"
+        raw == "RAW" -> if (container?.contains("wav", ignoreCase = true) == true) "WAV" else "PCM"
+        else -> raw
+    }
+}
+
+/** NomaTune's portrait sharp-stage height. */
+private const val STAGE_FRACTION = 0.62f
+private const val ARTWORK_FADE_MS = 900
+private const val COLOUR_FADE_MS = 600
+private val MAX_CHIP_TEXT = 140.dp

@@ -43,13 +43,16 @@ shown rather than a guess.
 
 ## Where the player is
 
-The player is visible wherever a YouTube track is playing, and it is never the artwork.
+The player is visible wherever a YouTube track is playing, and nothing is ever drawn over it.
 
-Now Playing shows the record's sleeve as its hero and carries the official player beneath
-the transport controls, labelled and at 16:9. While the full player is closed, the same
-player is docked above the floating chrome at the end of the row. Nothing is drawn over
-either one, and neither is shrunk to stand in for a cover - a 44dp circle of video is not
-a user-recognizable YouTube experience, and it is not a picture of the record.
+Now Playing is the Immersive layout. For a local file the cover fills the top of the screen
+and fades into a colour taken from it; for a YouTube track the official player takes that
+place instead, full width at 16:9 - at least 200x200px on any phone, as YouTube's Required
+Minimum Functionality asks - and the colour fade starts below its bottom edge rather than
+across it. YouTube forbids overlays in front of the player and anything that obscures it,
+so the player is never put behind a blur, a scrim or other controls, and it keeps answering
+touches. While the full player is closed, the same player is docked above the floating
+chrome at the end of the row.
 
 ## The media session
 

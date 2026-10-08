@@ -83,6 +83,7 @@ class LocalLibraryProvider(
                     artist = artistName,
                     album = relation.album?.title,
                     artworkUri = relation.album?.artworkRef,
+                    technicalMetadata = relation.metadata?.toDomain(),
                     isAvailable = relation.mediaItem.isAvailable
                 )
             }
@@ -120,6 +121,7 @@ class LocalLibraryProvider(
                 artist = artistName,
                 album = relation.album?.title,
                 artworkUri = relation.album?.artworkRef,
+                technicalMetadata = relation.metadata?.toDomain(),
                 isAvailable = relation.mediaItem.isAvailable
             )
         })
@@ -132,18 +134,7 @@ class LocalLibraryProvider(
         val relation = dao.getLocalItems().find { it.mediaItem.id == trackId }
             ?: return Result.failure(Exception("Track not found in local library"))
         
-        val techMeta = metadataEntity?.let {
-            TrackTechnicalMetadata(
-                codec = it.codec,
-                container = it.container,
-                bitrate = it.bitrate,
-                sampleRate = it.sampleRate,
-                channels = it.channels,
-                bitDepth = it.bitDepth,
-                durationMs = it.durationMs,
-                isLossless = it.isLossless
-            )
-        }
+        val techMeta = metadataEntity?.toDomain()
 
         val artistName = relation.artists.firstOrNull()?.name
 
@@ -161,3 +152,14 @@ class LocalLibraryProvider(
         )
     }
 }
+
+private fun dev.aurora.player.data.db.TrackTechnicalMetadataEntity.toDomain() = TrackTechnicalMetadata(
+    codec = codec,
+    container = container,
+    bitrate = bitrate,
+    sampleRate = sampleRate,
+    channels = channels,
+    bitDepth = bitDepth,
+    durationMs = durationMs,
+    isLossless = isLossless
+)

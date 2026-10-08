@@ -14,7 +14,8 @@ Ported from it:
 
 | AURORA | NomaTune origin | Notes |
 |---|---|---|
-| _(pending)_ | | |
+| `android/.../ui/screens/NowPlayingScreen.kt` (Immersive layout, colour tones, `codecLabel`) | `ui/player/Player.kt`: `V7PlayerBackdrop`, `V7BackdropPalette`, `v7BackdropTone`; `ui/player/PlayerComponents.kt`: `V8PlayerControlsContent`, `V8MetadataActions`, `V8PlaybackProgress`, `V8QualityChip`, `codecLabel`, `V8TransportControls`, `V8VolumeControls` | Rewritten against `PlayerCoordinator`. The blurred backdrop layer is left out: V7's floor gradient is opaque at every stop, so it never showed. |
+| `android/.../ui/components/PlayerScrubber.kt` (flat track and time row) | `ui/player/PlayerComponents.kt`: `V8PlaybackProgress`, `V8FlatSlider` | Drawing only; AURORA's own gestures and screen-reader node are kept. |
 
 Every file derived from NomaTune carries a header naming the upstream file and its
 licence. A port is not a fork: where AURORA's architecture differs - one

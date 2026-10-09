@@ -244,18 +244,18 @@ class YouTubePlayerAdapter : PlayerAdapter {
         }
     }
 
-    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+    override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
         // IFrame adapter doesn't support crossfade natively right now
         // It should just load and play based on playWhenReady
         _state.value = _state.value.copy(
-            videoId = uri,
+            videoId = source.uri,
             shouldPlay = playWhenReady,
             seekToMs = 0L
         )
         if (isPlayerReady) {
-            sendLoad(uri, playWhenReady)
+            sendLoad(source.uri, playWhenReady)
         } else {
-            pendingVideoId = uri
+            pendingVideoId = source.uri
             pendingPlay = playWhenReady
         }
     }

@@ -129,10 +129,10 @@ class Media3PlayerAdapter(
         }
     }
 
-    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+    override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
         val media3Item = Media3Item.Builder()
             .setMediaId(track.id)
-            .setUri(Uri.parse(uri))
+            .setUri(Uri.parse(source.uri))
             .setMediaMetadata(
                 MediaMetadata.Builder()
                     .setTitle(track.title)

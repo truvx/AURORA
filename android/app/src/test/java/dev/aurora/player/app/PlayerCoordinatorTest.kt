@@ -35,7 +35,7 @@ class PlayerCoordinatorTest {
         var isPlaying = false
         var seekPosition = -1L
 
-        override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+        override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
             loadedTrack = track
             events.tryEmit(EngineEvent.Prepared)
         }
@@ -58,8 +58,8 @@ class PlayerCoordinatorTest {
     }
 
     private val fakeResolver = object : TrackResolver {
-        override suspend fun resolveUri(trackId: String): String? {
-            return if (trackId == "notfound") null else "content://test/$trackId"
+        override suspend fun resolveSource(track: dev.aurora.player.domain.models.MediaItem, preferredQuality: dev.aurora.player.domain.audio.RequestedQuality): dev.aurora.player.domain.player.PlaybackSource? {
+            return if (track.id == "notfound") null else dev.aurora.player.domain.player.PlaybackSource("content://test/${track.id}")
         }
         override suspend fun resolveLoudness(trackId: String): dev.aurora.player.domain.audio.TrackLoudnessData? = null
     }

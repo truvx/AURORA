@@ -3,6 +3,9 @@ package dev.aurora.player.app
 import dev.aurora.player.data.db.LocalFileEntity
 import dev.aurora.player.data.db.LocalLibraryDao
 import kotlinx.coroutines.test.runTest
+import dev.aurora.player.domain.models.MediaItem
+import dev.aurora.player.domain.models.ProviderKind
+import dev.aurora.player.domain.audio.RequestedQuality
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -64,13 +67,15 @@ class AuroraTrackResolverTest {
 
     @Test
     fun testResolveValidIdReturnsUri() = runTest {
-        val uri = resolver.resolveUri("local_123")
-        assertEquals("content://media/external/audio/media/123", uri)
+        val item = MediaItem(id = "local_123", provider = ProviderKind.LOCAL, title = "test", artist = null, album = null, artworkUri = null)
+        val source = resolver.resolveSource(item, RequestedQuality.Auto)
+        assertEquals("content://media/external/audio/media/123", source?.uri)
     }
 
     @Test
     fun testResolveInvalidIdReturnsNull() = runTest {
-        val uri = resolver.resolveUri("not_found")
-        assertNull(uri)
+        val item = MediaItem(id = "not_found", provider = ProviderKind.LOCAL, title = "test", artist = null, album = null, artworkUri = null)
+        val source = resolver.resolveSource(item, RequestedQuality.Auto)
+        assertNull(source)
     }
 }

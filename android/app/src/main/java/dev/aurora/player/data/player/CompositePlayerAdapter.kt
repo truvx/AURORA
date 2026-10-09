@@ -39,7 +39,7 @@ class CompositePlayerAdapter(
         youtubeAdapter.events.filter { activeAdapter === youtubeAdapter }
     )
 
-    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+    override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
         val nextAdapter = if (track.provider == ProviderKind.YOUTUBE) {
             youtubeAdapter
         } else {
@@ -66,7 +66,7 @@ class CompositePlayerAdapter(
             activeAdapter = nextAdapter
         }
         
-        activeAdapter?.load(track, uri, playWhenReady, crossfadeDurationMs)
+        activeAdapter?.load(source, track, playWhenReady, crossfadeDurationMs)
     }
 
     override fun play() {

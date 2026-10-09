@@ -126,11 +126,11 @@ class PlayerCoordinator(
             )
         }
         scope.launch {
-            val uri = resolver.resolveUri(track.id)
+            val source = resolver.resolveSource(track, dev.aurora.player.domain.audio.RequestedQuality.Auto)
             val loudnessData = resolver.resolveLoudness(track.id)
-            Log.d(TAG, "loadTrack: resolved uri=${uri != null}, loudness=${loudnessData != null}")
+            Log.d(TAG, "loadTrack: resolved source=${source != null}, loudness=${loudnessData != null}")
             
-            if (uri != null) {
+            if (source != null) {
                 val capability = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) {
                     dev.aurora.player.domain.audio.LoudnessCapability.ProviderManaged
                 } else {
@@ -167,7 +167,7 @@ class PlayerCoordinator(
                 } else 0L
 
                 Log.d(TAG, "loadTrack: calling adapter.load(), crossfade=$crossfadeDuration")
-                adapter.load(track, uri, playWhenReady, crossfadeDuration)
+                adapter.load(source, track, playWhenReady, crossfadeDuration)
             } else {
                 Log.e(TAG, "loadTrack: URI resolution failed for ${track.id}")
                 _state.update { it.copy(status = PlaybackStatus.Error, lastError = Exception("URI not found")) }

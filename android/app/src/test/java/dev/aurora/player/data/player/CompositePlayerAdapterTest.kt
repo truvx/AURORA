@@ -32,7 +32,7 @@ class CompositePlayerAdapterTest {
         var loadCount = 0
         var pauseCount = 0
 
-        override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+        override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
             loadCount++
         }
         override fun play() {}
@@ -75,7 +75,7 @@ class CompositePlayerAdapterTest {
             val received = mutableListOf<EngineEvent>()
             val collector = launch { composite.events.toList(received) }
 
-            composite.load(track(ProviderKind.LOCAL), "file:///music.flac", true, 0L)
+            composite.load(dev.aurora.player.domain.player.PlaybackSource("file:///music.flac"), track(ProviderKind.LOCAL), true, 0L)
 
             // Real local progress, interleaved with the YouTube IFrame's idle 500ms timer.
             local.emitted.emit(EngineEvent.PositionChanged(elapsed = 4_000L, duration = 180_000L, buffered = 8_000L))
@@ -103,7 +103,7 @@ class CompositePlayerAdapterTest {
             val received = mutableListOf<EngineEvent>()
             val collector = launch { composite.events.toList(received) }
 
-            composite.load(track(ProviderKind.YOUTUBE), "https://youtube.com/watch?v=abc", true, 0L)
+            composite.load(dev.aurora.player.domain.player.PlaybackSource("https://youtube.com/watch?v=abc"), track(ProviderKind.YOUTUBE), true, 0L)
 
             youtube.emitted.emit(EngineEvent.PositionChanged(elapsed = 1_000L, duration = 60_000L, buffered = null))
             local.emitted.emit(EngineEvent.PositionChanged(elapsed = 99_000L, duration = 180_000L, buffered = null))
@@ -141,8 +141,8 @@ class CompositePlayerAdapterTest {
             val youtube = FakeAdapter()
             val composite = CompositePlayerAdapter(local, youtube)
 
-            composite.load(track(ProviderKind.LOCAL), "file:///a.flac", true, 0L)
-            composite.load(track(ProviderKind.YOUTUBE), "https://youtube.com/watch?v=abc", true, 0L)
+            composite.load(dev.aurora.player.domain.player.PlaybackSource("file:///a.flac"), track(ProviderKind.LOCAL), true, 0L)
+            composite.load(dev.aurora.player.domain.player.PlaybackSource("https://youtube.com/watch?v=abc"), track(ProviderKind.YOUTUBE), true, 0L)
 
             assertEquals("the local player must stop when switching to YouTube", 1, local.pauseCount)
             assertEquals(1, youtube.loadCount)
@@ -158,7 +158,7 @@ class CompositePlayerAdapterTest {
             val received = mutableListOf<EngineEvent>()
             val collector = launch { composite.events.toList(received) }
 
-            composite.load(track(ProviderKind.LOCAL), "file:///a.flac", true, 0L)
+            composite.load(dev.aurora.player.domain.player.PlaybackSource("file:///a.flac"), track(ProviderKind.LOCAL), true, 0L)
             local.emitted.emit(EngineEvent.Error(IllegalStateException("decoder failed")))
 
             collector.cancel()
@@ -176,10 +176,10 @@ class CompositePlayerAdapterTest {
         val local = FakeMedia3Adapter()
         val composite = CompositePlayerAdapter(local, FakeAdapter())
 
-        composite.load(track(ProviderKind.LOCAL), "file:///music.mp3", true, 0)
+        composite.load(dev.aurora.player.domain.player.PlaybackSource("file:///music.mp3"), track(ProviderKind.LOCAL), true, 0)
         assertEquals(0, local.cleared)
 
-        composite.load(track(ProviderKind.YOUTUBE), "abc123", true, 0)
+        composite.load(dev.aurora.player.domain.player.PlaybackSource("abc123"), track(ProviderKind.YOUTUBE), true, 0)
         assertEquals(1, local.cleared)
     }
 
@@ -188,8 +188,8 @@ class CompositePlayerAdapterTest {
         val local = FakeMedia3Adapter()
         val composite = CompositePlayerAdapter(local, FakeAdapter())
 
-        composite.load(track(ProviderKind.YOUTUBE), "abc123", true, 0)
-        composite.load(track(ProviderKind.LOCAL), "file:///music.mp3", true, 0)
+        composite.load(dev.aurora.player.domain.player.PlaybackSource("abc123"), track(ProviderKind.YOUTUBE), true, 0)
+        composite.load(dev.aurora.player.domain.player.PlaybackSource("file:///music.mp3"), track(ProviderKind.LOCAL), true, 0)
 
         // Cleared on the way out to YouTube, and not on the way back - the local player is
         // about to be given the item it is supposed to play.
@@ -201,8 +201,8 @@ class CompositePlayerAdapterTest {
         val local = FakeMedia3Adapter()
         val composite = CompositePlayerAdapter(local, FakeAdapter())
 
-        composite.load(track(ProviderKind.LOCAL), "file:///a.mp3", true, 0)
-        composite.load(track(ProviderKind.LOCAL), "file:///b.mp3", true, 0)
+        composite.load(dev.aurora.player.domain.player.PlaybackSource("file:///a.mp3"), track(ProviderKind.LOCAL), true, 0)
+        composite.load(dev.aurora.player.domain.player.PlaybackSource("file:///b.mp3"), track(ProviderKind.LOCAL), true, 0)
 
         assertEquals(0, local.cleared)
     }

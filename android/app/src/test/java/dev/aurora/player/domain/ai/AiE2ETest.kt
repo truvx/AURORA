@@ -28,8 +28,8 @@ class DummyPlayerAdapter : PlayerAdapter {
     var lastLoadedUri: String? = null
     var lastLoadedTrack: MediaItem? = null
 
-    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
-        lastLoadedUri = uri
+    override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+        lastLoadedUri = source.uri
         lastLoadedTrack = track
     }
     override fun play() {}
@@ -41,7 +41,8 @@ class DummyPlayerAdapter : PlayerAdapter {
 }
 
 class DummyTrackResolver : TrackResolver {
-    override suspend fun resolveUri(trackId: String): String? = "dummy://uri"
+    override suspend fun resolveSource(track: dev.aurora.player.domain.models.MediaItem, preferredQuality: dev.aurora.player.domain.audio.RequestedQuality): dev.aurora.player.domain.player.PlaybackSource? =
+        dev.aurora.player.domain.player.PlaybackSource("dummy://uri")
     override suspend fun resolveLoudness(trackId: String): TrackLoudnessData? = null
 }
 
@@ -150,7 +151,7 @@ class AiE2ETest {
         var loadedTrack: MediaItem? = null
         val testAdapter = object : PlayerAdapter {
             override val events = MutableSharedFlow<EngineEvent>()
-            override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+            override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
                 loadedTrack = track
                 events.tryEmit(EngineEvent.Prepared)
             }

@@ -7,6 +7,7 @@ import dev.aurora.player.domain.models.ProviderCapability
 import dev.aurora.player.domain.models.ProviderKind
 import dev.aurora.player.domain.auth.YouTubeCredential
 import dev.aurora.player.domain.providers.MusicProvider
+import dev.aurora.player.domain.audio.RequestedQuality
 
 class YouTubeMusicProvider(
     private val api: YouTubeDataApi,

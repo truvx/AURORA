@@ -65,7 +65,7 @@ override fun observeFavoriteIds() = kotlinx.coroutines.flow.flowOf(emptyList<Str
 
     private class EndingAdapter : PlayerAdapter {
         override val events = MutableSharedFlow<EngineEvent>(replay = 1, extraBufferCapacity = 64)
-        override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+        override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
             events.tryEmit(EngineEvent.Prepared)
         }
         override fun play() { events.tryEmit(EngineEvent.Started) }
@@ -84,7 +84,7 @@ override fun observeFavoriteIds() = kotlinx.coroutines.flow.flowOf(emptyList<Str
     }
 
     private val resolver = object : TrackResolver {
-        override suspend fun resolveUri(trackId: String) = "file:///$trackId.flac"
+        override suspend fun resolveSource(track: dev.aurora.player.domain.models.MediaItem, preferredQuality: dev.aurora.player.domain.audio.RequestedQuality): dev.aurora.player.domain.player.PlaybackSource? = dev.aurora.player.domain.player.PlaybackSource("file:///${track.id}.flac")
         override suspend fun resolveLoudness(trackId: String): dev.aurora.player.domain.audio.TrackLoudnessData? = null
     }
 

@@ -32,7 +32,7 @@ class QueuePerformanceTest {
 
     private class SilentAdapter : PlayerAdapter {
         override val events = MutableSharedFlow<EngineEvent>(extraBufferCapacity = 64)
-        override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {}
+        override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {}
         override fun play() {}
         override fun pause() {}
         override fun seekTo(positionMs: Long) {}
@@ -42,7 +42,8 @@ class QueuePerformanceTest {
     }
 
     private class InstantResolver : TrackResolver {
-        override suspend fun resolveUri(trackId: String) = "file://$trackId"
+        override suspend fun resolveSource(track: dev.aurora.player.domain.models.MediaItem, preferredQuality: dev.aurora.player.domain.audio.RequestedQuality): dev.aurora.player.domain.player.PlaybackSource? =
+            dev.aurora.player.domain.player.PlaybackSource("mock://${track.id}")
         override suspend fun resolveLoudness(trackId: String): dev.aurora.player.domain.audio.TrackLoudnessData? = null
     }
 

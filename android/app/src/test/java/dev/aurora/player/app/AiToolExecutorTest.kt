@@ -111,7 +111,7 @@ class AiToolExecutorTest {
 
 private class DummyPlayerAdapterForExecutor : PlayerAdapter {
     override val events = kotlinx.coroutines.flow.MutableSharedFlow<EngineEvent>()
-    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {}
+    override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {}
     override fun play() {}
     override fun pause() {}
     override fun seekTo(positionMs: Long) {}
@@ -121,6 +121,6 @@ private class DummyPlayerAdapterForExecutor : PlayerAdapter {
 }
 
 private class DummyTrackResolverForExecutor : TrackResolver {
-    override suspend fun resolveUri(trackId: String): String? = "file://$trackId"
+    override suspend fun resolveSource(track: dev.aurora.player.domain.models.MediaItem, preferredQuality: dev.aurora.player.domain.audio.RequestedQuality): dev.aurora.player.domain.player.PlaybackSource? = dev.aurora.player.domain.player.PlaybackSource("file://${track.id}")
     override suspend fun resolveLoudness(trackId: String): dev.aurora.player.domain.audio.TrackLoudnessData? = null
 }

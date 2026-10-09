@@ -51,7 +51,7 @@ class CrossfadeMedia3Adapter(
         secondary.events.filter { activePlayer === secondary }
     )
 
-    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+    override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
         crossfadeJob?.cancel()
         
         if (crossfadeDurationMs > 0 && activePlayer.exoPlayer.playbackState != androidx.media3.common.Player.STATE_IDLE) {
@@ -64,7 +64,7 @@ class CrossfadeMedia3Adapter(
             
             // Start loading and playing new track on zero volume
             fadingInPlayer.setVolume(0f)
-            fadingInPlayer.load(track, uri, playWhenReady, 0L)
+            fadingInPlayer.load(source, track, playWhenReady, 0L)
             
             // Orchestrate the fade
             crossfadeJob = scope.launch {
@@ -83,7 +83,7 @@ class CrossfadeMedia3Adapter(
                 fadingOutPlayer.setVolume(1.0f)
             }
         } else {
-            activePlayer.load(track, uri, playWhenReady, 0L)
+            activePlayer.load(source, track, playWhenReady, 0L)
         }
     }
 

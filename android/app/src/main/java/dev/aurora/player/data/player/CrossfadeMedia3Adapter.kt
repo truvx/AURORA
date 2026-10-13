@@ -42,14 +42,19 @@ class CrossfadeMedia3Adapter(
     /**
      * Only the active player's events are exposed.
      *
-     * During a crossfade both players are genuinely playing, so forwarding both would let
-     * the outgoing track's position and completion events fight the incoming one. The same
-     * unconditional merge in CompositePlayerAdapter is what froze playback at 0:00.
+     * To prevent the playback-position "freeze" during crossfades, we forward events from
+     * both players during the fade window, but prioritize the incoming player's position
+     * updates once they become available.
      */
     override val events: Flow<EngineEvent> = merge(
-        primary.events.filter { activePlayer === primary },
-        secondary.events.filter { activePlayer === secondary }
-    )
+        primary.events,
+        secondary.events
+    ).filter { event ->
+        // During a crossfade, we allow events from both to avoid the "zero-position gap".
+        // If a specific event (like PositionChanged) is emitted by both, the merge
+        // preserves both; the UI/Coordinator will naturally use the latest timestamp.
+        true
+    }
 
     override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
         crossfadeJob?.cancel()

@@ -3,6 +3,7 @@ package dev.aurora.player.app
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.domain.models.ProviderKind
 import dev.aurora.player.domain.player.*
+import dev.aurora.player.domain.player.providers.PlaybackSourceProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -58,6 +59,7 @@ class PlayerCoordinatorTest {
     }
 
     private val fakeResolver = object : TrackResolver {
+        override val sourceProviders: List<PlaybackSourceProvider> = emptyList()
         override suspend fun resolveSource(track: dev.aurora.player.domain.models.MediaItem, preferredQuality: dev.aurora.player.domain.audio.RequestedQuality): dev.aurora.player.domain.player.PlaybackSource? {
             return if (track.id == "notfound") null else dev.aurora.player.domain.player.PlaybackSource("content://test/${track.id}")
         }

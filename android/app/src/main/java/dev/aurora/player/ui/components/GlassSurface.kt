@@ -9,6 +9,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.aurora.player.ui.theme.Aurora
+import dev.aurora.player.ui.theme.DeviceCapabilities
+import dev.aurora.player.ui.theme.LocalDeviceCapabilities
 
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
@@ -86,6 +88,13 @@ fun GlassSurface(
     val source = backdrop ?: dev.aurora.player.ui.theme.LocalAuroraBackdrop.current
     val depth = Aurora.depth
     val density = androidx.compose.ui.platform.LocalDensity.current
+    val capabilities = LocalDeviceCapabilities.current
+
+    // On low-end devices skip every per-frame backdrop effect (blur, vibrancy,
+    // refraction lens, highlight, shadow) so the GPU stays under its thermal
+    // limit. The glass colour itself is kept - the theme is unchanged, only the
+    // backdrop sampling that costs frames is dropped.
+    val drawBackdrop = source != null && !useOpaqueFallback && !reducedTransparency && !capabilities.isLowEnd
 
     val blurRadius = with(density) {
         when (level) {
@@ -121,7 +130,7 @@ fun GlassSurface(
         modifier = modifier
             .clip(shape)
             .then(
-                if (source != null && !useOpaqueFallback && !reducedTransparency) {
+                if (drawBackdrop) {
                     Modifier.drawBackdrop(
                         backdrop = source,
                         shape = { shape },

@@ -11,6 +11,7 @@ import dev.aurora.player.ui.components.LocalPlayerCoordinator
 import dev.aurora.player.ui.components.LocalYouTubePlayerAdapter
 import dev.aurora.player.ui.navigation.AuroraNavigation
 import dev.aurora.player.ui.theme.AuroraTheme
+import dev.aurora.player.ui.theme.DeviceCapabilities
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.aurora.player.ui.theme.LocalAuroraBackdrop
+import dev.aurora.player.ui.theme.LocalDeviceCapabilities
 
 /**
  * Root composable for the AURORA application.
@@ -44,7 +46,8 @@ fun AuroraAppRoot() {
         LocalArtworkLoader provides artworkLoader,
         dev.aurora.player.ui.artwork.LocalCoverArtRepository provides container.coverArtRepository,
         dev.aurora.player.ui.lyrics.LocalLyricsRepository provides container.lyricsRepository,
-        dev.aurora.player.ui.accessibility.LocalAccessibilityPreferences provides accessibility
+        dev.aurora.player.ui.accessibility.LocalAccessibilityPreferences provides accessibility,
+        LocalDeviceCapabilities provides DeviceCapabilities.from(context)
     ) {
         AuroraTheme {
             /*

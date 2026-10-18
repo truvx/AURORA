@@ -10,6 +10,7 @@ import dev.aurora.player.domain.library.ResumePoint
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.domain.models.ProviderKind
 import dev.aurora.player.domain.player.PlayerCommand
+import dev.aurora.player.domain.player.providers.PlaybackSourceProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -84,6 +85,7 @@ override fun observeFavoriteIds() = kotlinx.coroutines.flow.flowOf(emptyList<Str
     }
 
     private val resolver = object : TrackResolver {
+        override val sourceProviders: List<PlaybackSourceProvider> = emptyList()
         override suspend fun resolveSource(track: dev.aurora.player.domain.models.MediaItem, preferredQuality: dev.aurora.player.domain.audio.RequestedQuality): dev.aurora.player.domain.player.PlaybackSource? = dev.aurora.player.domain.player.PlaybackSource("file:///${track.id}.flac")
         override suspend fun resolveLoudness(trackId: String): dev.aurora.player.domain.audio.TrackLoudnessData? = null
     }

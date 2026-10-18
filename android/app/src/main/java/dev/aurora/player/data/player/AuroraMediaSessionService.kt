@@ -1,5 +1,6 @@
 package dev.aurora.player.data.player
 
+import android.app.Notification
 import android.content.Intent
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
@@ -15,11 +16,16 @@ class AuroraMediaSessionService : MediaSessionService() {
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
+
+        // Android 8.0+ requires a notification channel before any notification can be posted,
+        // and a foreground service must show one within five seconds or the system kills it.
+        MediaNotification.ensureChannel(this)
+
         val app = application as dev.aurora.player.AuroraApp
         val adapter = app.container.playerAdapter as? Media3PlayerOwner
             ?: error("media session requires a Media3-backed adapter")
         val coordinator = app.container.playerCoordinator
-        
+
         val forwardingPlayer = object : ForwardingPlayer(adapter.sessionPlayer) {
             override fun getAvailableCommands(): Player.Commands {
                 return super.getAvailableCommands().buildUpon()
@@ -46,7 +52,7 @@ class AuroraMediaSessionService : MediaSessionService() {
                 coordinator.dispatch(PlayerCommand.SkipPrevious)
             }
         }
-        
+
         mediaSession = MediaSession.Builder(this, forwardingPlayer)
             // Tapping the notification comes back to AURORA rather than launching a
             // second copy of it.
@@ -61,6 +67,12 @@ class AuroraMediaSessionService : MediaSessionService() {
                 )
             )
             .build()
+
+        // Start the foreground service with the media notification so the system keeps
+        // playback alive while the app is not on screen. The notification id and channel
+        // match MediaNotification, so track changes replace rather than stack it.
+        val notification: Notification = MediaNotification.build(this)
+        startForeground(MediaNotification.NOTIFICATION_ID, notification)
     }
 
     /*

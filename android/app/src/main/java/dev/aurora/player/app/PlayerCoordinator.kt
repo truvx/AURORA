@@ -151,7 +151,8 @@ class PlayerCoordinator(
                     normalization = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED,
                     crossfade = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED,
                     eq = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED,
-                    limiter = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED
+                    limiter = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED,
+                    backgroundPlayback = dev.aurora.player.domain.audio.CapabilityState.SUPPORTED
                 )
                 
                 _state.update { 

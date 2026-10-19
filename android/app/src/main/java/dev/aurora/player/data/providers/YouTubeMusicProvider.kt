@@ -30,7 +30,8 @@ class YouTubeMusicProvider(
             ProviderCapability.METADATA,
             ProviderCapability.ARTWORK,
             ProviderCapability.PLAYBACK,
-            ProviderCapability.QUEUE
+            ProviderCapability.QUEUE,
+            ProviderCapability.BACKGROUND_PLAYBACK
         )
     )
 

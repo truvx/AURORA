@@ -12,7 +12,7 @@ Status: final v1 contract, 2026-09-03.
 | Playback | Yes | Yes | Visible YouTube IFrame Player API; Android WebView embedding | Supported | Requires a visible player and user-recognizable YouTube experience; no audio-only extraction. | Embed the official player; expose play state from player callbacks. |
 | Queue | Yes | Yes | IFrame API `cueVideoById`, `loadVideoById`, `cuePlaylist`, `loadPlaylist` | Supported in foreground | The queue contains provider IDs, not media bytes; player remains visible; deprecated search playlist flow is not used. | Maintain one app queue and advance through official loads. |
 | Autoplay | Conditional | Conditional | IFrame API `autoplay`/load methods | Conditional | Browser/user-agent policy can block it; autoplay can trigger data sharing on load. | Default off; use only after explicit user intent and handle blocked-autoplay state. |
-| Background playback | No | No | None permitted for AURORA | Unsupported | YouTube policy forbids hidden/background players; no workaround. | Disable background promise and expose the limitation clearly. |
+| Background playback | Conditional | No | Android: official YouTube Music app via MediaController/MediaSession delegation | Supported through delegation | Only when the YouTube Music app is installed and its exported MediaSessionService is reachable; no hidden player, no stream extraction, no media-byte caching. | If YouTube Music is available, YouTube tracks load into its foreground service through the remote adapter, so playback survives the app going to the background and the screen going off. If unavailable, falls back to the visible IFrame WebView player and YouTube stops when the screen goes off. Web has no background path. |
 | Screen-off playback | No | No | None permitted for AURORA | Unsupported | Same visible-player and policy boundary. | Local files may support platform media controls; YouTube stops or remains unavailable when the player is not visible. |
 | Quality selection | No app-controlled contract | No app-controlled contract | IFrame player quality methods are not a supported contract | Unsupported | Do not claim bitrate, codec, sample rate, lossless, or Hi-Res from YouTube. | Resolve `Preferred Audio Quality` to provider-determined/unknown actual quality. |
 | Downloads | No | No | None | Unsupported | AURORA does not download or cache YouTube audiovisual content. | Hide download action for YouTube. |
@@ -60,12 +60,26 @@ Local playback owns a Media3 `MediaSessionService`: a media notification, lock-s
 headset controls, and playback that continues with the app in the background and the screen
 off.
 
-A YouTube track owns none of it. Handing over to YouTube empties the Media3 player rather
-than pausing it, so the session has nothing to claim and the foreground service drops. A
-paused player would have kept its last item, which would have put a background media
-session behind YouTube playback and had the lock screen name a local track while a video
-made the sound - two different untruths from one shortcut. The player says so on screen:
-"Keeps playing only while the player is on screen."
+A YouTube track can play in one of two ways:
+
+* **Via the YouTube Music app** (preferred, when YouTube Music is installed): AURORA
+  delegates playback to YouTube Music's foreground service through Android's public
+  `MediaController`/`MediaSession` APIs. YouTube Music owns playback and its own media
+  session; AURORA sends transport commands and receives state projections back. Handing over
+  to YouTube Music empties the Media3 player rather than pausing it, so the session has
+  nothing to claim and does not claim a YouTube track as AURORA's own. This is the AGENTS.md-
+  permitted path to background YouTube playback — no hidden player, no stream extraction, no
+  media bytes touched by AURORA.
+* **Via the visible IFrame WebView player** (fallback): YouTube plays inside the official
+  player embedded in AURORA's UI. Handing over to it empties the Media3 player the same way.
+  Playback continues only while the player is on screen; picture-in-picture keeps the visible
+  player alive when the app is backgrounded.
+
+A paused Media3 player would have kept its last item, which would have put a background media
+session behind YouTube playback and had the lock screen name a local track while a video made
+the sound - two different untruths from one shortcut. Clearing it on hand-off keeps the
+session honest: YouTube plays in the visible player or via YouTube Music, and AURORA does not
+pretend to own either.
 
 ## Progress bar
 

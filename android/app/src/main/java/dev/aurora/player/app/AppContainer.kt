@@ -7,6 +7,7 @@ import dev.aurora.player.data.db.AuroraDatabase
 import dev.aurora.player.data.db.LocalLibraryDao
 import dev.aurora.player.data.player.CompositePlayerAdapter
 import dev.aurora.player.data.player.Media3PlayerAdapter
+import dev.aurora.player.data.player.YouTubeMusicRemoteAdapter
 import dev.aurora.player.data.player.YouTubePlayerAdapter
 import dev.aurora.player.data.providers.YouTubeMusicProvider
 import kotlinx.coroutines.CoroutineScope
@@ -20,6 +21,7 @@ interface AppContainer {
     val trackResolver: TrackResolver
     val youtubeMusicProvider: YouTubeMusicProvider
     val youtubePlayerAdapter: YouTubePlayerAdapter
+    val youtubeMusicRemoteAdapter: YouTubeMusicRemoteAdapter
     val media3PlayerAdapter: PlayerAdapter
     val playerAdapter: PlayerAdapter
     val playerCoordinator: PlayerCoordinator
@@ -306,14 +308,15 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val youtubePlayerAdapter: YouTubePlayerAdapter by lazy {
-        YouTubePlayerAdapter().apply {
-            // Must be initialized on main thread, but lazy block should run when first accessed, which is typically in UI
-            initializeWebView(context.applicationContext)
-        }
+        YouTubePlayerAdapter()
+    }
+
+    override val youtubeMusicRemoteAdapter: YouTubeMusicRemoteAdapter by lazy {
+        YouTubeMusicRemoteAdapter(context, applicationScope)
     }
 
     override val playerAdapter: PlayerAdapter by lazy {
-        CompositePlayerAdapter(media3PlayerAdapter, youtubePlayerAdapter)
+        CompositePlayerAdapter(media3PlayerAdapter, youtubePlayerAdapter, youtubeMusicRemoteAdapter)
     }
 
     override val playerCoordinator: PlayerCoordinator by lazy {

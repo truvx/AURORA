@@ -10,10 +10,11 @@ import kotlinx.coroutines.flow.merge
 
 class CompositePlayerAdapter(
     private val localAdapter: PlayerAdapter,
-    private val youtubeAdapter: PlayerAdapter
+    private val youtubeAdapter: PlayerAdapter,
+    private val youtubeMusicRemoteAdapter: YouTubeMusicRemoteAdapter
 ) : PlayerAdapter, Media3PlayerOwner {
 
-    /** Only local playback is backed by Media3; YouTube plays in a WebView. */
+    /** Only local playback is backed by Media3; YouTube plays in a WebView or via remote. */
     override val sessionPlayer: androidx.media3.exoplayer.ExoPlayer
         get() = (localAdapter as Media3PlayerOwner).sessionPlayer
 
@@ -36,18 +37,23 @@ class CompositePlayerAdapter(
      */
     override val events: Flow<EngineEvent> = merge(
         localAdapter.events.filter { activeAdapter === localAdapter },
-        youtubeAdapter.events.filter { activeAdapter === youtubeAdapter }
+        youtubeAdapter.events.filter { activeAdapter === youtubeAdapter },
+        youtubeMusicRemoteAdapter.events.filter { activeAdapter === youtubeMusicRemoteAdapter }
     )
 
     override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
-        val nextAdapter = if (track.provider == ProviderKind.YOUTUBE) {
-            youtubeAdapter
-        } else {
-            localAdapter
+        val nextAdapter = when (track.provider) {
+            ProviderKind.YOUTUBE ->
+                // Prefer the remote YouTube Music adapter so playback can continue in the
+                // background. If YouTube Music is unavailable or its session cannot be
+                // reached, fall back to the visible IFrame WebView player.
+                if (youtubeMusicRemoteAdapter.isAvailable) youtubeMusicRemoteAdapter else youtubeAdapter
+            ProviderKind.LOCAL -> localAdapter
         }
 
         if (activeAdapter != nextAdapter) {
             activeAdapter?.pause()
+
             /*
              * Handing over to YouTube empties the Media3 player rather than parking it.
              *
@@ -58,14 +64,15 @@ class CompositePlayerAdapter(
              * puts a background media session behind YouTube playback, which
              * docs/YOUTUBE_CAPABILITY_MATRIX.md does not allow. Cleared, the session has
              * nothing to say and the service drops out of the foreground, which is the
-             * truth: YouTube plays in the visible player or it does not play.
+             * truth: YouTube plays in the visible player or via YouTube Music, and AURORA
+             * does not pretend to own either.
              */
-            if (nextAdapter === youtubeAdapter) {
+            if (nextAdapter !== localAdapter) {
                 clearSession()
             }
             activeAdapter = nextAdapter
         }
-        
+
         activeAdapter?.load(source, track, playWhenReady, crossfadeDurationMs)
     }
 
@@ -84,15 +91,18 @@ class CompositePlayerAdapter(
     override fun setVolume(volume: Float) {
         localAdapter.setVolume(volume)
         youtubeAdapter.setVolume(volume)
+        // Volume on the remote adapter is managed by YouTube Music itself.
     }
 
     override fun setAudioGain(linearGain: Float) {
         localAdapter.setAudioGain(linearGain)
         youtubeAdapter.setAudioGain(linearGain)
+        youtubeMusicRemoteAdapter.setAudioGain(linearGain)
     }
 
     override fun release() {
         localAdapter.release()
         youtubeAdapter.release()
+        youtubeMusicRemoteAdapter.release()
     }
 }

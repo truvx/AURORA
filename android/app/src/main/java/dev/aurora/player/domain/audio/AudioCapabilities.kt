@@ -11,5 +11,6 @@ data class ProviderAudioCapabilities(
     val normalization: CapabilityState,
     val crossfade: CapabilityState,
     val eq: CapabilityState,
-    val limiter: CapabilityState
+    val limiter: CapabilityState,
+    val backgroundPlayback: CapabilityState
 )

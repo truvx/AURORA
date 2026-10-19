@@ -96,7 +96,6 @@ import dev.aurora.player.ui.artwork.rememberArtworkBitmap
 import dev.aurora.player.ui.artwork.rememberArtworkPalette
 import dev.aurora.player.ui.components.LocalPlayerCoordinator
 import dev.aurora.player.ui.components.PlayerScrubber
-import dev.aurora.player.ui.components.YouTubePlayerSurface
 import dev.aurora.player.ui.components.rememberMusicVolume
 import dev.aurora.player.ui.components.rememberOutputDeviceName
 import dev.aurora.player.ui.components.showSystemOutputSwitcher
@@ -164,37 +163,14 @@ fun NowPlayingScreen(
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize().background(floor)) {
-        if (isYouTube) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Column(modifier = Modifier.fillMaxWidth().background(top).statusBarsPadding()) {
-                    CloseButton(onClose)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(16f / 9f)
-                            .background(Color.Black),
-                    ) {
-                        YouTubePlayerSurface(modifier = Modifier.fillMaxSize())
-                    }
-                }
-                // The blend, from the player's edge to the controls rather than over either.
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .background(Brush.verticalGradient(listOf(top, floor))),
-                )
-                controls(Modifier.navigationBarsPadding())
-            }
-        } else {
-            val stageHeight = maxHeight * STAGE_FRACTION
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(stageHeight)
-                    .background(top),
-            ) {
-                AnimatedContent(
+        val stageHeight = maxHeight * STAGE_FRACTION
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(stageHeight)
+                .background(top),
+        ) {
+            AnimatedContent(
                     targetState = artwork.artworkUri,
                     transitionSpec = { fadeIn(tween(ARTWORK_FADE_MS)) togetherWith fadeOut(tween(ARTWORK_FADE_MS)) },
                     label = "artwork",
@@ -231,19 +207,18 @@ fun NowPlayingScreen(
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
             )
-        }
 
-        if (lyricsOpen) {
-            LyricsSheet(
-                state = lyrics,
-                positionMs = state.position.elapsed,
-                title = artwork.title ?: currentTrack?.title,
-                artist = artwork.artist,
-                onClose = { lyricsOpen = false },
-            )
+            if (lyricsOpen) {
+                LyricsSheet(
+                    state = lyrics,
+                    positionMs = state.position.elapsed,
+                    title = artwork.title ?: currentTrack?.title,
+                    artist = artwork.artist,
+                    onClose = { lyricsOpen = false },
+                )
+            }
         }
     }
-}
 
 @Composable
 private fun CloseButton(onClose: () -> Unit, modifier: Modifier = Modifier) {

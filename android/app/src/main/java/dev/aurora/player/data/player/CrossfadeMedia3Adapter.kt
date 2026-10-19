@@ -9,6 +9,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 
@@ -42,18 +43,31 @@ class CrossfadeMedia3Adapter(
     /**
      * Only the active player's events are exposed.
      *
-     * To prevent the playback-position "freeze" during crossfades, we forward events from
-     * both players during the fade window, but prioritize the incoming player's position
-     * updates once they become available.
+     * During a crossfade both players emit positions: the incoming player from 0 upward,
+     * the outgoing player from near the end of the old track downward. Merging both raw
+     * lets a stale outgoing-player position overwrite the incoming player's, freezing the
+     * playhead at the old track's end. We track which adapter last emitted a position and,
+     * while a crossfade is active, drop positions from anyone but the active (incoming)
+     * player so the playhead always reflects the track being heard.
      */
+    @Volatile
+    private var lastPositionSource: PlayerAdapter? = null
+
     override val events: Flow<EngineEvent> = merge(
-        primary.events,
-        secondary.events
+        primary.events.map { event: EngineEvent ->
+            if (event is EngineEvent.PositionChanged) lastPositionSource = primary
+            event
+        },
+        secondary.events.map { event: EngineEvent ->
+            if (event is EngineEvent.PositionChanged) lastPositionSource = secondary
+            event
+        }
     ).filter { event ->
-        // During a crossfade, we allow events from both to avoid the "zero-position gap".
-        // If a specific event (like PositionChanged) is emitted by both, the merge
-        // preserves both; the UI/Coordinator will naturally use the latest timestamp.
-        true
+        if (event is EngineEvent.PositionChanged && crossfadeJob?.isActive == true) {
+            lastPositionSource === activePlayer
+        } else {
+            true
+        }
     }
 
     override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {

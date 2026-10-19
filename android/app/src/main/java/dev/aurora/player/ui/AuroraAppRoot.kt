@@ -8,7 +8,6 @@ import dev.aurora.player.AuroraApp
 import dev.aurora.player.ui.artwork.LocalArtworkLoader
 import dev.aurora.player.ui.artwork.rememberArtworkLoader
 import dev.aurora.player.ui.components.LocalPlayerCoordinator
-import dev.aurora.player.ui.components.LocalYouTubePlayerAdapter
 import dev.aurora.player.ui.navigation.AuroraNavigation
 import dev.aurora.player.ui.theme.AuroraTheme
 import dev.aurora.player.ui.theme.DeviceCapabilities
@@ -42,7 +41,6 @@ fun AuroraAppRoot() {
 
     CompositionLocalProvider(
         LocalPlayerCoordinator provides container.playerCoordinator,
-        LocalYouTubePlayerAdapter provides container.youtubePlayerAdapter,
         LocalArtworkLoader provides artworkLoader,
         dev.aurora.player.ui.artwork.LocalCoverArtRepository provides container.coverArtRepository,
         dev.aurora.player.ui.lyrics.LocalLyricsRepository provides container.lyricsRepository,
@@ -63,11 +61,7 @@ fun AuroraAppRoot() {
                     modifier = Modifier
                         .fillMaxSize()
                         .background(androidx.compose.ui.graphics.Color.Black)
-                ) {
-                    dev.aurora.player.ui.components.YouTubePlayerSurface(
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+                )
                 return@AuroraTheme
             }
 
@@ -95,7 +89,7 @@ fun AuroraAppRoot() {
                  * It used to wrap the whole navigation, which meant the glass surfaces
                  * inside it sampled the very layer they were drawn into. The render node
                  * then contained itself, and prepareTree recursed until the render thread
-                 * blew its stack - a native SIGSEGV at 512 frames, every launch. That is
+                 * blew its stack: a native SIGSEGV at 512 frames, every launch. That is
                  * what the opaque-by-default fallback was really hiding.
                  *
                  * The order here is the stack docs/AURORA_MASTER_DESIGN_SYSTEM.md

@@ -25,6 +25,12 @@
       "skillPath": "system/edge-to-edge/SKILL.md",
       "computedHash": "7db3c09f145f5bad71b09da526dad46cb8b2ace56e62e87aa2ca7e81a0b4790e"
     },
+    "task-observer": {
+      "source": "rebelytics/one-skill-to-rule-them-all",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "836c9f54ce4f0e005f6fafc9d078ab8efabff59ad17f5083c5b1346c1ecf9fed"
+    },
     "testing-setup": {
       "source": "android/skills",
       "sourceType": "github",

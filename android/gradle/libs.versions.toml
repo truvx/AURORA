@@ -17,6 +17,7 @@ ksp = "2.3.10"
 media3 = "1.11.0"
 retrofit = "2.11.0"
 kotlinxSerialization = "1.8.1"
+newpipe = "master-SNAPSHOT"
 
 [libraries]
 # Compose BOM
@@ -64,6 +65,7 @@ media3-common = { group = "androidx.media3", name = "media3-common", version.ref
 retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-kotlinx-serialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+newpipe-extractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version.ref = "newpipe" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

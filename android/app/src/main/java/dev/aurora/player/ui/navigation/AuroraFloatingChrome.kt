@@ -44,11 +44,9 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import com.kyant.backdrop.Backdrop
-import dev.aurora.player.domain.models.ProviderKind
 import dev.aurora.player.ui.components.GlassLevel
 import dev.aurora.player.ui.components.rememberPressProgress
 import dev.aurora.player.ui.components.LocalPlayerCoordinator
-import dev.aurora.player.ui.components.YouTubePlayerSurface
 import dev.aurora.player.ui.components.GlassSurface
 import dev.aurora.player.ui.components.SelectionCapsule
 import dev.aurora.player.ui.components.MiniPlayer
@@ -99,7 +97,6 @@ fun AuroraFloatingChrome(
 ) {
     val spacing = Aurora.spacing
     val playerState by LocalPlayerCoordinator.current.state.collectAsState()
-    val youTubePlaying = playerState.currentTrack?.provider == ProviderKind.YOUTUBE
 
     Column(
         modifier = modifier
@@ -108,9 +105,6 @@ fun AuroraFloatingChrome(
             .padding(horizontal = spacing.space4, vertical = spacing.space3),
         verticalArrangement = Arrangement.spacedBy(spacing.space2)
     ) {
-        if (youTubePlaying) {
-            DockedYouTubePlayer(modifier = Modifier.align(Alignment.End))
-        }
 
         val headphoneState by (headphones?.collectAsState()
             ?: remember {
@@ -187,33 +181,7 @@ fun AuroraFloatingChrome(
     }
 }
 
-/**
- * The official YouTube player, docked while the full player is closed.
- *
- * docs/YOUTUBE_CAPABILITY_MATRIX.md requires the player visible with its own controls and
- * branding for as long as it is playing, and the mini-player's 44dp cover slot was never
- * that - it was a video the size of a thumbnail standing in for the artwork. So the two
- * jobs are separated: the pill names the record, this plays it, small but whole, and
- * nothing is drawn over it.
- *
- * It sits at the end of the row rather than centred, because the one thing it must not do
- * is take the middle of the screen away from what the listener is actually reading.
- */
-@Composable
-private fun DockedYouTubePlayer(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .width(DockedPlayerWidth)
-            .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.Black),
-    ) {
-        YouTubePlayerSurface(modifier = Modifier.fillMaxSize())
-    }
-}
-
 /** Big enough to read as a player rather than an icon, small enough to dock. */
-private val DockedPlayerWidth = 148.dp
 
 @Composable
 private fun NavPillItem(

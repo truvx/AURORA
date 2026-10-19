@@ -29,3 +29,12 @@ Every file derived from NomaTune carries a header naming the upstream file and i
 licence. A port is not a fork: where AURORA's architecture differs - one
 `PlayerCoordinator` rather than a service plus Hilt graph, Room schemas that are not
 theirs - the adapted code says so rather than pretending to be a copy.
+
+## NewPipe Extractor
+
+- Source: https://github.com/TeamNewPipe/NewPipeExtractor (published as `org.schabi.newpipe:newpipe-extractor`)
+- Licence: GPL-3.0-only
+- Compatible with AURORA's GPL-3.0: yes.
+- Used in: `android/.../data/player/youtube/YouTubeStreamExtractor.kt` for
+  `YoutubeJavaScriptPlayerManager.deobfuscateSignature` and signature-cipher handling
+  when resolving audio-only stream URLs from InnerTube's `youtubei/v1/player`.

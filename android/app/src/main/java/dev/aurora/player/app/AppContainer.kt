@@ -7,8 +7,7 @@ import dev.aurora.player.data.db.AuroraDatabase
 import dev.aurora.player.data.db.LocalLibraryDao
 import dev.aurora.player.data.player.CompositePlayerAdapter
 import dev.aurora.player.data.player.Media3PlayerAdapter
-import dev.aurora.player.data.player.YouTubeMusicRemoteAdapter
-import dev.aurora.player.data.player.YouTubePlayerAdapter
+import dev.aurora.player.data.player.youtube.InnerTubeClient
 import dev.aurora.player.data.providers.YouTubeMusicProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,8 +19,7 @@ interface AppContainer {
     val localLibraryDao: LocalLibraryDao
     val trackResolver: TrackResolver
     val youtubeMusicProvider: YouTubeMusicProvider
-    val youtubePlayerAdapter: YouTubePlayerAdapter
-    val youtubeMusicRemoteAdapter: YouTubeMusicRemoteAdapter
+    val innerTubeClient: InnerTubeClient
     val media3PlayerAdapter: PlayerAdapter
     val playerAdapter: PlayerAdapter
     val playerCoordinator: PlayerCoordinator
@@ -77,7 +75,7 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     }
 
     override val trackResolver: TrackResolver by lazy {
-        AuroraTrackResolver(localLibraryDao)
+        AuroraTrackResolver(localLibraryDao, innerTubeClient)
     }
 
     override val youTubeDataApi: YouTubeDataApi by lazy {
@@ -232,6 +230,10 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         YouTubeMusicProvider(youTubeDataApi) { youTubeCredential() }
     }
 
+    override val innerTubeClient: InnerTubeClient by lazy {
+        InnerTubeClient()
+    }
+
     /*
      * Discovery: the Home feed, Explore and the release notifications.
      *
@@ -307,16 +309,8 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         dev.aurora.player.data.player.CrossfadeMedia3Adapter(context, applicationScope)
     }
 
-    override val youtubePlayerAdapter: YouTubePlayerAdapter by lazy {
-        YouTubePlayerAdapter()
-    }
-
-    override val youtubeMusicRemoteAdapter: YouTubeMusicRemoteAdapter by lazy {
-        YouTubeMusicRemoteAdapter(context, applicationScope)
-    }
-
     override val playerAdapter: PlayerAdapter by lazy {
-        CompositePlayerAdapter(media3PlayerAdapter, youtubePlayerAdapter, youtubeMusicRemoteAdapter)
+        CompositePlayerAdapter(media3PlayerAdapter)
     }
 
     override val playerCoordinator: PlayerCoordinator by lazy {

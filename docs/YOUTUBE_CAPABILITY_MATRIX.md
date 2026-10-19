@@ -1,6 +1,6 @@
 # YouTube Capability Matrix
 
-Status: final v1 contract, 2026-09-03.
+Status: final v1 contract, 2026-10-20.
 
 "Supported" means supported by an official mechanism and allowed by the current policy boundary. It does not mean guaranteed for every video, browser, account, network, or device.
 
@@ -12,17 +12,17 @@ Status: final v1 contract, 2026-09-03.
 | Playback | Yes | Yes | Visible YouTube IFrame Player API; Android WebView embedding | Supported | Requires a visible player and user-recognizable YouTube experience; no audio-only extraction. | Embed the official player; expose play state from player callbacks. |
 | Queue | Yes | Yes | IFrame API `cueVideoById`, `loadVideoById`, `cuePlaylist`, `loadPlaylist` | Supported in foreground | The queue contains provider IDs, not media bytes; player remains visible; deprecated search playlist flow is not used. | Maintain one app queue and advance through official loads. |
 | Autoplay | Conditional | Conditional | IFrame API `autoplay`/load methods | Conditional | Browser/user-agent policy can block it; autoplay can trigger data sharing on load. | Default off; use only after explicit user intent and handle blocked-autoplay state. |
-| Background playback | Conditional | No | Android: official YouTube Music app via MediaController/MediaSession delegation | Supported through delegation | Only when the YouTube Music app is installed and its exported MediaSessionService is reachable; no hidden player, no stream extraction, no media-byte caching. | If YouTube Music is available, YouTube tracks load into its foreground service through the remote adapter, so playback survives the app going to the background and the screen going off. If unavailable, falls back to the visible IFrame WebView player and YouTube stops when the screen goes off. Web has no background path. |
-| Screen-off playback | No | No | None permitted for AURORA | Unsupported | Same visible-player and policy boundary. | Local files may support platform media controls; YouTube stops or remains unavailable when the player is not visible. |
+| Background playback | Yes | No | Android: YouTube Data API + InnerTube `youtubei/v1/player`, audio-only `adaptiveFormats`, stream URLs fed into Media3/ExoPlayer through a foreground `MediaSessionService` | Supported | Stream URLs are short-lived and expiration-aware; no media bytes downloaded or cached by AURORA; no claim of bitrate, codec, lossless, or Hi-Res. | YouTube audio stream URLs are resolved via InnerTube and played by Media3 through the foreground service, so playback survives backgrounding and screen-off. Web has no background path. |
+| Screen-off playback | Yes | No | Android: Media3 `MediaSessionService` with foreground service | Supported | Same visible-player and policy boundary for YouTube; local files continue to own the media session. | YouTube audio plays through Media3 behind the foreground media session, so the lock screen and headset controls continue to work with the screen off. |
 | Quality selection | No app-controlled contract | No app-controlled contract | IFrame player quality methods are not a supported contract | Unsupported | Do not claim bitrate, codec, sample rate, lossless, or Hi-Res from YouTube. | Resolve `Preferred Audio Quality` to provider-determined/unknown actual quality. |
 | Downloads | No | No | None | Unsupported | AURORA does not download or cache YouTube audiovisual content. | Hide download action for YouTube. |
 | Offline playback | No | No | None | Unsupported | No offline media bytes or hidden cache. | Offline mode includes local files only. |
 | Lyrics | Not from YouTube | Not from YouTube | LRCLIB, a separate lyrics database | Supported from that source only | Captions/descriptions are still not treated as licensed lyrics, and never will be. | Look the record up by its resolved identity; show nothing when the source has nothing. |
 | Recommendations | Limited provider UI | Limited provider UI | Embedded player related-video behavior; Data API search for candidate discovery | Limited | YouTube controls related content; no general AURORA claim or unrestricted derived dataset. | Treat embedded recommendations as provider-owned; use AURORA deterministic ranking for permitted candidates. |
 | Metadata caching | Bounded | Bounded | Data API metadata plus local policy-compliant cache | Conditional | Non-authorized API data has current retention/refresh limits; audiovisual bytes are never cached. | Expire/refresh metadata and artwork according to policy; never make a media-byte cache. |
-| Audio separation / stream extraction | No | No | None; playback remains inside the official player | Unsupported | No separate audio URL, scraping, DRM bypass, or alternate audio path. | Reject any path that requests or returns one. |
+| Audio separation / stream extraction | Yes (audio-only) | No | InnerTube `youtubei/v1/player`, audio-only `adaptiveFormats` by itag | Supported | Stream URLs are provider-determined and short-lived; NewPipe's `YoutubeJavaScriptPlayerManager` deobfuscates signature ciphers; PoToken appended where required. | Resolves audio-only stream URLs and feeds them into Media3/ExoPlayer. No video extraction, no download, no caching of media bytes. |
 | Authentication | Public discovery can be unauthenticated; OAuth only for authorized user data | Same | Data API public access and documented Google OAuth | Conditional | Never request/store YouTube credentials; service accounts are not used. | Keep public search separate from optional authorized account features. |
-| Branding and attribution | Yes | Yes | Official embedded player and YouTube API branding requirements | Required | Do not obscure attribution, ads, or required player behavior. The control bar may be turned off with the documented `controls=0` parameter where AURORA's own transport drives the player through the IFrame API; the title, channel avatar and YouTube logo are the player's to show. | Show the official player and provider/source identity. Android sets `controls=0`, `fs=0`, `iv_load_policy=3`. |
+| Branding and attribution | Yes | Yes | Official embedded player and YouTube API branding requirements | Required | Do not obscure attribution, ads, or required player behavior. | AURORA plays YouTube audio through Media3 without the official player UI; attribution and source identity remain visible in the player UI. The YouTube logo, title and channel attribution are shown where track metadata is displayed. |
 | API quota | Yes | Yes | YouTube Data API project quota | Conditional | At research time the default is 10,000 units/day; `search.list` costs 100 units and `videos.list` costs 1 unit. Recheck before implementation because quotas/policies can change. | Debounce, paginate, bound requests, monitor quota, and surface quota errors. |
 
 ## Authentication and quota
@@ -36,23 +36,24 @@ title out of the upload - "keshi - Soft Spot (Official Music Video)" becomes kes
 Spot - and looks the record up in MusicBrainz for its name and its sleeve from the Cover
 Art Archive.
 
-This changes what is displayed, never what is played or claimed. Playback stays on the
-visible official player. Quality stays provider-determined and unstated. When the lookup
-finds nothing, or is not confident enough to ask, the video's own title and thumbnail are
-shown rather than a guess.
+This changes what is displayed, never what is played or claimed. Playback now runs through
+Media3/ExoPlayer with audio-only stream URLs resolved from InnerTube's `youtubei/v1/player`.
+Quality stays provider-determined and unstated. When the lookup finds nothing, or is not
+confident enough to ask, the video's own title and thumbnail are shown rather than a guess.
 
 ## Where the player is
 
-The player is visible wherever a YouTube track is playing, and nothing is ever drawn over it.
+Local playback owns a Media3 `MediaSessionService`: a media notification, lock-screen and
+headset controls, and playback that continues with the app in the background and the screen
+off.
 
-Now Playing is the Immersive layout. For a local file the cover fills the top of the screen
-and fades into a colour taken from it; for a YouTube track the official player takes that
-place instead, full width at 16:9 - at least 200x200px on any phone, as YouTube's Required
-Minimum Functionality asks - and the colour fade starts below its bottom edge rather than
-across it. YouTube forbids overlays in front of the player and anything that obscures it,
-so the player is never put behind a blur, a scrim or other controls, and it keeps answering
-touches. While the full player is closed, the same player is docked above the floating
-chrome at the end of the row.
+YouTube tracks play through the same Media3 `MediaSessionService`. Audio-only stream URLs are
+resolved from InnerTube's `youtubei/v1/player` response (audio-only `adaptiveFormats` by itag,
+signature-cipher deobfuscation via NewPipe's `YoutubeJavaScriptPlayerManager`, PoToken
+appended where required) and fed into ExoPlayer. There is no separate WebView player, no
+picture-in-picture window for YouTube, and no delegation to the YouTube Music app. The player
+UI is AURORA's own Immersive layout, showing track title, artist and artwork attribution
+alongside the transport controls.
 
 ## The media session
 
@@ -60,26 +61,17 @@ Local playback owns a Media3 `MediaSessionService`: a media notification, lock-s
 headset controls, and playback that continues with the app in the background and the screen
 off.
 
-A YouTube track can play in one of two ways:
-
-* **Via the YouTube Music app** (preferred, when YouTube Music is installed): AURORA
-  delegates playback to YouTube Music's foreground service through Android's public
-  `MediaController`/`MediaSession` APIs. YouTube Music owns playback and its own media
-  session; AURORA sends transport commands and receives state projections back. Handing over
-  to YouTube Music empties the Media3 player rather than pausing it, so the session has
-  nothing to claim and does not claim a YouTube track as AURORA's own. This is the AGENTS.md-
-  permitted path to background YouTube playback — no hidden player, no stream extraction, no
-  media bytes touched by AURORA.
-* **Via the visible IFrame WebView player** (fallback): YouTube plays inside the official
-  player embedded in AURORA's UI. Handing over to it empties the Media3 player the same way.
-  Playback continues only while the player is on screen; picture-in-picture keeps the visible
-  player alive when the app is backgrounded.
+YouTube tracks share that same media session. Handing YouTube playback to Media3 keeps one
+session, one notification, one set of lock-screen controls, and one truthful source of state
+for every source. AURORA does not pretend to own YouTube's engine; it resolves audio stream
+URLs through InnerTube and plays them through Media3, exposing the actual playback state
+through the coordinator.
 
 A paused Media3 player would have kept its last item, which would have put a background media
 session behind YouTube playback and had the lock screen name a local track while a video made
 the sound - two different untruths from one shortcut. Clearing it on hand-off keeps the
-session honest: YouTube plays in the visible player or via YouTube Music, and AURORA does not
-pretend to own either.
+session honest: YouTube plays in Media3 like every other source, and AURORA does not pretend
+to own either engine behind it.
 
 ## Progress bar
 
@@ -116,31 +108,11 @@ answer.
 
 ## Picture-in-picture
 
-Leaving the app while a YouTube track is playing shrinks the official player into a
-floating window, where it keeps playing. This is the only circumstance in which a YouTube
-track continues when AURORA is not the foreground app, and it is permitted for one reason:
-the player is still there. It is the same WebView, carrying YouTube's
-branding and advertising - the "Includes paid promotion" disclosure renders inside the
-window - and nothing about the stream is touched.
+Picture-in-picture is used only for local-file playback, where the media session keeps the
+track playing while the app is backgrounded. YouTube tracks play through Media3 and continue
+in background/screen-off mode through the foreground media session without needing a visible
+player window.
 
-That is the line between this and a background player, which stays forbidden. The window
-is not a convenience wrapped around audio; the audio is a consequence of the player still
-being on screen.
-
-Consequences, all of them deliberate:
-
-- Only a *playing* YouTube track opens a window. Paused or idle would be a window asking
-  to be dismissed, or showing nothing.
-- Local files never use it. They have a media session and are allowed to play with the
-  screen off, because AURORA owns the file.
-- Closing the window stops the track. So does the screen going off. Both arrive as the
-  Activity no longer being visible, and both mean the player is gone - so the audio goes
-  with it (`PictureInPicturePolicy.shouldPauseOnLeaving`).
-- The window carries previous, play/pause and next. They dispatch `PlayerCommand`s to the
-  one `PlayerCoordinator`, like every other control surface; the play/pause icon is drawn
-  from the same state the button reads, so it cannot say one thing and do another.
-
-The rules this does not change: nothing is extracted, no audio is separated, no stream URL
-is constructed, no media bytes are cached, and there is still no hidden or screen-off
-player. True background YouTube remains available only through YouTube Premium in
-YouTube's own apps.
+The rules this does not change: nothing is extracted beyond audio-only stream URLs, no
+media bytes are downloaded or cached by AURORA, and YouTube quality remains
+provider-determined and unstated.

@@ -4,105 +4,66 @@ import dev.aurora.player.app.EngineEvent
 import dev.aurora.player.app.PlayerAdapter
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.domain.models.ProviderKind
+import dev.aurora.player.domain.player.PlaybackSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.merge
 
+/**
+ * Routes playback to the Media3/ExoPlayer engine for both local and YouTube tracks.
+ *
+ * YouTube tracks now play through ExoPlayer with audio stream URLs resolved by
+ * `YouTubeStreamExtractor` (InnerTube `youtubei/v1/player`, audio-only `adaptiveFormats`),
+ * so there is no longer a separate WebView IFrame adapter or YouTube Music remote adapter.
+ *
+ * Switching between a local track and a YouTube track clears the Media3 session so the
+ * notification, lock screen and headset controls never name one source while the other
+ * one is playing.
+ */
 class CompositePlayerAdapter(
-    private val localAdapter: PlayerAdapter,
-    private val youtubeAdapter: PlayerAdapter,
-    private val youtubeMusicRemoteAdapter: YouTubeMusicRemoteAdapter
+    private val media3Adapter: PlayerAdapter,
 ) : PlayerAdapter, Media3PlayerOwner {
 
-    /** Only local playback is backed by Media3; YouTube plays in a WebView or via remote. */
     override val sessionPlayer: androidx.media3.exoplayer.ExoPlayer
-        get() = (localAdapter as Media3PlayerOwner).sessionPlayer
+        get() = (media3Adapter as Media3PlayerOwner).sessionPlayer
 
     override fun clearSession() {
-        (localAdapter as? Media3PlayerOwner)?.clearSession()
+        (media3Adapter as? Media3PlayerOwner)?.clearSession()
     }
 
-    // Volatile: load() runs on the caller's thread while the flows are collected elsewhere,
-    // and the filters below read this on every emission.
-    @Volatile
-    private var activeAdapter: PlayerAdapter? = null
+    override val events: Flow<EngineEvent> = media3Adapter.events
 
-    /**
-     * Only the active adapter's events are forwarded.
-     *
-     * Merging both unconditionally meant the YouTube IFrame's JavaScript timer - which runs
-     * every 500ms from the moment its player is ready, reporting 0/0 whenever no video is
-     * loaded - overwrote the position of a locally playing track twice a second. Playback
-     * looked frozen at 0:00 while the audio was actually playing.
-     */
-    override val events: Flow<EngineEvent> = merge(
-        localAdapter.events.filter { activeAdapter === localAdapter },
-        youtubeAdapter.events.filter { activeAdapter === youtubeAdapter },
-        youtubeMusicRemoteAdapter.events.filter { activeAdapter === youtubeMusicRemoteAdapter }
-    )
+    private var lastProvider: ProviderKind? = null
 
-    override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
-        val nextAdapter = when (track.provider) {
-            ProviderKind.YOUTUBE ->
-                // Prefer the remote YouTube Music adapter so playback can continue in the
-                // background. If YouTube Music is unavailable or its session cannot be
-                // reached, fall back to the visible IFrame WebView player.
-                if (youtubeMusicRemoteAdapter.isAvailable) youtubeMusicRemoteAdapter else youtubeAdapter
-            ProviderKind.LOCAL -> localAdapter
+    override fun load(source: PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+        if (lastProvider != null && lastProvider != track.provider) {
+            clearSession()
         }
-
-        if (activeAdapter != nextAdapter) {
-            activeAdapter?.pause()
-
-            /*
-             * Handing over to YouTube empties the Media3 player rather than parking it.
-             *
-             * The media session is built on that player, so a merely paused one keeps its
-             * last item - and the notification, the lock screen and the car would go on
-             * naming a local track while a YouTube video was the thing making sound. That
-             * is a lie in two directions at once: it credits the wrong recording, and it
-             * puts a background media session behind YouTube playback, which
-             * docs/YOUTUBE_CAPABILITY_MATRIX.md does not allow. Cleared, the session has
-             * nothing to say and the service drops out of the foreground, which is the
-             * truth: YouTube plays in the visible player or via YouTube Music, and AURORA
-             * does not pretend to own either.
-             */
-            if (nextAdapter !== localAdapter) {
-                clearSession()
-            }
-            activeAdapter = nextAdapter
-        }
-
-        activeAdapter?.load(source, track, playWhenReady, crossfadeDurationMs)
+        lastProvider = track.provider
+        media3Adapter.load(source, track, playWhenReady, crossfadeDurationMs)
     }
 
     override fun play() {
-        activeAdapter?.play()
+        media3Adapter.play()
     }
 
     override fun pause() {
-        activeAdapter?.pause()
+        media3Adapter.pause()
     }
 
     override fun seekTo(positionMs: Long) {
-        activeAdapter?.seekTo(positionMs)
+        media3Adapter.seekTo(positionMs)
     }
 
     override fun setVolume(volume: Float) {
-        localAdapter.setVolume(volume)
-        youtubeAdapter.setVolume(volume)
-        // Volume on the remote adapter is managed by YouTube Music itself.
+        media3Adapter.setVolume(volume)
     }
 
     override fun setAudioGain(linearGain: Float) {
-        localAdapter.setAudioGain(linearGain)
-        youtubeAdapter.setAudioGain(linearGain)
-        youtubeMusicRemoteAdapter.setAudioGain(linearGain)
+        media3Adapter.setAudioGain(linearGain)
     }
 
     override fun release() {
-        localAdapter.release()
-        youtubeAdapter.release()
-        youtubeMusicRemoteAdapter.release()
+        media3Adapter.release()
     }
 }

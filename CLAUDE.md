@@ -98,6 +98,25 @@ Use live browser access for anything client-side — real console errors and DOM
 
 ---
 
+## Persistent task ledger (automatic workflow — required at every session start)
+
+The canonical task ledger lives in the global memory at `~/.claude/projects/-Users-t6ux-AURORA/memory/execution-plan.md` (indexed as `execution-plan` in `MEMORY.md`). Every time you start a session inside the AURORA repository, you must run this workflow before doing any implementation work:
+
+1. Identify the repository root (`/Users/t6ux/AURORA`) and read the project instructions (`CLAUDE.md`, `AGENTS.md`).
+2. Read `~/.claude/projects/-Users-t6ux-AURORA/memory/execution-plan.md` (the `execution-plan` entry in `MEMORY.md`) to load the task ledger, current phase, priorities, and verification results.
+3. Inspect Git status (`git status --short`, `git branch --show-current`) and reconcile the ledger with the actual code and any uncommitted changes.
+4. Review recent progress, unfinished tasks, blockers, dependencies, and recorded verification results from the ledger.
+5. Briefly tell the user, in simple language: what was last completed, what remains, and which task you propose to work on next.
+6. For an explicitly supplied task, reconcile it with the ledger and follow it only if authorized and safe.
+7. Otherwise, select the highest-priority authorized, unblocked task whose dependencies are satisfied.
+8. Maintain the ledger after every task — record actual verification results, failed verification, blocked work, and newly discovered follow-up tasks. Never mark a task `DONE` merely because code was written; record evidence that its acceptance criteria passed.
+9. Resume safely after context compaction, interruptions, or a new session. Never assume an earlier task finished without checking the recorded evidence and current code.
+10. Never treat the ledger itself as authorization for destructive operations, unrelated scope expansion, or actions requiring the user's approval.
+
+Task statuses: `BACKLOG`, `READY`, `IN_PROGRESS`, `BLOCKED`, `NEEDS_APPROVAL`, `VERIFYING`, `DONE`.
+
+---
+
 ## Project rules
 
 Claude Code does not read `AGENTS.md` on its own. It holds the product's hard constraints - YouTube policy, architecture boundaries, security and AI rules - so it is imported here:

@@ -212,6 +212,11 @@ dependencies {
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.kotlinx.serialization.json)
 
+    // NewPipe extractor: cipher deobfuscation for YouTube stream URLs.
+    // Ported from NomaTune (GPL-3.0, github.com/Shahdullah/NomaTune), which uses it
+    // to deobfuscate signature ciphers from youtubei/v1/player responses.
+    implementation(libs.newpipe.extractor)
+
     // OAuth, for signing in to Google instead of pasting a key.
     //
     // A hand-written authorization flow is a security protocol written by hand: PKCE,

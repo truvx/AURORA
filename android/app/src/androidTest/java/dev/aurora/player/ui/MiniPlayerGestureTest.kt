@@ -18,7 +18,10 @@ import dev.aurora.player.app.TrackResolver
 import dev.aurora.player.domain.audio.TrackLoudnessData
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.domain.models.ProviderKind
+import dev.aurora.player.domain.audio.RequestedQuality
 import dev.aurora.player.domain.player.PlayerCommand
+import dev.aurora.player.domain.player.PlaybackSource
+import dev.aurora.player.domain.player.providers.PlaybackSourceProvider
 import dev.aurora.player.ui.components.LocalPlayerCoordinator
 import dev.aurora.player.ui.components.MiniPlayer
 import dev.aurora.player.ui.haptics.LocalHapticEngine
@@ -60,8 +63,8 @@ class MiniPlayerGestureTest {
     private class SilentAdapter : PlayerAdapter {
         override val events = MutableSharedFlow<EngineEvent>(extraBufferCapacity = 64)
         override fun load(
+            source: PlaybackSource,
             track: MediaItem,
-            uri: String,
             playWhenReady: Boolean,
             crossfadeDurationMs: Long
         ) {}
@@ -74,7 +77,9 @@ class MiniPlayerGestureTest {
     }
 
     private class InstantResolver : TrackResolver {
-        override suspend fun resolveUri(trackId: String) = "file://$trackId"
+        override val sourceProviders: List<PlaybackSourceProvider> = emptyList()
+        override suspend fun resolveSource(track: MediaItem, preferredQuality: RequestedQuality): PlaybackSource? =
+            PlaybackSource(uri = "file://${track.id}")
         override suspend fun resolveLoudness(trackId: String): TrackLoudnessData? = null
     }
 

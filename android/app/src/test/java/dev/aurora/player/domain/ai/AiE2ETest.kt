@@ -41,6 +41,7 @@ class DummyPlayerAdapter : PlayerAdapter {
 }
 
 class DummyTrackResolver : TrackResolver {
+    override val sourceProviders = emptyList<dev.aurora.player.domain.player.providers.PlaybackSourceProvider>()
     override suspend fun resolveSource(track: dev.aurora.player.domain.models.MediaItem, preferredQuality: dev.aurora.player.domain.audio.RequestedQuality): dev.aurora.player.domain.player.PlaybackSource? =
         dev.aurora.player.domain.player.PlaybackSource("dummy://uri")
     override suspend fun resolveLoudness(trackId: String): TrackLoudnessData? = null

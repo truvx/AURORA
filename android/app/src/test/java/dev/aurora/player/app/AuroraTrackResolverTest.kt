@@ -2,6 +2,7 @@ package dev.aurora.player.app
 
 import dev.aurora.player.data.db.LocalFileEntity
 import dev.aurora.player.data.db.LocalLibraryDao
+import dev.aurora.player.data.player.youtube.InnerTubeClient
 import kotlinx.coroutines.test.runTest
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.domain.models.ProviderKind
@@ -27,7 +28,7 @@ class AuroraTrackResolverTest {
                 null
             }
         }
-        
+
         override suspend fun upsertLocalTrack(item: dev.aurora.player.data.db.MediaItemEntity, file: dev.aurora.player.data.db.LocalFileEntity, metadata: dev.aurora.player.data.db.TrackTechnicalMetadataEntity?, album: dev.aurora.player.data.db.AlbumEntity?, artists: List<dev.aurora.player.data.db.ArtistEntity>, artwork: dev.aurora.player.data.db.ArtworkEntity?, loudness: dev.aurora.player.data.db.TrackLoudnessEntity?) {}
         override suspend fun getAllLocalFileUris(): List<String> = emptyList()
         override suspend fun deleteStaleLocalFiles(uris: List<String>) {}
@@ -63,7 +64,8 @@ class AuroraTrackResolverTest {
         override suspend fun markMediaItemUnavailable(mediaId: String) {}
     }
 
-    private val resolver = AuroraTrackResolver(fakeDao)
+    private val resolver = AuroraTrackResolver(fakeDao, InnerTubeClient())
+
 
     @Test
     fun testResolveValidIdReturnsUri() = runTest {

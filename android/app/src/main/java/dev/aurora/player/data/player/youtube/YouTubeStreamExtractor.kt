@@ -128,7 +128,7 @@ class YouTubeStreamExtractor(
                     }
                 }.getOrElse { directUrl }
             } else {
-                directUrl
+                removeThrottlingParam(directUrl)
             }
 
             return appendPoToken(url = resolvedDirectUrl, client = client, authState = authState)
@@ -157,7 +157,7 @@ class YouTubeStreamExtractor(
             ) {
                 YoutubeJavaScriptPlayerManager.getUrlWithThrottlingParameterDeobfuscated(videoId, cipherUrl)
             }
-        }.getOrElse { cipherUrl }
+        }.getOrElse { removeThrottlingParam(cipherUrl) }
 
         // Reconstruct URL with the deobfuscated signature as the sp parameter.
         val urlObj = okhttp3.HttpUrl.parse(resolvedUrl) ?: return null
@@ -190,6 +190,13 @@ class YouTubeStreamExtractor(
                 if (idx == -1) null else part.substring(0, idx) to part.substring(idx + 1)
             }
             .toMap()
+    }
+
+    /** Removes the `n` (throttling) query parameter from a stream URL. */
+    private fun removeThrottlingParam(url: String): String {
+        return HttpUrl.parse(url)?.let { u ->
+            u.newBuilder().apply { removeAllQueryParameters("n") }.build().toString()
+        } ?: url
     }
 
     private inline fun <T> retryWithBackoff(

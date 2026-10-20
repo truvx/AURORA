@@ -1,6 +1,8 @@
 package dev.aurora.player
 
+import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -22,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import dev.aurora.player.domain.models.MediaItem
+import dev.aurora.player.domain.models.ProviderKind
 import dev.aurora.player.ui.LocalPictureInPicture
 import dev.aurora.player.ui.PictureInPictureSurface
 import kotlinx.coroutines.launch
@@ -36,6 +40,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        handleIntent(intent)
 
         val coordinator = (application as AuroraApp).container.playerCoordinator
         pictureInPicture = PictureInPictureHost(this, coordinator)
@@ -114,6 +120,39 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         pictureInPicture.onDestroy()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    /**
+     * Handles deep links from YouTube URLs and custom Aurora URIs.
+     *
+     * `https://www.youtube.com/watch?v=VIDEO_ID` starts playback of the given YouTube video.
+     * `aurora://youtube?videoId=VIDEO_ID` does the same via a custom scheme.
+     */
+    private fun handleIntent(intent: Intent) {
+        val data = intent.data ?: return
+        val videoId = when {
+            data.scheme == "aurora" && data.host == "youtube" -> data.getQueryParameter("videoId")
+            data.scheme in listOf("http", "https") && data.host?.contains("youtube") == true -> data.getQueryParameter("v")
+            else -> null
+        }
+
+        if (videoId.isNullOrBlank()) return
+
+        val coordinator = (application as AuroraApp).container.playerCoordinator
+        val track = MediaItem(
+            id = "youtube:$videoId",
+            provider = ProviderKind.YOUTUBE,
+            title = data.getQueryParameter("title") ?: "YouTube track",
+            artist = null,
+            album = null,
+            artworkUri = null
+        )
+        coordinator.dispatch(dev.aurora.player.domain.player.PlayerCommand.PlayList(listOf(track), 0))
     }
 }
 

@@ -1,5 +1,6 @@
 package dev.aurora.player.data.player.youtube
 
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
@@ -26,6 +27,9 @@ import kotlin.math.abs
 class YouTubeStreamExtractor(
     private val innerTube: InnerTubeClient,
 ) {
+    private companion object {
+        const val TAG = "YouTubeStreamExtractor"
+    }
 
     /**
      * Resolves a playable audio stream URL for a YouTube video.
@@ -55,6 +59,10 @@ class YouTubeStreamExtractor(
                 compareByDescending<PlayerResponse.StreamingData.Format> { it.averageBitrate ?: 0 }
                     .thenByDescending { it.bitrate }
             )
+        if (audioFormats.isEmpty()) {
+            Log.d(TAG, "No audio-only adaptiveFormats for $videoId (total=${streamingData.adaptiveFormats.size}, formats=${streamingData.formats?.size ?: 0})")
+            return@withContext null
+        }
 
         var lastError: Throwable? = null
         for (format in audioFormats) {

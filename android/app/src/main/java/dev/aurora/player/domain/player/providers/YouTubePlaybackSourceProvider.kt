@@ -36,6 +36,8 @@ class YouTubePlaybackSourceProvider(
         return withContext(Dispatchers.IO) {
             val streamUrl = runCatching {
                 streamExtractor.extractAudioStreamUrl(videoId)
+            }.onFailure { e ->
+                Log.e(TAG, "Stream extraction threw for $videoId: ${e::class.simpleName} ${e.message}", e)
             }.getOrNull()
 
             if (streamUrl != null) {

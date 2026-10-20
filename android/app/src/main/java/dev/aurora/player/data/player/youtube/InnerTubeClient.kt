@@ -1,9 +1,11 @@
 package dev.aurora.player.data.player.youtube
 
+import dev.aurora.player.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl
 import okhttp3.MediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -19,6 +21,10 @@ import java.util.concurrent.TimeUnit
  *
  * Uses OkHttp directly (already a transitive dependency via Retrofit in AURORA)
  * instead of Ktor, so no new networking library is introduced.
+ *
+ * The YouTube API key (bundled in `BuildConfig.YOUTUBE_API_KEY`) is sent as the
+ * `key=` query parameter on every `youtubei/v1/player` request; without it YouTube
+ * returns no `streamingData`, so stream URLs cannot be resolved.
  */
 class InnerTubeClient(
     private val httpClient: OkHttpClient = OkHttpClient.Builder()
@@ -27,6 +33,7 @@ class InnerTubeClient(
         .writeTimeout(15, TimeUnit.SECONDS)
         .build(),
     private val json: Json = Json { ignoreUnknownKeys = true; explicitNulls = false },
+    private val apiKey: String = BuildConfig.YOUTUBE_API_KEY,
 ) {
 
     var localeGl: String = java.util.Locale.getDefault().country.takeIf { it.isNotEmpty() } ?: "US"
@@ -99,7 +106,11 @@ class InnerTubeClient(
         )
 
         val request = Request.Builder()
-            .url("${YouTubeClient.API_URL_YOUTUBE_MUSIC}player")
+            .url(HttpUrl.parse(YouTubeClient.API_URL_YOUTUBE_MUSIC + "player")!!
+                .newBuilder()
+                .addQueryParameter("key", apiKey)
+                .build()
+                .toString())
             .post(bodyToRequestBody(body))
             .header("Content-Type", "application/json")
             .header("X-Goog-Api-Format-Version", "1")

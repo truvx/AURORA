@@ -8,6 +8,8 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class YouTubeStreamExtractorTest {
@@ -84,6 +86,35 @@ class YouTubeStreamExtractorTest {
         val url = extractor.extractAudioStreamUrl("dQw4w9WgXcQ")
 
         assertNull(url)
+        coVerify(exactly = 1) { innerTube.player(any(), any(), any()) }
+    }
+
+    @Test
+    fun `extractAudioStreamUrl appends pot= when authState has a PoToken`() = runTest {
+        val poToken = "test-pot-token-12345"
+        val innerTube = mockk<InnerTubeClient>()
+        coEvery { innerTube.player(any(), any(), any()) } returns responseWithStreamingData()
+        every { innerTube.authState } returns PlaybackAuthState.EMPTY.copy(poToken = poToken)
+
+        val extractor = YouTubeStreamExtractor(innerTube)
+        val url = extractor.extractAudioStreamUrl("dQw4w9WgXcQ")
+
+        assertNotNull(url)
+        assertTrue(url!!.contains("pot=$poToken"))
+        coVerify(exactly = 1) { innerTube.player(any(), any(), any()) }
+    }
+
+    @Test
+    fun `extractAudioStreamUrl does not append pot= when authState has no PoToken`() = runTest {
+        val innerTube = mockk<InnerTubeClient>()
+        coEvery { innerTube.player(any(), any(), any()) } returns responseWithStreamingData()
+        every { innerTube.authState } returns PlaybackAuthState.EMPTY
+
+        val extractor = YouTubeStreamExtractor(innerTube)
+        val url = extractor.extractAudioStreamUrl("dQw4w9WgXcQ")
+
+        assertNotNull(url)
+        assertFalse(url!!.contains("pot="))
         coVerify(exactly = 1) { innerTube.player(any(), any(), any()) }
     }
 }

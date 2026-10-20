@@ -13,6 +13,7 @@ import okhttp3.Request
 import okhttp3.RequestBody
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import java.util.regex.Pattern
 
 /**
  * InnerTube HTTP client: POSTs to `youtubei/v1/player` to resolve stream URLs.
@@ -50,17 +51,44 @@ class InnerTubeClient(
     var authState: PlaybackAuthState = PlaybackAuthState.EMPTY
 
     /**
+     * Session id synthesized when there's no visitor/login context, so PoTokens can
+     * still be minted for WEB/WEB_REMIX clients. Generated once per client instance
+     * so the BotGuard engine isn't recreated on every call.
+     */
+    @Volatile
+    private var syntheticSessionId: String? = null
+
+    /** Visitor data scraped from YouTube's watch page, cached after first fetch. */
+    @Volatile
+    private var cachedVisitorData: String? = null
+
+    /**
      * Resolves a YouTube video's playable streams via `youtubei/v1/player`.
      *
      * Tries clients in rotation: WEB_REMIX first (main client), then fallback clients
      * when the stream is unavailable. Returns the parsed [PlayerResponse] or throws
      * the last error.
+     *
+     * For WEB and WEB_REMIX clients (which require service integrity), a PoToken is
+     * minted via BotGuard and sent as `serviceIntegrityDimensions.poToken` so YouTube
+     * issues actual stream URLs instead of empty formats.
      */
     suspend fun player(
         videoId: String,
         signatureTimestamp: Int? = null,
         poToken: String? = null,
     ): PlayerResponse = withContext(Dispatchers.IO) {
+        // Ensure we have visitor data before making player requests — YouTube rejects
+        // PoTokens without valid visitor context for WEB/WEB_REMIX clients.
+        val visitorData = authState.visitorData
+            ?: cachedVisitorData
+            ?: run {
+                val fetched = fetchVisitorData(videoId)
+                cachedVisitorData = fetched
+                authState = authState.copy(visitorData = fetched)
+                fetched
+            }
+
         val clients = listOf(
             YouTubeClient.WEB_REMIX,
             YouTubeClient.WEB,
@@ -71,11 +99,28 @@ class InnerTubeClient(
         var lastError: Throwable? = null
         for (client in clients) {
             try {
+                // Mint a PoToken for clients that require service integrity (WEB, WEB_REMIX).
+                // Without it YouTube returns empty formats and stream URLs cannot be resolved.
+                val clientPoToken = if (PlaybackAuthState.needsServiceIntegrity(client)) {
+                    val sessionId = authState.sessionId
+                        ?: run {
+                            syntheticSessionId ?: run {
+                                syntheticSessionId = java.util.UUID.randomUUID().toString()
+                                syntheticSessionId!!
+                            }
+                        }
+                    BotGuardTokenGenerator.mintToken(videoId, sessionId)?.playerToken?.let { token ->
+                        authState = authState.copy(poToken = token)
+                        token
+                    }
+                } else poToken
+
                 val response = executePlayerRequest(
                     client = client,
                     videoId = videoId,
                     signatureTimestamp = signatureTimestamp,
-                    poToken = poToken,
+                    poToken = clientPoToken,
+                    visitorData = visitorData,
                 )
                 // YouTube returns HTTP 200 with empty streamingData when it requires a
                 // PoToken, signature timestamp, or a different client identity. Don't treat
@@ -93,17 +138,45 @@ class InnerTubeClient(
         throw lastError ?: IOException("No YouTube client returned streamingData")
     }
 
+    /**
+     * Scrapes visitorData from YouTube's watch page HTML. YouTube embeds it in the
+     * `ytcfg` config object; the key is `VISITOR_DATA`.
+     */
+    private suspend fun fetchVisitorData(videoId: String): String? {
+        val url = "https://www.youtube.com/watch?v=$videoId"
+        return try {
+            val request = Request.Builder()
+                .url(url)
+                .get()
+                .header("User-Agent", YouTubeClient.USER_AGENT_WEB)
+                .header("Accept-Language", "en-US,en;q=0.9")
+                .build()
+            val response = withContext(Dispatchers.IO) { httpClient.newCall(request).execute() }
+            val html = response.body()?.string() ?: ""
+            response.close()
+            // Look for "VISITOR_DATA":"..." in ytcfg or "INNERTUBE_CONTEXT" block
+            val visitorPattern = Pattern.compile("\"VISITOR_DATA\":\"([^\"]+)\"")
+            visitorPattern.matcher(html).run {
+                if (find()) group(1) else null
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to fetch visitorData", e)
+            null
+        }
+    }
+
     private suspend fun executePlayerRequest(
         client: YouTubeClient,
         videoId: String,
         signatureTimestamp: Int?,
         poToken: String?,
+        visitorData: String?,
     ): PlayerResponse {
         val body = PlayerBody(
             context = client.toContext(
                 gl = localeGl,
                 hl = localeHl,
-                visitorData = authState.visitorData,
+                visitorData = visitorData,
             ),
             videoId = videoId,
             playlistId = null,

@@ -63,22 +63,40 @@ class YouTubeStreamExtractor(
             Log.d(TAG, "No audio-only adaptiveFormats for $videoId (total=${streamingData.adaptiveFormats.size}, formats=${streamingData.formats?.size ?: 0})")
             return@withContext null
         }
+        // Dump format fields for debugging
+        for (f in audioFormats.take(5)) {
+            Log.d(TAG, "Format itag=${f.itag} mime=${f.mimeType} url=${f.url != null} sigCipher=${f.signatureCipher != null} cipher=${f.cipher != null} bitrate=${f.bitrate} avgBitrate=${f.averageBitrate} width=${f.width} height=${f.height}")
+        }
 
+        // Rotate through clients for cipher deobfuscation — different clients return
+        // different cipher types, and some require a PoToken or signature timestamp.
+        val clients = listOf(
+            YouTubeClient.WEB_REMIX,
+            YouTubeClient.WEB,
+            YouTubeClient.IOS,
+            YouTubeClient.ANDROID,
+            YouTubeClient.ANDROID_MUSIC,
+        )
         var lastError: Throwable? = null
-        for (format in audioFormats) {
-            try {
-                val url = resolveStreamUrl(
-                    format = format,
-                    videoId = videoId,
-                    client = YouTubeClient.WEB_REMIX,
-                    authState = innerTube.authState,
-                )
-                if (url.isNotBlank()) {
-                    return@withContext url
+        for (client in clients) {
+            for (format in audioFormats) {
+                Log.d(TAG, "Trying format itag=${format.itag} mime=${format.mimeType} url=${format.url != null} cipher=${format.signatureCipher != null || format.cipher != null} client=${client.clientName}")
+                try {
+                    val url = resolveStreamUrl(
+                        format = format,
+                        videoId = videoId,
+                        client = client,
+                        authState = innerTube.authState,
+                    )
+                    if (url?.isNotBlank() == true) {
+                        Log.d(TAG, "Resolved stream URL for itag=${format.itag} client=${client.clientName}")
+                        return@withContext url
+                    }
+                } catch (e: Exception) {
+                    Log.d(TAG, "Failed format itag=${format.itag} client=${client.clientName}: ${e::class.simpleName} ${e.message}")
+                    lastError = e
+                    continue
                 }
-            } catch (e: Exception) {
-                lastError = e
-                continue
             }
         }
 
@@ -87,13 +105,16 @@ class YouTubeStreamExtractor(
 
     /**
      * Resolves a single format's stream URL, handling both direct URLs and signature ciphers.
+     *
+     * Returns null when the format has neither a direct URL nor a signature cipher —
+     * such formats cannot be played and should be skipped.
      */
     private fun resolveStreamUrl(
         format: PlayerResponse.StreamingData.Format,
         videoId: String,
         client: YouTubeClient,
         authState: PlaybackAuthState,
-    ): String {
+    ): String? {
         val directUrl = format.url
         if (directUrl != null) {
             val resolvedDirectUrl = if (HttpUrl.parse(directUrl)?.queryParameter("n")?.isNotBlank() == true) {
@@ -114,17 +135,17 @@ class YouTubeStreamExtractor(
         }
 
         // No direct URL: must be a signature cipher.
-        val cipherString = format.signatureCipher ?: format.cipher
-            ?: throw IllegalStateException("Could not find format url for itag ${format.itag}")
+        val cipherString = format.signatureCipher ?: format.cipher ?: return null
 
         val params = parseQueryString(cipherString)
         val obfuscatedSignature = params["s"]
-            ?: throw IllegalStateException("Could not parse cipher signature")
+            ?: run { Log.d(TAG, "No 's' param in cipher for itag=${format.itag}"); return null }
         val signatureParam = params["sp"]
-            ?: throw IllegalStateException("Could not parse cipher signature parameter")
+            ?: run { Log.d(TAG, "No 'sp' param in cipher for itag=${format.itag}"); return null }
         val cipherUrl = params["url"]
-            ?: throw IllegalStateException("Could not parse cipher url")
+            ?: run { Log.d(TAG, "No 'url' param in cipher for itag=${format.itag}"); return null }
 
+        Log.d(TAG, "Deobfuscating cipher signature for itag=${format.itag} client=${client.clientName}")
         val deobfuscatedSig =
             YoutubeJavaScriptPlayerManager.deobfuscateSignature(videoId, obfuscatedSignature)
 
@@ -139,7 +160,7 @@ class YouTubeStreamExtractor(
         }.getOrElse { cipherUrl }
 
         // Reconstruct URL with the deobfuscated signature as the sp parameter.
-        val urlObj = okhttp3.HttpUrl.parse(resolvedUrl) ?: throw IllegalStateException("Invalid stream URL")
+        val urlObj = okhttp3.HttpUrl.parse(resolvedUrl) ?: return null
         val builder = urlObj.newBuilder()
         builder.setQueryParameter(signatureParam, deobfuscatedSig)
         val finalUrl = builder.build().toString()

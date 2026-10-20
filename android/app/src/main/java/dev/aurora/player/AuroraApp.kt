@@ -4,6 +4,7 @@ import android.app.Application
 import dev.aurora.player.app.AppContainer
 import dev.aurora.player.app.DefaultAppContainer
 import dev.aurora.player.data.player.MediaSessionConnection
+import dev.aurora.player.data.player.youtube.BotGuardTokenGenerator
 
 /**
  * AURORA application entry point.
@@ -18,6 +19,9 @@ class AuroraApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Initialize BotGuard PoToken generator for YouTube stream URL resolution.
+        // Ported from NomaTune (GPL-3.0, github.com/Shahdullah/NomaTune).
+        BotGuardTokenGenerator.initialize(this)
         container = DefaultAppContainer(this)
         // Restores the previous queue and begins recording listening history, resume
         // positions, and queue snapshots. All local and private; see docs/SECURITY.md.

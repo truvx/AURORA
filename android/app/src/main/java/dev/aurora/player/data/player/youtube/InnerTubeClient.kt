@@ -1,6 +1,7 @@
 package dev.aurora.player.data.player.youtube
 
 import dev.aurora.player.BuildConfig
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -35,6 +36,9 @@ class InnerTubeClient(
     private val json: Json = Json { ignoreUnknownKeys = true; explicitNulls = false },
     private val apiKey: String = BuildConfig.YOUTUBE_API_KEY,
 ) {
+    private companion object {
+        const val TAG = "InnerTubeClient"
+    }
 
     var localeGl: String = java.util.Locale.getDefault().country.takeIf { it.isNotEmpty() } ?: "US"
         private set
@@ -67,18 +71,26 @@ class InnerTubeClient(
         var lastError: Throwable? = null
         for (client in clients) {
             try {
-                return@withContext executePlayerRequest(
+                val response = executePlayerRequest(
                     client = client,
                     videoId = videoId,
                     signatureTimestamp = signatureTimestamp,
                     poToken = poToken,
                 )
+                // YouTube returns HTTP 200 with empty streamingData when it requires a
+                // PoToken, signature timestamp, or a different client identity. Don't treat
+                // that as success — fall through to the next client instead.
+                if (response.streamingData == null) {
+                    Log.d(TAG, "$client returned no streamingData for $videoId; trying next client")
+                    continue
+                }
+                return@withContext response
             } catch (e: Exception) {
                 lastError = e
                 continue
             }
         }
-        throw lastError ?: IOException("No YouTube client available")
+        throw lastError ?: IOException("No YouTube client returned streamingData")
     }
 
     private suspend fun executePlayerRequest(
@@ -128,6 +140,13 @@ class InnerTubeClient(
         }
         val responseBody = response.body()?.string() ?: ""
         response.close()
+        // Log playability status so we can see why YouTube may withhold streamingData
+        try {
+            val peek = json.decodeFromString(PlayerResponse.serializer(), responseBody)
+            Log.d(TAG, "InnerTube player response for $videoId: playability=${peek.playabilityStatus.status} reason=${peek.playabilityStatus.reason} streamingData=${if (peek.streamingData != null) "present(${peek.streamingData.adaptiveFormats.size} formats)" else "ABSENT"}")
+        } catch (e: Exception) {
+            Log.d(TAG, "InnerTube player response for $videoId: (unparsed, length=${responseBody.length})")
+        }
         return json.decodeFromString(PlayerResponse.serializer(), responseBody)
     }
 

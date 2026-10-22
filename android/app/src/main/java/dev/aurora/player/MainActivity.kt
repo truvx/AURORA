@@ -11,54 +11,32 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import dev.aurora.player.ui.AuroraAppRoot
 
-import androidx.compose.runtime.CompositionLocalProvider
-import dev.aurora.player.ui.haptics.AndroidHapticEngine
-import dev.aurora.player.ui.haptics.LocalHapticEngine
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import dev.aurora.player.ui.haptics.AndroidHapticEngine
+import dev.aurora.player.ui.haptics.LocalHapticEngine
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.domain.models.ProviderKind
-import dev.aurora.player.ui.LocalPictureInPicture
-import dev.aurora.player.ui.PictureInPictureSurface
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.LaunchedEffect
 
 /**
  * Single-activity host for the AURORA Compose UI.
  * All navigation is handled within the Compose navigation graph.
  */
 class MainActivity : ComponentActivity() {
-
-    private lateinit var pictureInPicture: PictureInPictureHost
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         handleIntent(intent)
 
         val coordinator = (application as AuroraApp).container.playerCoordinator
-        pictureInPicture = PictureInPictureHost(this, coordinator)
-        pictureInPicture.onCreate()
 
-        /*
-         * Keep the framework's picture-in-picture parameters in step with playback.
-         *
-         * They carry the play/pause icon and, on API 31+, whether leaving the app should
-         * put the player into a window at all - both of which are answers to "what is
-         * playing right now", so they are recomputed whenever that changes.
-         */
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                coordinator.state.collect(pictureInPicture::onStateChanged)
-            }
-        }
         // AURORA always draws its dark theme (AuroraTheme defaults darkTheme = true), so the
         // system bars are told they sit on a dark app. The no-argument form follows the
         // phone's own light/dark setting instead, which on a light-mode phone drew dark
@@ -74,27 +52,16 @@ class MainActivity : ComponentActivity() {
 
             NotificationPermissionOnFirstPlay()
 
-            val inPictureInPicture by pictureInPicture.isInPictureInPicture.collectAsState()
-
             CompositionLocalProvider(
                 LocalHapticEngine provides hapticEngine,
-                LocalPictureInPicture provides PictureInPictureSurface(
-                    active = inPictureInPicture,
-                    reportPlayerBounds = pictureInPicture::setSourceBounds,
-                )
             ) {
                 AuroraAppRoot()
             }
         }
     }
 
-    // Below API 31 there is no auto-enter; this is the last callback before the app leaves
-    // the foreground, so it is where the window has to be asked for.
-    @Deprecated("Needed for API 30 and below, where setAutoEnterEnabled does not exist.")
     override fun onUserLeaveHint() {
-        @Suppress("DEPRECATION")
         super.onUserLeaveHint()
-        pictureInPicture.onUserLeaving()
     }
 
     override fun onPictureInPictureModeChanged(
@@ -102,24 +69,20 @@ class MainActivity : ComponentActivity() {
         newConfig: android.content.res.Configuration,
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        pictureInPicture.onPictureInPictureModeChanged(isInPictureInPictureMode)
     }
 
-    /*
-     * Not visible any more: the window was dismissed, or the screen went off.
-     *
-     * Entering picture-in-picture does not reach here - the Activity stays started behind
-     * its window - so this is exactly the set of departures that must stop a YouTube
-     * track.
-     */
     override fun onStop() {
         super.onStop()
-        pictureInPicture.onStopped()
+        val state = (application as AuroraApp).container.playerCoordinator.state.value
+        if (state.currentTrack?.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE
+            && (state.status == dev.aurora.player.domain.player.PlaybackStatus.Playing
+                || state.status == dev.aurora.player.domain.player.PlaybackStatus.Buffering)) {
+            (application as AuroraApp).container.playerCoordinator.dispatch(dev.aurora.player.domain.player.PlayerCommand.Pause)
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        pictureInPicture.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {

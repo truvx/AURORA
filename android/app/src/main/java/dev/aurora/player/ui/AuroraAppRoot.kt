@@ -48,23 +48,6 @@ fun AuroraAppRoot() {
         LocalDeviceCapabilities provides DeviceCapabilities.from(context)
     ) {
         AuroraTheme {
-            /*
-             * In the floating window, the app is the player and nothing else.
-             *
-             * At that size the chrome, the feed and the mini-player are not smaller
-             * versions of themselves - they are clutter around a video the listener is
-             * watching while doing something else. Returning early also keeps the whole
-             * navigation graph out of composition while the window is up.
-             */
-            if (LocalPictureInPicture.current.active) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(androidx.compose.ui.graphics.Color.Black)
-                )
-                return@AuroraTheme
-            }
-
             val navController = rememberNavController()
             // Two captured layers, for two different jobs.
             //

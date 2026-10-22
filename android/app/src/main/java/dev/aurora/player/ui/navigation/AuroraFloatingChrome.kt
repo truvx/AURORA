@@ -98,13 +98,19 @@ fun AuroraFloatingChrome(
     val spacing = Aurora.spacing
     val playerState by LocalPlayerCoordinator.current.state.collectAsState()
 
-    Column(
+    GlassSurface(
+        level = GlassLevel.Elevated,
+        shape = RoundedCornerShape(percent = 50),
+        backdrop = backdrop,
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = spacing.space4, vertical = spacing.space3),
-        verticalArrangement = Arrangement.spacedBy(spacing.space2)
     ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(spacing.space2)
+        ) {
 
         val headphoneState by (headphones?.collectAsState()
             ?: remember {
@@ -116,7 +122,8 @@ fun AuroraFloatingChrome(
         MiniPlayer(
             backdrop = backdrop,
             headphones = headphoneState,
-            onExpand = onExpandPlayer
+            onExpand = onExpandPlayer,
+            useGlass = false,
         )
 
         Row(
@@ -124,11 +131,8 @@ fun AuroraFloatingChrome(
             horizontalArrangement = Arrangement.spacedBy(spacing.space2),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            GlassSurface(
-                modifier = Modifier.weight(1f).height(BarHeight),
-                level = GlassLevel.Elevated,
-                shape = RoundedCornerShape(percent = 50),
-                backdrop = backdrop
+            Box(
+                modifier = Modifier.weight(1f).height(BarHeight)
             ) {
                 /*
                  * The pill gains the lozenge the quality control already had.
@@ -174,11 +178,12 @@ fun AuroraFloatingChrome(
                 icon = AuroraDestination.Search.icon,
                 contentDescription = AuroraDestination.Search.label,
                 selected = currentRoute == AuroraDestination.Search.route,
-                backdrop = backdrop,
+                useGlass = false,
                 onClick = { onNavigate(AuroraDestination.Search) }
             )
         }
     }
+}
 }
 
 /** Big enough to read as a player rather than an icon, small enough to dock. */
@@ -264,6 +269,14 @@ fun GlassCircleButton(
     selected: Boolean = false,
     backdrop: Backdrop? = null,
     size: androidx.compose.ui.unit.Dp = BarHeight,
+    /**
+     * Whether to wrap this button in its own glass surface.
+     *
+     * Set to false when the button sits inside a parent glass surface (the floating bar),
+     * so we don't nest glass on glass. The parent supplies the blur, refraction and
+     * highlight; this button just draws its icon flat.
+     */
+    useGlass: Boolean = true,
 ) {
     val colors = Aurora.colors
     val haptics = LocalHapticEngine.current
@@ -272,30 +285,7 @@ fun GlassCircleButton(
     // Read here: graphicsLayer's lambda is not a composable scope.
     val pressDepth = Aurora.motion
 
-    GlassSurface(
-        // The surface answers the finger too, not just the transform: the refraction
-        // deepens and the edge lifts under a press.
-        pressProgress = { press },
-        modifier = modifier
-            .size(size)
-            .graphicsLayer {
-                scaleX = 1f - pressDepth.pressScaleControl * press
-                scaleY = 1f - pressDepth.pressScaleControl * press
-            }
-            .selectable(
-                selected = selected,
-                interactionSource = interaction,
-                indication = null,
-                role = Role.Tab,
-                onClick = {
-                    if (!selected) haptics.fire(HapticEvent.Selection)
-                    onClick()
-                }
-            ),
-        level = GlassLevel.Elevated,
-        shape = CircleShape,
-        backdrop = backdrop
-    ) {
+    val content: @Composable () -> Unit = {
         // fillMaxSize, not fillMaxWidth: GlassSurface lays its content out from the top
         // start, so a box only as tall as the icon left the lens pinned to the top of the
         // circle rather than centred in it.
@@ -306,6 +296,57 @@ fun GlassCircleButton(
                 tint = if (selected) colors.accentPrimary else colors.textPrimary,
                 modifier = Modifier.size(24.dp)
             )
+        }
+    }
+
+    if (useGlass) {
+        GlassSurface(
+            // The surface answers the finger too, not just the transform: the refraction
+            // deepens and the edge lifts under a press.
+            pressProgress = { press },
+            modifier = modifier
+                .size(size)
+                .graphicsLayer {
+                    scaleX = 1f - pressDepth.pressScaleControl * press
+                    scaleY = 1f - pressDepth.pressScaleControl * press
+                }
+                .selectable(
+                    selected = selected,
+                    interactionSource = interaction,
+                    indication = null,
+                    role = Role.Tab,
+                    onClick = {
+                        if (!selected) haptics.fire(HapticEvent.Selection)
+                        onClick()
+                    }
+                ),
+            level = GlassLevel.Elevated,
+            shape = CircleShape,
+            backdrop = backdrop
+        ) {
+            content()
+        }
+    } else {
+        Box(
+            modifier = modifier
+                .size(size)
+                .graphicsLayer {
+                    scaleX = 1f - pressDepth.pressScaleControl * press
+                    scaleY = 1f - pressDepth.pressScaleControl * press
+                }
+                .selectable(
+                    selected = selected,
+                    interactionSource = interaction,
+                    indication = null,
+                    role = Role.Tab,
+                    onClick = {
+                        if (!selected) haptics.fire(HapticEvent.Selection)
+                        onClick()
+                    }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            content()
         }
     }
 }

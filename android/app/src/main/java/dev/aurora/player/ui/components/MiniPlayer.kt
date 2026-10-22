@@ -80,7 +80,15 @@ fun MiniPlayer(
      */
     headphones: dev.aurora.player.domain.headphones.HeadphoneState =
         dev.aurora.player.domain.headphones.HeadphoneState.Disconnected,
-    onExpand: () -> Unit
+    onExpand: () -> Unit,
+    /**
+     * Whether to wrap this bar in its own glass surface.
+     *
+     * Set to false when MiniPlayer sits inside a parent glass surface (the floating bar),
+     * so we don't nest glass on glass. The parent supplies the blur, refraction and
+     * highlight; this surface just draws its row flat.
+     */
+    useGlass: Boolean = true,
 ) {
     val coordinator = LocalPlayerCoordinator.current
     val haptics = LocalHapticEngine.current
@@ -152,114 +160,111 @@ fun MiniPlayer(
         modifier = modifier
     ) {
         if (currentTrack != null) {
-            GlassSurface(
-                shape = BarShape,
-                backdrop = backdrop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(MiniPlayerHeight)
-                    .offset { IntOffset(0, lift.value.roundToInt()) }
-                    .graphicsLayer {
-                        // Hint the destination: the surface grows slightly as it rises, so
-                        // the frames in between point at the full player rather than just
-                        // interpolating toward it.
-                        val progress = (abs(lift.value) / expandTravel).coerceIn(0f, 1f)
-                        scaleX = 1f + progress * 0.02f
-                        scaleY = 1f + progress * 0.02f
-                    }
-                    /*
-                     * `draggable` rather than a raw drag detector, because this surface is
-                     * also clickable: the two share one pointer stream, and the platform's
-                     * own touch-slop disambiguation is what decides between them. A raw
-                     * detector competes with the click instead, and the drag simply never
-                     * wins. It also reports the release velocity directly, which is the one
-                     * number the settle decision below actually turns on.
-                     */
-                    .draggable(
-                        state = rememberDraggableState { delta ->
-                            pointerOffset += delta
-                            scope.launch {
-                                // Resistance, not a hard stop: there is nothing below the
-                                // player and nothing above the open position, and a dead
-                                // stop at either end reads as the app having frozen.
-                                lift.snapTo(
-                                    Projection.clampWithRubberband(
-                                        pointerOffset, -expandTravel, 0f, expandTravel
-                                    )
+            val barModifier = Modifier
+                .fillMaxWidth()
+                .height(MiniPlayerHeight)
+                .offset { IntOffset(0, lift.value.roundToInt()) }
+                .graphicsLayer {
+                    // Hint the destination: the surface grows slightly as it rises, so
+                    // the frames in between point at the full player rather than just
+                    // interpolating toward it.
+                    val progress = (abs(lift.value) / expandTravel).coerceIn(0f, 1f)
+                    scaleX = 1f + progress * 0.02f
+                    scaleY = 1f + progress * 0.02f
+                }
+                /*
+                 * `draggable` rather than a raw drag detector, because this surface is
+                 * also clickable: the two share one pointer stream, and the platform's
+                 * own touch-slop disambiguation is what decides between them. A raw
+                 * detector competes with the click instead, and the drag simply never
+                 * wins. It also reports the release velocity directly, which is the one
+                 * number the settle decision below actually turns on.
+                 */
+                .draggable(
+                    state = rememberDraggableState { delta ->
+                        pointerOffset += delta
+                        scope.launch {
+                            // Resistance, not a hard stop: there is nothing below the
+                            // player and nothing above the open position, and a dead
+                            // stop at either end reads as the app having frozen.
+                            lift.snapTo(
+                                Projection.clampWithRubberband(
+                                    pointerOffset, -expandTravel, 0f, expandTravel
                                 )
-                            }
-                        },
-                        orientation = Orientation.Vertical,
-                        onDragStarted = { pointerOffset = lift.value },
-                        onDragStopped = { velocity ->
-                            val target = Projection.projectedSnapTarget(
-                                pointerOffset, velocity, listOf(0f, -expandTravel)
                             )
-                            pointerOffset = 0f
-                            if (target == -expandTravel) {
-                                haptics.fire(HapticEvent.Tap)
-                                onExpand()
-                                lift.snapTo(0f)
-                            } else {
-                                // Continues at the speed the finger left at, so there is no
-                                // seam between the drag and the animation after it.
-                                lift.animateTo(0f, settle, velocity)
-                            }
                         }
-                    )
-                    /*
-                     * One node, with its description and its action declared together.
-                     *
-                     * A separate `semantics { contentDescription = ... }` beside
-                     * `clickable` produced two nodes in the tree: a clickable one that
-                     * announced nothing, and the carefully written "Now playing... Open
-                     * full player." on a node TalkBack could neither focus nor activate.
-                     * Reordering did not help, and clearing the descendants took the play
-                     * and next buttons out of the tree with them. Merging leaves those two
-                     * as their own stops and folds the title and artist into this row, so
-                     * it is one stop rather than three. The phrasing that has to reach the
-                     * node carrying the action - "Open full player" - is the click label
-                     * on `clickable`, which does land there.
-                     *
-                     * Verified in the node tree with TalkBack running.
-                     */
-                    .clickable(onClickLabel = "Open full player") {
-                        haptics.fire(HapticEvent.Tap)
-                        onExpand()
-                    }
-                    .semantics(mergeDescendants = true) {
-                        contentDescription = buildString {
-                            if (hasError) {
-                                append("Playback error: ")
-                                append(errorText)
-                                append(". ")
-                            }
-                            append("Now playing: ")
-                            append(resolved.title ?: currentTrack.title)
-                            resolved.artist?.let { append(" by ").append(it) }
-                            /*
-                             * The capsule's own words, said here.
-                             *
-                             * This row is one merged node with an explicit description, so
-                             * anything written on a child inside it is never spoken. The
-                             * headphone state is worth hearing, so it joins the sentence
-                             * that does reach the screen reader rather than being set on a
-                             * node that cannot be focused.
-                             */
-                            headphoneAnnouncement(headphones)?.let { append(". ").append(it) }
-                        }
-                        role = Role.Button
-                        onClick(label = "Open full player") {
+                    },
+                    orientation = Orientation.Vertical,
+                    onDragStarted = { pointerOffset = lift.value },
+                    onDragStopped = { velocity ->
+                        val target = Projection.projectedSnapTarget(
+                            pointerOffset, velocity, listOf(0f, -expandTravel)
+                        )
+                        pointerOffset = 0f
+                        if (target == -expandTravel) {
                             haptics.fire(HapticEvent.Tap)
                             onExpand()
-                            true
+                            lift.snapTo(0f)
+                        } else {
+                            // Continues at the speed the finger left at, so there is no
+                            // seam between the drag and the animation after it.
+                            lift.animateTo(0f, settle, velocity)
                         }
-                        // Assertive so a failure interrupts rather than waiting for the
-                        // user to navigate back to this row.
-                        if (hasError) liveRegion = LiveRegionMode.Assertive
-                    },
-                level = GlassLevel.Elevated
-            ) {
+                    }
+                )
+                /*
+                 * One node, with its description and its action declared together.
+                 *
+                 * A separate `semantics { contentDescription = ... }` beside
+                 * `clickable` produced two nodes in the tree: a clickable one that
+                 * announced nothing, and the carefully written "Now playing... Open
+                 * full player." on a node TalkBack could neither focus nor activate.
+                 * Reordering did not help, and clearing the descendants took the play
+                 * and next buttons out of the tree with them. Merging leaves those two
+                 * as their own stops and folds the title and artist into this row, so
+                 * it is one stop rather than three. The phrasing that has to reach the
+                 * node carrying the action - "Open full player" - is the click label
+                 * on `clickable`, which does land there.
+                 *
+                 * Verified in the node tree with TalkBack running.
+                 */
+                .clickable(onClickLabel = "Open full player") {
+                    haptics.fire(HapticEvent.Tap)
+                    onExpand()
+                }
+                .semantics(mergeDescendants = true) {
+                    contentDescription = buildString {
+                        if (hasError) {
+                            append("Playback error: ")
+                            append(errorText)
+                            append(". ")
+                        }
+                        append("Now playing: ")
+                        append(resolved.title ?: currentTrack.title)
+                        resolved.artist?.let { append(" by ").append(it) }
+                        /*
+                         * The capsule's own words, said here.
+                         *
+                         * This row is one merged node with an explicit description, so
+                         * anything written on a child inside it is never spoken. The
+                         * headphone state is worth hearing, so it joins the sentence
+                         * that does reach the screen reader rather than being set on a
+                         * node that cannot be focused.
+                         */
+                        headphoneAnnouncement(headphones)?.let { append(". ").append(it) }
+                    }
+                    role = Role.Button
+                    onClick(label = "Open full player") {
+                        haptics.fire(HapticEvent.Tap)
+                        onExpand()
+                        true
+                    }
+                    // Assertive so a failure interrupts rather than waiting for the
+                    // user to navigate back to this row.
+                    if (hasError) liveRegion = LiveRegionMode.Assertive
+                }
+
+            val barContent: @Composable () -> Unit = {
                 /*
                  * How far through the track, as a fill behind the row.
                  *
@@ -365,6 +370,21 @@ fun MiniPlayer(
                         icon = Icons.Rounded.SkipNext,
                         contentDesc = "Next track",
                     )
+                }
+            }
+
+            if (useGlass) {
+                GlassSurface(
+                    shape = BarShape,
+                    backdrop = backdrop,
+                    modifier = barModifier,
+                    level = GlassLevel.Elevated
+                ) {
+                    barContent()
+                }
+            } else {
+                Box(modifier = barModifier) {
+                    barContent()
                 }
             }
         }

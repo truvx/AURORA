@@ -73,12 +73,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        val state = (application as AuroraApp).container.playerCoordinator.state.value
-        if (state.currentTrack?.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE
-            && (state.status == dev.aurora.player.domain.player.PlaybackStatus.Playing
-                || state.status == dev.aurora.player.domain.player.PlaybackStatus.Buffering)) {
-            (application as AuroraApp).container.playerCoordinator.dispatch(dev.aurora.player.domain.player.PlayerCommand.Pause)
-        }
+        // Background playback is handled by AuroraMediaSessionService (foreground service
+        // + MediaSession). YouTube tracks play through ExoPlayer just like local tracks, so
+        // nothing to pause here: the service keeps playback alive while the app is not on
+        // screen, and the notification / lock screen / headset controls remain reachable.
     }
 
     override fun onDestroy() {

@@ -5,27 +5,70 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!--
+      Read a headset's own battery message, and nothing else.
+
+      Optional: AURORA never asks for it. Headphones are detected through the audio
+      system, which needs no permission; this only adds the level a headset volunteers
+      over the vendor-specific AT channel, and without it the capsule shows the icon
+      alone. See data/headphones/HeadphoneMonitor.kt.
+    -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!--
+      The media notification is how playback is controlled once the app is not on screen.
+      Denying it does not stop playback - the foreground service still runs - it only
+      removes the controls, so this is requested when playback starts rather than at launch.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".AuroraApp"
         android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="AURORA"
         android:supportsRtl="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.Aurora">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.youtube.com" android:pathPrefix="/watch" />
+                <data android:scheme="https" android:host="m.youtube.com" android:pathPrefix="/watch" />
+                <data android:scheme="https" android:host="youtube.com" android:pathPrefix="/watch" />
+                <data android:scheme="https" android:host="music.youtube.com" android:pathPrefix="/watch" />
+                <data android:scheme="aurora" android:host="youtube" />
+            </intent-filter>
         </activity>
 
+        <!--
+          Exported on purpose, and unprotected on purpose.
+          
+          A MediaSessionService is how the system UI, Bluetooth, Android Auto and the
+          assistant reach playback, and they cannot hold an app-private permission. Media3's
+          design puts the gate inside the session's own connection callback rather than in
+          the manifest, which is why lint's ExportedService warning stands here rather than
+          being silenced: the export is the feature.
+        -->
         <service
             android:name=".data.player.AuroraMediaSessionService"
             android:exported="true"

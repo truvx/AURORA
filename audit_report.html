@@ -1,0 +1,294 @@
+<title>AURORA Technical Audit Report</title>
+<style>
+:root {
+  /* Professional Engineering Palette */
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --surface: #f8f9fa;
+  --border: #e0e0e0;
+  --accent: #2563eb;
+  --critical: #dc2626;
+  --warning: #d97706;
+  --info: #0891b2;
+  --text-muted: #666666;
+
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Roboto Mono', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f172a;
+    --fg: #f1f5f9;
+    --surface: #1e293b;
+    --border: #334155;
+    --accent: #60a5fa;
+    --critical: #f87171;
+    --warning: #fbbf24;
+    --info: #22d3ee;
+    --text-muted: #94a3b8;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f172a;
+  --fg: #f1f5f9;
+  --surface: #1e293b;
+  --border: #334155;
+  --accent: #60a5fa;
+  --critical: #f87171;
+  --warning: #fbbf24;
+  --info: #22d3ee;
+  --text-muted: #94a3b8;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+header {
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 2rem;
+  margin-bottom: 3rem;
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.meta {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.severity-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-right: 0.75rem;
+}
+
+.severity-critical { background: var(--critical); color: white; }
+.severity-medium { background: var(--warning); color: white; }
+.severity-low { background: var(--info); color: white; }
+
+.finding {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  transition: border-color 0.2s;
+}
+
+.finding:hover {
+  border-color: var(--accent);
+}
+
+.finding-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.finding-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.finding-file {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.finding-section {
+  margin-bottom: 1rem;
+}
+
+.section-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 0.25rem;
+  letter-spacing: 0.05em;
+}
+
+.remediation-box {
+  background: var(--bg);
+  border-left: 4px solid var(--accent);
+  padding: 1rem;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+}
+
+.audit-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.summary-value {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+</style>
+
+<div class="container">
+  <header>
+    <h1>AURORA Technical Audit Report</h1>
+    <div class="meta">
+      <span>Date: 2026-10-13</span>
+      <span>Status: Complete</span>
+      <span>Scope: Core Playback, AI Gateway, YouTube Integration</span>
+    </div>
+  </header>
+
+  <div class="audit-summary">
+    <div class="summary-card">
+      <span class="summary-value">6</span>
+      <span class="summary-label">Findings Total</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-value">1</span>
+      <span class="summary-label">Medium Severity</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-value">5</span>
+      <span class="summary-label">Low Severity</span>
+    </div>
+  </div>
+
+  <section>
+    <h2 style="margin-bottom: 1.5rem; font-family: var(--font-display);">Medium Severity Findings</h2>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="severity-badge severity-medium">Medium</span>
+        <h3 class="finding-title">Rate limiting is process-local, not global</h3>
+        <span class="finding-file">web/lib/ai/guard.ts:45</span>
+      </div>
+      <div class="finding-section">
+        <span class="section-label">Rationale</span>
+        <p>The <code>RateLimiter</code> uses an in-memory <code>Map</code>. In a scaled deployment with multiple instances, the rate limit is multiplied by the number of pods, allowing users to bypass the intended 20 req/min limit by hitting different instances.</p>
+      </div>
+      <div class="remediation-box">
+        <strong>Remediation:</strong> Implement a shared state store (e.g., Redis) for rate limiting to ensure global enforcement across all production instances.
+      </div>
+    </div>
+  </section>
+
+  <section style="margin-top: 3rem;">
+    <h2 style="margin-bottom: 1.5rem; font-family: var(--font-display);">Low Severity Findings</h2>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="severity-badge severity-low">Low</span>
+        <h3 class="finding-title">Duplicated queue navigation logic between Web and Android</h3>
+        <span class="finding-file">web/lib/player/coordinator.ts:247</span>
+      </div>
+      <div class="finding-section">
+        <span class="section-label">Rationale</span>
+        <p>The web coordinator implements <code>skipPrevious</code> and <code>skipNext</code> logic that nearly duplicates the Android implementation. Divergence in shuffle or repeat behavior is likely over time.</p>
+      </div>
+      <div class="remediation-box">
+        <strong>Remediation:</strong> Extract queue navigation logic (<code>stepThrough</code>, <code>shuffledOrderFrom</code>) into a shared domain specification or utility.
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="severity-badge severity-low">Low</span>
+        <h3 class="finding-title">Crossfade guard reset relies on position change</h3>
+        <span class="finding-file">android/.../PlayerCoordinator.kt:478</span>
+      </div>
+      <div class="finding-section">
+        <span class="section-label">Rationale</span>
+        <p>The <code>crossfadeFired</code> guard is reset reactively based on <code>event.elapsed < lastElapsedMs</code>. This is fragile if the engine emits an unexpected position event during transition.</p>
+      </div>
+      <div class="remediation-box">
+        <strong>Remediation:</strong> Explicitly reset <code>crossfadeFired = false</code> inside <code>loadTrack</code> to proactively ensure eligibility for every new track.
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="severity-badge severity-low">Low</span>
+        <h3 class="finding-title">YouTube IFrame controls may be overly restrictive</h3>
+        <span class="finding-file">web/lib/player/youtubeAdapter.ts:69</span>
+      </div>
+      <div class="finding-section">
+        <span class="section-label">Rationale</span>
+        <p>The implementation forces <code>controls: 1</code>. While compliant with branding policies, it contradicts the goal of using AURORA's custom "Liquid Glass" controls as the primary interface.</p>
+      </div>
+      <div class="remediation-box">
+        <strong>Remediation:</strong> Evaluate using <code>controls: 0</code> when the AURORA transport is active, provided branding requirements remain satisfied.
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="finding-header">
+        <span class="severity-badge severity-low">Low</span>
+        <h3 class="finding-title">Web client currently lacks YouTube playback</h3>
+        <span class="finding-file">web/lib/player/coordinator.ts:247</span>
+      </div>
+      <div class="finding-section">
+        <span class="section-label">Observation</span>
+        <p>The web coordinator returns error messages for YouTube tracks. This is a known state and aligns with the policy against fake playback, but marks a capability gap compared to Android.</p>
+      </div>
+      <div class="remediation-box">
+        <strong>Remediation:</strong> No immediate fix required; ensure the upcoming YouTube IFrame adapter follows the provider-neutral <code>HtmlAudioAdapter</code> interface.
+      </div>
+    </div>
+  </section>
+</div>

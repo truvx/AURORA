@@ -20,11 +20,16 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.common.audio.AudioProcessor
+import androidx.media3.common.util.UnstableApi
 
+// Media3's audio-processing and renderer APIs are annotated @UnstableApi. This class is
+// built directly on them, so the opt-in is deliberate and scoped to this file rather than
+// enabled module-wide, which would silently cover future code too.
+@androidx.annotation.OptIn(markerClass = [UnstableApi::class])
 class Media3PlayerAdapter(
     context: Context,
     private val scope: CoroutineScope
-) : PlayerAdapter {
+) : PlayerAdapter, Media3PlayerOwner {
 
     val normalizationProcessor = NormalizationAudioProcessor()
     val eqProcessor = EqAudioProcessor()
@@ -55,6 +60,13 @@ class Media3PlayerAdapter(
         .setHandleAudioBecomingNoisy(true)
         .build()
 
+    override val sessionPlayer: ExoPlayer get() = exoPlayer
+
+    override fun clearSession() {
+        exoPlayer.clearMediaItems()
+        exoPlayer.stop()
+    }
+
     private val _events = MutableSharedFlow<EngineEvent>(extraBufferCapacity = 64)
     override val events: Flow<EngineEvent> = _events
 
@@ -65,6 +77,10 @@ class Media3PlayerAdapter(
                     Player.STATE_READY -> _events.tryEmit(EngineEvent.Prepared)
                     Player.STATE_ENDED -> _events.tryEmit(EngineEvent.TrackCompleted)
                     Player.STATE_BUFFERING -> _events.tryEmit(EngineEvent.BufferingChanged(true))
+                    // Idle emits no event of its own; it is one of the three states that
+                    // end buffering, which the line below handles. Named so the `when`
+                    // covers every state and nobody has to check whether one was forgotten.
+                    Player.STATE_IDLE -> Unit
                 }
                 
                 if (playbackState == Player.STATE_READY || playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
@@ -113,10 +129,10 @@ class Media3PlayerAdapter(
         }
     }
 
-    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+    override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
         val media3Item = Media3Item.Builder()
             .setMediaId(track.id)
-            .setUri(Uri.parse(uri))
+            .setUri(Uri.parse(source.uri))
             .setMediaMetadata(
                 MediaMetadata.Builder()
                     .setTitle(track.title)

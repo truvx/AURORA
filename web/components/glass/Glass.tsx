@@ -45,6 +45,21 @@ export function GlassCard({
 interface GlassButtonProps {
   variant?: "primary" | "secondary" | "quiet";
   disabled?: boolean;
+  /**
+   * For a button that toggles a view rather than performing an action.
+   *
+   * Renders `aria-pressed` and the matching fill, so the state is both announced and
+   * visible. Leave undefined for an ordinary button - `aria-pressed="false"` on something
+   * that is not a toggle tells a screen reader the wrong thing.
+   */
+  pressed?: boolean;
+  /**
+   * An accessible name where the visible label is the shorter of the two.
+   *
+   * "Back" is clear enough on screen, where the heading above it says what you are backing
+   * out of; read on its own in a list of controls it is not.
+   */
+  ariaLabel?: string;
   onClick?: () => void;
   className?: string;
   children: ReactNode;
@@ -53,6 +68,8 @@ interface GlassButtonProps {
 export function GlassButton({
   variant = "primary",
   disabled = false,
+  pressed,
+  ariaLabel,
   onClick,
   className = "",
   children,
@@ -61,6 +78,8 @@ export function GlassButton({
     <button
       className={`${styles.button} ${styles[`button_${variant}`]} ${className}`}
       disabled={disabled}
+      aria-pressed={pressed}
+      aria-label={ariaLabel}
       onClick={onClick}
       type="button"
     >

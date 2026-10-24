@@ -18,6 +18,17 @@ Material levels:
 4. `Glass Elevated`: player, floating sheet, or dialog.
 5. `Opaque Fallback`: accessible/performance variant.
 
+The highlight is part of the material, not decoration on top of it. `Glass Elevated` draws
+its own specular rim rather than gathering one from the backdrop: an ambient rim has no
+light to collect over a pitch-black canvas, which on device measured as a top edge of 21
+against a surface of 26 - darker than the thing it was meant to be lighting - while the
+bottom edge reached 85. A lens with a rim on one side is a rectangle. The specular rim
+holds at both edges whatever is or is not behind it.
+
+Canvas colour and chrome legibility move together. Taking the canvas to pitch black did not
+weaken the floating chrome, it strengthened it: the same 10% white surface now sits 26
+steps above its ground instead of 12.
+
 ## Color, type, spacing, shape
 
 Use `docs/DESIGN_TOKENS.md` as the source of token names and baseline values. Typography is large and confident but stays within dynamic text scaling. Spacing uses a 4-unit rhythm with generous section separation. Rounded shapes are expressive at surfaces and restrained in dense rows. Avoid pills, gradients, borders, and shadows as defaults. The baseline is not a blanket “glass everywhere” rule: navigation and high-value controls may use the material most strongly, while dense content can use quiet tint or opaque surfaces.

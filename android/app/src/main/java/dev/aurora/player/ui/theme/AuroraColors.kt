@@ -48,6 +48,16 @@ data class AuroraColors(
     val playerControl: Color,
     val playerProgress: Color,
 
+    // Favorite — the "liked" heart. Always paired with a filled/outlined icon change.
+    val favorite: Color,
+
+    // AI orb — the gradient that marks the assistant everywhere it appears. Core to rim,
+    // plus the soft halo around it.
+    val aiOrbCore: Color,
+    val aiOrbMid: Color,
+    val aiOrbRim: Color,
+    val aiOrbGlow: Color,
+
     // Status — semantic, never color-only
     val statusSuccess: Color,
     val statusWarning: Color,
@@ -60,33 +70,61 @@ data class AuroraColors(
 )
 
 // --- Primitive palette from DESIGN_TOKENS.md ---
+//
+// Neutral, sampled from the approved reference designs (2026-09-22). Colour in AURORA comes
+// from album artwork refracting through the glass, not from the chrome: the reference app's
+// page is a neutral near-black (#151515) and its floating bars take their warmth from the
+// cover behind them.
+//
+// The glass tint is white at a low alpha, because these materials *lighten* what is behind
+// them - the reference nav bar reads ~22% white over near-black content. An earlier navy
+// tint darkened instead, which is why the surfaces never looked like glass.
+//
+// Blue survives only as a quiet accent for selection and progress. Primary actions are the
+// white pill from the playlist reference, which also happens to be the most legible fill
+// available (near-black on white, 18:1).
 
 private object LightPrimitives {
     val neutral0 = Color(0xFFFFFFFF)
-    val neutral10 = Color(0xFFF7F8FA)
-    val neutral20 = Color(0xFFECEEF2)
-    val neutral40 = Color(0xFFD2D6DE)
-    val neutral70 = Color(0xFF606875)
-    val neutral90 = Color(0xFF252A33)
-    val accentCyan = Color(0xFF087E9B)
-    val accentViolet = Color(0xFF6C51C9)
+    val neutral10 = Color(0xFFF6F6F8)
+    val neutral20 = Color(0xFFECECEF)
+    val neutral40 = Color(0xFFD2D2D8)
+    val neutral70 = Color(0xFF5A5A63)
+    val neutral90 = Color(0xFF17171A)
+    val accentBlue = Color(0xFF2458D6)
+    val favorite = Color(0xFFD7263D)
     val success = Color(0xFF197A4A)
     val warning = Color(0xFF8B5A00)
     val error = Color(0xFFB3261E)
 }
 
 private object DarkPrimitives {
+    // Pitch black, not near-black. On the OLED panels this app is used on, #000 costs the
+    // pixel nothing to draw and gives the artwork the deepest ground it can have - which is
+    // the whole point of a canvas that is meant to disappear behind the record.
     val neutral0 = Color(0xFF000000)
-    val neutral10 = Color(0xFF111318)
-    val neutral20 = Color(0xFF1B1E25)
-    val neutral40 = Color(0xFF363B46)
-    val neutral70 = Color(0xFFA7AFBD)
-    val neutral90 = Color(0xFFF0F2F6)
-    val accentCyan = Color(0xFF66D9F2)
-    val accentViolet = Color(0xFFBBA8FF)
+    val neutral10 = Color(0xFF0A0A0B)
+    val neutral20 = Color(0xFF1F1F22)
+    val neutral40 = Color(0xFF3A3A3F)
+    val neutral70 = Color(0xFFABABB2)
+    val neutral90 = Color(0xFFF5F5F7)
+    val white = Color(0xFFFFFFFF)
+    // Measured, not picked: as a selected tab label on the floating chrome the previous
+    // #6A98FF came to 4.15:1 on web's lighter pill, below the 4.5 floor for body text.
+    // This is the same value on both clients so one accent does not mean two colours.
+    val accentBlue = Color(0xFF7EA6FF)
+    val favorite = Color(0xFFF9555B)
     val success = Color(0xFF67D49A)
     val warning = Color(0xFFF2C66D)
     val error = Color(0xFFFF9F99)
+}
+
+/** The orb reads the same in both themes: it is a lit object, not a surface. */
+private object OrbPrimitives {
+    val core = Color(0xFF28A4FE)
+    val mid = Color(0xFF3D6FF8)
+    val rim = Color(0xFF2A3FC7)
+    val glow = Color(0xFFB5C3FC)
 }
 
 val AuroraLightColors = AuroraColors(
@@ -100,15 +138,22 @@ val AuroraLightColors = AuroraColors(
     textSecondary = LightPrimitives.neutral70,
     textTertiary = LightPrimitives.neutral70.copy(alpha = 0.72f),
     textInverse = LightPrimitives.neutral0,
-    accentPrimary = LightPrimitives.accentCyan,
-    accentSecondary = LightPrimitives.accentViolet,
-    controlPrimary = LightPrimitives.accentCyan,
+    accentPrimary = LightPrimitives.accentBlue,
+    accentSecondary = LightPrimitives.accentBlue,
+    // The reference's primary action is a solid pill that carries the most contrast the
+    // theme has: near-black on light, white on dark.
+    controlPrimary = LightPrimitives.neutral90,
     controlOnPrimary = LightPrimitives.neutral0,
-    focusRing = LightPrimitives.accentCyan.copy(alpha = 0.56f),
+    focusRing = LightPrimitives.accentBlue.copy(alpha = 0.56f),
     dividerSubtle = LightPrimitives.neutral40.copy(alpha = 0.24f),
     playerBackground = LightPrimitives.neutral10,
     playerControl = LightPrimitives.neutral90,
-    playerProgress = LightPrimitives.accentCyan,
+    playerProgress = LightPrimitives.accentBlue,
+    favorite = LightPrimitives.favorite,
+    aiOrbCore = OrbPrimitives.core,
+    aiOrbMid = OrbPrimitives.mid,
+    aiOrbRim = OrbPrimitives.rim,
+    aiOrbGlow = OrbPrimitives.glow,
     statusSuccess = LightPrimitives.success,
     statusWarning = LightPrimitives.warning,
     statusError = LightPrimitives.error,
@@ -120,28 +165,35 @@ val AuroraLightColors = AuroraColors(
 val AuroraDarkColors = AuroraColors(
     backgroundPrimary = DarkPrimitives.neutral0,
     backgroundSecondary = DarkPrimitives.neutral10,
-    surfaceGlassPrimary = DarkPrimitives.neutral20.copy(alpha = 0.20f),
-    surfaceGlassSecondary = DarkPrimitives.neutral20.copy(alpha = 0.12f),
-    surfaceGlassElevated = DarkPrimitives.neutral20.copy(alpha = 0.35f),
+    // White, not a dark tint: these materials lighten what is behind them.
+    surfaceGlassPrimary = DarkPrimitives.white.copy(alpha = 0.12f),
+    surfaceGlassSecondary = DarkPrimitives.white.copy(alpha = 0.07f),
+    surfaceGlassElevated = DarkPrimitives.white.copy(alpha = 0.10f),
     surfaceOpaqueFallback = DarkPrimitives.neutral20,
     textPrimary = DarkPrimitives.neutral90,
     textSecondary = DarkPrimitives.neutral70,
     textTertiary = DarkPrimitives.neutral70.copy(alpha = 0.72f),
     textInverse = DarkPrimitives.neutral0,
-    accentPrimary = DarkPrimitives.accentCyan,
-    accentSecondary = DarkPrimitives.accentViolet,
-    controlPrimary = DarkPrimitives.accentCyan,
+    accentPrimary = DarkPrimitives.accentBlue,
+    accentSecondary = DarkPrimitives.accentBlue,
+    // The white "Play" pill from the playlist reference, with near-black content on it.
+    controlPrimary = DarkPrimitives.white,
     controlOnPrimary = DarkPrimitives.neutral0,
-    focusRing = DarkPrimitives.accentCyan.copy(alpha = 0.56f),
+    focusRing = DarkPrimitives.accentBlue.copy(alpha = 0.56f),
     dividerSubtle = DarkPrimitives.neutral40.copy(alpha = 0.24f),
     playerBackground = DarkPrimitives.neutral10,
     playerControl = DarkPrimitives.neutral90,
-    playerProgress = DarkPrimitives.accentCyan,
+    playerProgress = DarkPrimitives.accentBlue,
+    favorite = DarkPrimitives.favorite,
+    aiOrbCore = OrbPrimitives.core,
+    aiOrbMid = OrbPrimitives.mid,
+    aiOrbRim = OrbPrimitives.rim,
+    aiOrbGlow = OrbPrimitives.glow,
     statusSuccess = DarkPrimitives.success,
     statusWarning = DarkPrimitives.warning,
     statusError = DarkPrimitives.error,
-    glassTint = DarkPrimitives.neutral20.copy(alpha = 0.10f),
-    glassHighlight = LightPrimitives.neutral0.copy(alpha = 0.15f), // White edge highlight
+    glassTint = DarkPrimitives.white.copy(alpha = 0.08f),
+    glassHighlight = DarkPrimitives.white.copy(alpha = 0.22f), // Bright edge: light on the material
     glassScrim = DarkPrimitives.neutral0.copy(alpha = 0.30f),
 )
 

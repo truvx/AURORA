@@ -1,0 +1,97 @@
+/*
+ * Cover flow.
+ *
+ * The covers sit in one shared 3D space, turned toward the viewer as they approach the
+ * centre. Only transform and opacity animate, so the whole row stays on the compositor.
+ */
+.flow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22rem;
+  perspective: 1400px;
+  /* The row is focusable as a whole: it is one listbox, not a dozen tab stops. */
+  outline-offset: 8px;
+}
+
+.cover {
+  position: absolute;
+  width: min(18rem, 46vw);
+  /* The words are positioned against the cover. */
+  isolation: isolate;
+  cursor: pointer;
+  transform-style: preserve-3d;
+
+  /* Fanned out by distance, and turned to face away from the centre. */
+  transform:
+    translateX(calc(var(--offset) * 12.5rem))
+    translateZ(calc(var(--distance) * -9rem))
+    rotateY(calc(var(--direction) * -34deg))
+    scale(calc(1 - var(--distance) * 0.08));
+  opacity: calc(1 - var(--distance) * 0.26);
+
+  transition:
+    transform var(--aurora-duration-emphasis) var(--aurora-easing-standard),
+    opacity var(--aurora-duration-emphasis) var(--aurora-easing-standard);
+}
+
+.cover[aria-selected="true"] {
+  transform: translateX(0) translateZ(0) rotateY(0deg) scale(1);
+  opacity: 1;
+}
+
+.cover img,
+.cover > :first-child {
+  box-shadow: var(--aurora-shadow-floating);
+  border-radius: var(--aurora-radius-card);
+}
+
+/*
+ * The words live on the cover, as in the reference. Under it they collided with the
+ * neighbouring covers as soon as the fan overlapped.
+ */
+.meta {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: var(--aurora-space-4) var(--aurora-space-3) var(--aurora-space-3);
+  border-radius: 0 0 var(--aurora-radius-card) var(--aurora-radius-card);
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.78));
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--aurora-type-track-title-size);
+  font-weight: var(--aurora-type-track-title-weight);
+  letter-spacing: var(--aurora-type-title-tracking);
+  color: var(--aurora-text-primary);
+}
+
+.artist {
+  margin: 0;
+  font-size: var(--aurora-type-track-artist-size);
+  font-weight: var(--aurora-type-track-artist-weight);
+  color: var(--aurora-text-secondary);
+}
+
+/* Only the centre cover's words are readable anyway; the rest would be visual noise. */
+.cover:not([aria-selected="true"]) .meta {
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover {
+    /*
+     * No perspective travel: large elements swinging through depth is the kind of motion
+     * this setting exists to remove. The covers still change size and fade, so the current
+     * one is still obvious.
+     */
+    transform: translateX(calc(var(--offset) * 12.5rem)) scale(calc(1 - var(--distance) * 0.08));
+    transition-duration: var(--aurora-duration-quick);
+  }
+
+  .cover[aria-selected="true"] {
+    transform: translateX(0) scale(1);
+  }
+}

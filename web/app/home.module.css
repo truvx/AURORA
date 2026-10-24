@@ -1,0 +1,107 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  /*
+   * space-6, matching the Android Home feed's section spacing.
+   *
+   * This said space-7, which is not on the scale and never has been - so the declaration
+   * was invalid, the browser dropped it, and the sections had no gap at all.
+   */
+  gap: var(--aurora-space-6);
+}
+
+/*
+ * Small caps section headers, as on Android.
+ *
+ * They are labels for the shelf below them, not headings competing with the page title -
+ * which is what the size and the tracking are doing.
+ */
+.sectionTitle {
+  margin: 0 0 var(--aurora-space-3);
+  font-size: var(--aurora-type-label-size);
+  font-weight: var(--aurora-type-section-weight);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--aurora-text-secondary);
+}
+
+/*
+ * A shelf that scrolls sideways.
+ *
+ * Scroll snapping so a flick lands on a card rather than between two, and the padding is
+ * on the shelf so the first and last cards can sit under the page's own gutter.
+ */
+.shelf {
+  display: flex;
+  gap: var(--aurora-space-3);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: var(--aurora-space-2);
+  margin: 0;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.card {
+  scroll-snap-align: start;
+  flex: 0 0 10.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-2);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--aurora-focus-ring);
+  outline-offset: 4px;
+  border-radius: var(--aurora-radius-card);
+}
+
+.card img,
+.card > :first-child {
+  width: 10.5rem;
+  height: 10.5rem;
+  border-radius: var(--aurora-radius-card);
+  box-shadow: var(--aurora-shadow-floating);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: var(--aurora-type-body-size);
+  font-weight: var(--aurora-type-track-title-weight);
+  color: var(--aurora-text-primary);
+  /* Two lines, then ellipsis: a long video title must not push the shelf out of line. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardSubtitle {
+  margin: 0;
+  font-size: var(--aurora-type-caption-size);
+  color: var(--aurora-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty {
+  margin: 0;
+  color: var(--aurora-text-secondary);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

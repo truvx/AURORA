@@ -4,57 +4,66 @@ import dev.aurora.player.app.EngineEvent
 import dev.aurora.player.app.PlayerAdapter
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.domain.models.ProviderKind
+import dev.aurora.player.domain.player.PlaybackSource
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.merge
 
+/**
+ * Routes playback to the Media3/ExoPlayer engine for both local and YouTube tracks.
+ *
+ * YouTube tracks now play through ExoPlayer with audio stream URLs resolved by
+ * `YouTubeStreamExtractor` (InnerTube `youtubei/v1/player`, audio-only `adaptiveFormats`),
+ * so there is no longer a separate WebView IFrame adapter or YouTube Music remote adapter.
+ *
+ * Switching between a local track and a YouTube track clears the Media3 session so the
+ * notification, lock screen and headset controls never name one source while the other
+ * one is playing.
+ */
 class CompositePlayerAdapter(
-    private val localAdapter: PlayerAdapter,
-    private val youtubeAdapter: PlayerAdapter
-) : PlayerAdapter {
+    private val media3Adapter: PlayerAdapter,
+) : PlayerAdapter, Media3PlayerOwner {
 
-    override val events: Flow<EngineEvent> = merge(localAdapter.events, youtubeAdapter.events)
+    override val sessionPlayer: androidx.media3.exoplayer.ExoPlayer
+        get() = (media3Adapter as Media3PlayerOwner).sessionPlayer
 
-    private var activeAdapter: PlayerAdapter? = null
+    override fun clearSession() {
+        (media3Adapter as? Media3PlayerOwner)?.clearSession()
+    }
 
-    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
-        val nextAdapter = if (track.provider == ProviderKind.YOUTUBE) {
-            youtubeAdapter
-        } else {
-            localAdapter
+    override val events: Flow<EngineEvent> = media3Adapter.events
+
+    private var lastProvider: ProviderKind? = null
+
+    override fun load(source: PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+        if (lastProvider != null && lastProvider != track.provider) {
+            clearSession()
         }
-
-        if (activeAdapter != nextAdapter) {
-            activeAdapter?.pause()
-            activeAdapter = nextAdapter
-        }
-        
-        activeAdapter?.load(track, uri, playWhenReady, crossfadeDurationMs)
+        lastProvider = track.provider
+        media3Adapter.load(source, track, playWhenReady, crossfadeDurationMs)
     }
 
     override fun play() {
-        activeAdapter?.play()
+        media3Adapter.play()
     }
 
     override fun pause() {
-        activeAdapter?.pause()
+        media3Adapter.pause()
     }
 
     override fun seekTo(positionMs: Long) {
-        activeAdapter?.seekTo(positionMs)
+        media3Adapter.seekTo(positionMs)
     }
 
     override fun setVolume(volume: Float) {
-        localAdapter.setVolume(volume)
-        youtubeAdapter.setVolume(volume)
+        media3Adapter.setVolume(volume)
     }
 
     override fun setAudioGain(linearGain: Float) {
-        localAdapter.setAudioGain(linearGain)
-        youtubeAdapter.setAudioGain(linearGain)
+        media3Adapter.setAudioGain(linearGain)
     }
 
     override fun release() {
-        localAdapter.release()
-        youtubeAdapter.release()
+        media3Adapter.release()
     }
 }

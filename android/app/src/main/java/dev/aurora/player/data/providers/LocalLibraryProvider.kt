@@ -54,14 +54,9 @@ class LocalLibraryProvider(
                 album = track.album,
                 artists = track.artists,
                 artwork = track.artwork,
-                loudness = dev.aurora.player.data.db.TrackLoudnessEntity(
-                    mediaId = track.item.id,
-                    lufsIntegrated = -12.0f,
-                    truePeak = 0.9f,
-                    albumLufs = null,
-                    albumPeak = null,
-                    analysisVersion = 1
-                )
+                // Measured loudness only. Null means the file carried no ReplayGain tags,
+                // and normalization must treat it as unknown rather than assume a level.
+                loudness = track.loudness
             )
         }
 
@@ -70,6 +65,11 @@ class LocalLibraryProvider(
         if (missingUris.isNotEmpty()) {
             dao.deleteStaleLocalFiles(missingUris)
         }
+    }
+
+    companion object {
+        /** Bounded so a broad query cannot pull an entire library into memory. */
+        const val SEARCH_LIMIT = 100
     }
 
     fun observeLibrary(): Flow<List<MediaItem>> {
@@ -83,18 +83,35 @@ class LocalLibraryProvider(
                     artist = artistName,
                     album = relation.album?.title,
                     artworkUri = relation.album?.artworkRef,
+                    technicalMetadata = relation.metadata?.toDomain(),
                     isAvailable = relation.mediaItem.isAvailable
                 )
             }
         }
     }
 
+    /**
+     * Searches in SQL and returns a bounded page.
+     *
+     * The previous implementation read every row and filtered in Kotlin, which is the
+     * full-library load docs/PERFORMANCE_BUDGET.md rules out and which got slower with every
+     * track added. Artist matching moves to a second bounded pass rather than a full scan.
+     */
     override suspend fun search(query: String): Result<List<MediaItem>> {
-        val items = dao.getLocalItems().filter { relation ->
-            relation.mediaItem.title.contains(query, ignoreCase = true) ||
-            relation.artists.any { it.name.contains(query, ignoreCase = true) }
+        if (query.isBlank()) return Result.success(emptyList())
+
+        val byTitle = dao.searchLocalItems(query, SEARCH_LIMIT)
+        val items = if (byTitle.size >= SEARCH_LIMIT) {
+            byTitle
+        } else {
+            // Artist lives in a joined table, so a title match alone can miss results the
+            // user expects. The extra pass stays bounded by the same limit.
+            val seen = byTitle.map { it.mediaItem.id }.toMutableSet()
+            val byArtist = dao.searchLocalItemsByArtist(query, SEARCH_LIMIT - byTitle.size)
+                .filter { seen.add(it.mediaItem.id) }
+            byTitle + byArtist
         }
-        
+
         return Result.success(items.map { relation ->
             val artistName = relation.artists.firstOrNull()?.name
             MediaItem(
@@ -104,6 +121,7 @@ class LocalLibraryProvider(
                 artist = artistName,
                 album = relation.album?.title,
                 artworkUri = relation.album?.artworkRef,
+                technicalMetadata = relation.metadata?.toDomain(),
                 isAvailable = relation.mediaItem.isAvailable
             )
         })
@@ -116,18 +134,7 @@ class LocalLibraryProvider(
         val relation = dao.getLocalItems().find { it.mediaItem.id == trackId }
             ?: return Result.failure(Exception("Track not found in local library"))
         
-        val techMeta = metadataEntity?.let {
-            TrackTechnicalMetadata(
-                codec = it.codec,
-                container = it.container,
-                bitrate = it.bitrate,
-                sampleRate = it.sampleRate,
-                channels = it.channels,
-                bitDepth = it.bitDepth,
-                durationMs = it.durationMs,
-                isLossless = it.isLossless
-            )
-        }
+        val techMeta = metadataEntity?.toDomain()
 
         val artistName = relation.artists.firstOrNull()?.name
 
@@ -145,3 +152,14 @@ class LocalLibraryProvider(
         )
     }
 }
+
+private fun dev.aurora.player.data.db.TrackTechnicalMetadataEntity.toDomain() = TrackTechnicalMetadata(
+    codec = codec,
+    container = container,
+    bitrate = bitrate,
+    sampleRate = sampleRate,
+    channels = channels,
+    bitDepth = bitDepth,
+    durationMs = durationMs,
+    isLossless = isLossless
+)

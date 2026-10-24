@@ -1,14 +1,23 @@
 package dev.aurora.player.ui.navigation
 
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.semantics
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import kotlinx.coroutines.launch
+import com.kyant.backdrop.backdrops.layerBackdrop
 import dev.aurora.player.ui.screens.AiScreen
 import dev.aurora.player.ui.screens.HomeScreen
 import dev.aurora.player.ui.library.LibraryScreen
@@ -19,48 +28,315 @@ import androidx.compose.foundation.layout.Column
 /**
  * AURORA navigation graph with Scaffold shell.
  *
- * Player coordinator lives above screen destinations and survives
- * route changes (Phase 5+). The mini-player region will be added
- * above the bottom bar in later phases.
+ * The player coordinator lives above screen destinations and survives route changes, and
+ * the playback surfaces live here with it rather than inside any one destination:
+ * docs/NAVIGATION_ARCHITECTURE.md makes Queue and Now Playing global, "not duplicated per
+ * tab", and the mini-player a persistent region.
+ *
+ * These were written and then left unwired, so playing a track from the library changed
+ * nothing on screen - no transport controls, no way to reach the full player, and no queue.
  */
+/** A screen reached from the header rather than the navigation pill. */
+private const val WHATS_NEW_ROUTE = "whats_new"
+
+/**
+ * An artist, reached from a track rather than from the pill.
+ *
+ * Keyed by the written name: it is the only identity a local file and a YouTube video
+ * share, and it is encoded because artist names contain slashes and question marks.
+ */
+private const val ARTIST_ROUTE = "artist/{name}"
+
+private fun artistRoute(artist: String): String = "artist/" + android.net.Uri.encode(artist)
+
+/**
+ * Play a whole list: the first track loads and starts, the rest queue behind it.
+ *
+ * Shuffling happens here rather than by turning shuffle mode on, so "Shuffle" plays these
+ * tracks in a random order without changing what the player does when the queue advances
+ * afterwards.
+ */
+private fun playAll(
+    container: dev.aurora.player.app.AppContainer,
+    tracks: List<dev.aurora.player.domain.models.MediaItem>,
+    shuffled: Boolean
+) {
+    val ordered = if (shuffled) tracks.shuffled() else tracks
+    if (ordered.isEmpty()) return
+    container.playerCoordinator.dispatch(
+        dev.aurora.player.domain.player.PlayerCommand.PlayList(ordered, startIndex = 0)
+    )
+}
+
+/**
+ * Play a list from the track that was tapped.
+ *
+ * The list, not the one item: a queue of one has nothing for next or previous to reach,
+ * which is why those controls were dead everywhere - in the app, on the notification, on
+ * the lock screen and over a headset.
+ */
+private fun playFrom(
+    container: dev.aurora.player.app.AppContainer,
+    items: List<dev.aurora.player.domain.models.MediaItem>,
+    index: Int,
+) {
+    container.playerCoordinator.dispatch(
+        dev.aurora.player.domain.player.PlayerCommand.PlayList(items, index)
+    )
+}
+
+/** One track arriving on its own - from the AI - which joins the queue without replacing it. */
+private fun playNow(container: dev.aurora.player.app.AppContainer, item: dev.aurora.player.domain.models.MediaItem) {
+    container.playerCoordinator.dispatch(dev.aurora.player.domain.player.PlayerCommand.Load(item))
+    container.playerCoordinator.dispatch(dev.aurora.player.domain.player.PlayerCommand.Play)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuroraNavigation(
     navController: NavHostController,
     container: dev.aurora.player.app.AppContainer,
+    contentBackdrop: com.kyant.backdrop.backdrops.LayerBackdrop? = null,
+    chromeBackdrop: com.kyant.backdrop.Backdrop? = null,
     modifier: Modifier = Modifier,
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    Scaffold(
-        bottomBar = {
-            Column {
-                // Phase 6 UI (MiniPlayer, NowPlayingScreen, QueueSheet) is intentionally deferred.
-                AuroraBottomBar(
-                    currentRoute = currentRoute,
-                    onNavigate = { destination ->
-                        navController.navigate(destination.route) {
-                            // Avoid building up a large back stack of tabs
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
+    // Saveable: a rotation must not close the player the user had open.
+    var playerExpanded by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf(false)
+    }
+    var queueVisible by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf(false)
+    }
+
+    // Reduced motion removes the travel, not the transition: the player still arrives and
+    // leaves, it just fades rather than sliding the height of the screen.
+    val reducedMotion =
+        dev.aurora.player.ui.accessibility.LocalAccessibilityPreferences.current.reducedMotion
+
+    // Back closes the player and the queue before it leaves the screen, so neither can trap
+    // the user on a surface with no way out.
+    androidx.activity.compose.BackHandler(enabled = queueVisible) { queueVisible = false }
+    androidx.activity.compose.BackHandler(enabled = playerExpanded && !queueVisible) {
+        playerExpanded = false
+    }
+
+    // One way to switch tabs, shared by the bottom bar and by screens that send the user
+    // elsewhere (the AI screen pointing at Settings), so both keep the same back stack.
+    fun navigateToTab(destination: AuroraDestination) {
+        navController.navigate(destination.route) {
+            // Avoid building up a large back stack of tabs
+            popUpTo(navController.graph.startDestinationId) {
+                saveState = true
             }
-        },
-        modifier = modifier
-    ) { innerPadding ->
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
+    /*
+     * No Scaffold: the chrome floats over the content rather than reserving a strip of the
+     * window, which is what lets the page pass under the glass and refract through it.
+     * Screens make room for it themselves via LocalChromeInsets, so the last row can scroll
+     * clear instead of sitting under the bar forever.
+     */
+    val chromeInsets = rememberChromeInsets()
+
+    // One instance for the whole shell: Home and What's New show the same releases, and
+    // building a second view model would fetch them twice.
+    /*
+     * Also one instance: Home's quick-access tiles open the library at a particular view,
+     * and the view lives on this holder rather than in the library's composition so a tile
+     * can set it before navigating.
+     */
+    val libraryViewModel = androidx.compose.runtime.remember {
+        dev.aurora.player.ui.library.LibraryViewModel(
+            container.localLibraryProvider,
+            container.libraryOrganizationRepository
+        )
+    }
+
+    val homeViewModel = androidx.compose.runtime.remember {
+        dev.aurora.player.ui.screens.HomeViewModel(
+            organization = container.libraryOrganizationRepository,
+            resolver = container.mediaResolver,
+            releasesRepository = container.latestReleasesRepository,
+            whatsNew = container.whatsNewStore,
+            followedArtists = container.followedArtists,
+            coverArt = container.coverArtRepository
+        )
+    }
+
+    androidx.compose.foundation.layout.Box(
+        modifier = modifier.fillMaxSize()
+    ) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalChromeInsets provides chromeInsets) {
+        androidx.compose.foundation.layout.Box(
+            modifier = (if (contentBackdrop != null) {
+                Modifier.layerBackdrop(contentBackdrop)
+            } else {
+                Modifier
+            })
+                .fillMaxSize()
+                /*
+                 * While the full player covers the screen, everything under it leaves the
+                 * accessibility tree.
+                 *
+                 * It is still drawn - the player is an overlay, not a destination - so
+                 * without this a screen reader kept swiping into the Home feed behind it,
+                 * reading cards nobody could see and activating them. Sighted users get
+                 * that boundary from the player being opaque; this is the same boundary.
+                 */
+                .then(
+                    if (playerExpanded) {
+                        Modifier.semantics { hideFromAccessibility() }
+                    } else {
+                        Modifier
+                    }
+                )
+        ) {
         NavHost(
             navController = navController,
             startDestination = AuroraDestination.Home.route,
-            modifier = Modifier.padding(innerPadding),
         ) {
-            composable(AuroraDestination.Home.route) { HomeScreen() }
-            composable(AuroraDestination.Search.route) { SearchScreen() }
-            composable(AuroraDestination.Library.route) { LibraryScreen() }
+            composable(AuroraDestination.Home.route) {
+                val preferredQuality by container.audioQualityStore.preferred.collectAsState()
+                HomeScreen(
+                    viewModel = homeViewModel,
+                    onOpenWhatsNew = { navController.navigate(WHATS_NEW_ROUTE) },
+                    onOpenSearch = { navigateToTab(AuroraDestination.Search) },
+                    onOpenSettings = { navigateToTab(AuroraDestination.Settings) },
+                    preferredQuality = preferredQuality,
+                    onSelectQuality = container.audioQualityStore::set,
+                    onPlay = { items, index -> playFrom(container, items, index) },
+                    onAddToQueue = { item ->
+                        container.playerCoordinator.dispatch(
+                            dev.aurora.player.domain.player.PlayerCommand.AddToQueue(item)
+                        )
+                    },
+                    onOpenArtist = { artist -> navController.navigate(artistRoute(artist)) },
+                    onOpenLibrary = { libraryView, favoritesOnly ->
+                        libraryViewModel.show(libraryView, favoritesOnly)
+                        navigateToTab(AuroraDestination.Library)
+                    },
+                    onOpenPlaylist = { playlistId ->
+                        libraryViewModel.show(dev.aurora.player.ui.library.LibraryView.Playlists)
+                        libraryViewModel.openPlaylist(playlistId)
+                        navigateToTab(AuroraDestination.Library)
+                    }
+                )
+            }
+            composable(AuroraDestination.Search.route) {
+                val searchViewModel = androidx.compose.runtime.remember {
+                    dev.aurora.player.ui.screens.SearchViewModel(
+                        localProvider = container.localLibraryProvider,
+                        youtubeProvider = container.youtubeMusicProvider,
+                        trending = container.trendingRepository
+                    )
+                }
+                SearchScreen(
+                    viewModel = searchViewModel,
+                    onOpenSettings = { navigateToTab(AuroraDestination.Settings) },
+                    onPlay = { items, index -> playFrom(container, items, index) },
+                    onAddToQueue = { item ->
+                        container.playerCoordinator.dispatch(
+                            dev.aurora.player.domain.player.PlayerCommand.AddToQueue(item)
+                        )
+                    }
+                )
+            }
+            composable(
+                ARTIST_ROUTE,
+                arguments = listOf(
+                    androidx.navigation.navArgument("name") {
+                        type = androidx.navigation.NavType.StringType
+                    }
+                )
+            ) { entry ->
+                val artist = entry.arguments?.getString("name").orEmpty()
+                val artistViewModel = androidx.compose.runtime.remember(artist) {
+                    dev.aurora.player.ui.artist.ArtistViewModel(
+                        artist = artist,
+                        library = container.localLibraryProvider,
+                        organization = container.libraryOrganizationRepository,
+                        followedArtists = container.followedArtists,
+                    )
+                }
+                val topSongs by artistViewModel.topSongs.collectAsState()
+                val isFollowed by artistViewModel.isFollowed.collectAsState()
+
+                dev.aurora.player.ui.artist.ArtistScreen(
+                    artist = artist,
+                    topSongs = topSongs,
+                    isFollowed = isFollowed,
+                    onBack = { navController.popBackStack() },
+                    onFollow = artistViewModel::setFollowed,
+                    onPlayTracks = { tracks, shuffled -> playAll(container, tracks, shuffled) },
+                    onQueueTracks = { tracks ->
+                        tracks.forEach { track ->
+                            container.playerCoordinator.dispatch(
+                                dev.aurora.player.domain.player.PlayerCommand.AddToQueue(track)
+                            )
+                        }
+                    },
+                    onSearchOnline = { navigateToTab(AuroraDestination.Search) },
+                )
+            }
+
+            composable(WHATS_NEW_ROUTE) {
+                val releasesState by homeViewModel.releases.collectAsState()
+                val ready = releasesState as? dev.aurora.player.ui.screens.ReleasesState.Ready
+                dev.aurora.player.ui.screens.WhatsNewScreen(
+                    releases = ready?.releases.orEmpty(),
+                    unseen = ready?.unseen.orEmpty(),
+                    onPlay = { items, index -> playFrom(container, items, index) },
+                    onBack = { navController.popBackStack() },
+                    onSeen = homeViewModel::markReleasesSeen,
+                    onOpenSearch = { navigateToTab(AuroraDestination.Search) }
+                )
+            }
+            composable(AuroraDestination.Library.route) {
+                val items by libraryViewModel.items.collectAsState()
+                val favoriteIds by libraryViewModel.favoriteIds.collectAsState()
+                val playlists by libraryViewModel.playlists.collectAsState()
+                val libraryView by libraryViewModel.view.collectAsState()
+                val favoritesOnly by libraryViewModel.favoritesOnly.collectAsState()
+                val openGroupKey by libraryViewModel.openGroupKey.collectAsState()
+                val openPlaylistId by libraryViewModel.openPlaylistId.collectAsState()
+                val openPlaylistTracks by libraryViewModel.openPlaylistTracks.collectAsState()
+                LibraryScreen(
+                    items = items,
+                    favoriteIds = favoriteIds,
+                    playlists = playlists,
+                    view = libraryView,
+                    favoritesOnly = favoritesOnly,
+                    openGroupKey = openGroupKey,
+                    openPlaylistId = openPlaylistId,
+                    openPlaylistTracks = openPlaylistTracks,
+                    onSelectView = { libraryViewModel.show(it) },
+                    onSetFavoritesOnly = libraryViewModel::setFavoritesOnly,
+                    onOpenGroup = libraryViewModel::openGroup,
+                    onScanRequested = libraryViewModel::scan,
+                    onToggleFavorite = libraryViewModel::setFavorite,
+                    onPlayFrom = { tracks, index -> playFrom(container, tracks, index) },
+                    onOpenPlaylist = libraryViewModel::openPlaylist,
+                    onCreatePlaylist = libraryViewModel::createPlaylist,
+                    onDeletePlaylist = libraryViewModel::deletePlaylist,
+                    onAddToPlaylist = libraryViewModel::addToPlaylist,
+                    onRemoveEntry = libraryViewModel::removeFromPlaylist,
+                    onMoveEntry = libraryViewModel::moveEntry,
+                    onPlayTracks = { tracks, shuffled -> playAll(container, tracks, shuffled) },
+                    onQueueTracks = { tracks ->
+                        tracks.forEach { track ->
+                            container.playerCoordinator.dispatch(
+                                dev.aurora.player.domain.player.PlayerCommand.AddToQueue(track)
+                            )
+                        }
+                    }
+                )
+            }
             composable(AuroraDestination.Ai.route) { 
                 val aiViewModel = androidx.compose.runtime.remember {
                     dev.aurora.player.ui.screens.AiViewModel(
@@ -70,12 +346,136 @@ fun AuroraNavigation(
                 }
                 AiScreen(
                     viewModel = aiViewModel,
-                    playerCoordinator = container.playerCoordinator
+                    playerCoordinator = container.playerCoordinator,
+                    onOpenSettings = { navigateToTab(AuroraDestination.Settings) }
                 ) 
             }
             composable(AuroraDestination.Settings.route) { 
-                SettingsScreen(playerCoordinator = container.playerCoordinator) 
+                val navContext = androidx.compose.ui.platform.LocalContext.current
+                val privacyViewModel = androidx.compose.runtime.remember {
+                    dev.aurora.player.ui.screens.PrivacyViewModel(
+                        container.libraryOrganizationRepository,
+                        dev.aurora.player.ui.screens.PrivacyViewModel.exportDirFor(navContext)
+                    )
+                }
+                val settingsQuality by container.audioQualityStore.preferred.collectAsState()
+                SettingsScreen(
+                    playerCoordinator = container.playerCoordinator,
+                    privacyViewModel = privacyViewModel,
+                    gatewayTokenStore = container.gatewayTokenStore,
+                    youTubeKeyStore = container.youTubeKeyStore,
+                    googleAuth = container.googleAuth,
+                    audioQuality = settingsQuality,
+                    onSelectQuality = container.audioQualityStore::set,
+                    profileStore = container.profileStore
+                )
             }
         }
+        }
+
+        // Drawn after the captured content layer, never inside it: the chrome samples that
+        // layer, and a surface that samples the layer it lives in recurses forever.
+        if (!playerExpanded) {
+            AuroraFloatingChrome(
+                currentRoute = currentRoute,
+                onNavigate = ::navigateToTab,
+                onExpandPlayer = { playerExpanded = true },
+                backdrop = chromeBackdrop,
+                headphones = container.headphones.state,
+                modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
+            )
+        }
+    }
+
+    /*
+     * The full player, over the shell rather than as a destination: it is a playback
+     * surface, not a tab, and routing to it would put it in the back stack behind whatever
+     * the user was browsing.
+     *
+     * Enter and exit travel the same path - up from the bottom, back down to it - matching
+     * the direction the mini-player is dragged to open it. A surface that arrives one way
+     * and leaves another breaks the relationship between the two states.
+     */
+    androidx.compose.animation.AnimatedVisibility(
+        visible = playerExpanded,
+        enter = if (reducedMotion) {
+            androidx.compose.animation.fadeIn()
+        } else {
+            androidx.compose.animation.slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = androidx.compose.animation.core.spring(
+                    dampingRatio = dev.aurora.player.ui.theme.AuroraMotionTokens.springStandardDamping,
+                    stiffness = dev.aurora.player.ui.theme.AuroraMotionTokens.springStandardStiffness,
+                    visibilityThreshold = androidx.compose.ui.unit.IntOffset.VisibilityThreshold
+                )
+            )
+        },
+        /*
+         * Closing is not opening played backwards.
+         *
+         * Opening invites attention and is worth a spring; closing is the screen getting
+         * out of the way and wants to be over. Both used the same spring, which made
+         * dismissing the player feel like it was reluctant to leave. A flat, quick curve
+         * on the way out is the asymmetry every sheet in the reference has.
+         */
+        exit = if (reducedMotion) {
+            androidx.compose.animation.fadeOut()
+        } else {
+            androidx.compose.animation.slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = androidx.compose.animation.core.tween(
+                    durationMillis = dev.aurora.player.ui.theme.AuroraMotionTokens.durationStandard,
+                    easing = dev.aurora.player.ui.theme.AuroraMotionTokens.easingAccelerate
+                )
+            ) + androidx.compose.animation.fadeOut(
+                animationSpec = androidx.compose.animation.core.tween(
+                    durationMillis = dev.aurora.player.ui.theme.AuroraMotionTokens.durationQuick
+                )
+            )
+        }
+    ) {
+        /*
+         * Favourites are real here, not decoration: the heart writes to the same store
+         * the library reads, so a track hearted on the player is favourited everywhere.
+         */
+        val playingId = container.playerCoordinator.state.collectAsState().value.currentTrack?.id
+        val isFavorite by androidx.compose.runtime.remember(playingId) {
+            playingId
+                ?.let { container.libraryOrganizationRepository.observeIsFavorite(it) }
+                ?: kotlinx.coroutines.flow.flowOf(false)
+        }.collectAsState(initial = false)
+        val favoriteScope = androidx.compose.runtime.rememberCoroutineScope()
+
+        dev.aurora.player.ui.screens.NowPlayingScreen(
+            onClose = { playerExpanded = false },
+            onOpenQueue = { queueVisible = true },
+            sleepTimer = container.sleepTimer,
+            isFavorite = isFavorite,
+            onToggleFavorite = { wanted ->
+                val id = playingId ?: return@NowPlayingScreen
+                favoriteScope.launch {
+                    container.libraryOrganizationRepository.setFavorite(id, wanted)
+                }
+            },
+            // The player is an overlay, not a destination, so it has to step aside before
+            // the artist can be shown underneath it.
+            onOpenArtist = { artist ->
+                playerExpanded = false
+                navController.navigate(artistRoute(artist))
+            },
+        )
+    }
+
+    if (queueVisible) {
+        // A real modal sheet: it brings its own scrim, drag handle, velocity-aware settling
+        // and dismiss gesture, and it is already wired for back and for screen readers.
+        // The queue was previously a plain full-screen column with none of that.
+        androidx.compose.material3.ModalBottomSheet(
+            onDismissRequest = { queueVisible = false },
+            containerColor = dev.aurora.player.ui.theme.Aurora.colors.backgroundPrimary
+        ) {
+            dev.aurora.player.ui.screens.QueueSheet(onClose = { queueVisible = false })
+        }
+    }
     }
 }

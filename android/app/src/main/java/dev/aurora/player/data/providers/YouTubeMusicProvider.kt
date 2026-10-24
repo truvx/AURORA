@@ -1,15 +1,25 @@
 package dev.aurora.player.data.providers
 
-import dev.aurora.player.BuildConfig
 import dev.aurora.player.data.api.YouTubeDataApi
 import dev.aurora.player.domain.models.MediaItem
 import dev.aurora.player.domain.models.ProviderCapabilities
 import dev.aurora.player.domain.models.ProviderCapability
 import dev.aurora.player.domain.models.ProviderKind
+import dev.aurora.player.domain.auth.YouTubeCredential
 import dev.aurora.player.domain.providers.MusicProvider
+import dev.aurora.player.domain.audio.RequestedQuality
 
 class YouTubeMusicProvider(
-    private val api: YouTubeDataApi
+    private val api: YouTubeDataApi,
+    /*
+     * A lookup rather than a value.
+     *
+     * The authority to call YouTube arrives, changes, or is withdrawn long after this
+     * object is built - a key typed into Settings, an account signed in or signed out -
+     * and it is suspending because a signed-in session may need its token refreshed before
+     * it can answer.
+     */
+    private val credentials: suspend () -> YouTubeCredential
 ) : MusicProvider {
     
     override val id: ProviderKind = ProviderKind.YOUTUBE
@@ -20,20 +30,21 @@ class YouTubeMusicProvider(
             ProviderCapability.METADATA,
             ProviderCapability.ARTWORK,
             ProviderCapability.PLAYBACK,
-            ProviderCapability.QUEUE
+            ProviderCapability.QUEUE,
+            ProviderCapability.BACKGROUND_PLAYBACK
         )
     )
 
     override suspend fun search(query: String): Result<List<MediaItem>> {
-        val apiKey = BuildConfig.YOUTUBE_API_KEY
-        if (apiKey.isBlank()) {
-            return Result.failure(Exception("YouTube API key is not configured."))
+        val credential = credentials()
+        if (credential is YouTubeCredential.None) {
+            return Result.failure(Exception("Sign in with Google, or add a YouTube Data API key, in Settings."))
         }
         
         return try {
             val response = api.search(
                 query = query,
-                apiKey = apiKey,
+                apiKey = credential.keyParameter,
                 videoEmbeddable = "true"
             )
             val items = response.items.mapNotNull { result ->
@@ -56,15 +67,15 @@ class YouTubeMusicProvider(
 
     override suspend fun resolveMetadata(trackId: String): Result<MediaItem> {
         val videoId = trackId.removePrefix("youtube:")
-        val apiKey = BuildConfig.YOUTUBE_API_KEY
-        if (apiKey.isBlank()) {
-            return Result.failure(Exception("YouTube API key is not configured."))
+        val credential = credentials()
+        if (credential is YouTubeCredential.None) {
+            return Result.failure(Exception("Sign in with Google, or add a YouTube Data API key, in Settings."))
         }
         
         return try {
             val response = api.getVideos(
                 id = videoId,
-                apiKey = apiKey
+                apiKey = credential.keyParameter
             )
             val item = response.items.firstOrNull() 
                 ?: return Result.failure(Exception("Video not found"))
@@ -76,7 +87,10 @@ class YouTubeMusicProvider(
             val bestThumbnail = item.snippet.thumbnails.high?.url ?: item.snippet.thumbnails.default?.url
             Result.success(
                 MediaItem(
-                    id = item.id,
+                    // Prefixed to match search(). Without it, an item resolved by metadata
+                    // carried a bare id, and every call site routing on "youtube:" treated
+                    // it as local - so the track resolved to no URI and would not play.
+                    id = "youtube:${item.id}",
                     provider = ProviderKind.YOUTUBE,
                     title = item.snippet.title,
                     artist = item.snippet.channelTitle,

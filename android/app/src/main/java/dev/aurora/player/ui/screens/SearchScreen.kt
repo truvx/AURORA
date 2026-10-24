@@ -1,78 +1,256 @@
 package dev.aurora.player.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.LibraryMusic
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import dev.aurora.player.ui.components.GlassCard
-import dev.aurora.player.ui.components.GlassLevel
+import dev.aurora.player.domain.models.MediaItem
+import dev.aurora.player.ui.components.SectionHeader
+import dev.aurora.player.ui.components.TrackRow
+import dev.aurora.player.ui.navigation.LocalChromeInsets
 import dev.aurora.player.ui.theme.Aurora
 
-/** 
- * Search screen — foundation shell. 
- * Shows a premium empty state before a search is performed.
+/**
+ * Search: the listener's own library, and YouTube.
+ *
+ * Library matches appear as they type. YouTube is asked only when they submit, because a
+ * search there spends a hundredth of the day's quota every time.
  */
 @Composable
-fun SearchScreen(modifier: Modifier = Modifier) {
+fun SearchScreen(
+    viewModel: SearchViewModel? = null,
+    /**
+     * Play a list from one of its tracks.
+     *
+     * The list rather than the one item, so the queue has somewhere for next and previous
+     * to go. Tapping a row means "play this list from here".
+     */
+    onPlay: (List<MediaItem>, Int) -> Unit = { _, _ -> },
+    onAddToQueue: (MediaItem) -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val spacing = Aurora.spacing
-    val typography = Aurora.typography
     val colors = Aurora.colors
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(
-                horizontal = spacing.space4, 
-                vertical = spacing.space6 + 48.dp // Padding for Top/Bottom bars
-            ),
-        verticalArrangement = Arrangement.Top,
+    val query by (viewModel?.query?.collectAsState()
+        ?: androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") })
+    val localResults by (viewModel?.localResults?.collectAsState()
+        ?: androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(emptyList<MediaItem>()) })
+    val remote by (viewModel?.remote?.collectAsState()
+        ?: androidx.compose.runtime.remember {
+            androidx.compose.runtime.mutableStateOf<RemoteSearchState>(RemoteSearchState.Idle)
+        })
+    val trending by (viewModel?.trendingNow?.collectAsState()
+        ?: androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(emptyList<MediaItem>()) })
+
+    LazyColumn(
+        modifier = modifier.fillMaxWidth().statusBarsPadding(),
+        contentPadding = PaddingValues(
+            top = spacing.space6,
+            bottom = LocalChromeInsets.current.calculateBottomPadding()
+        ),
+        verticalArrangement = Arrangement.spacedBy(spacing.space4)
     ) {
-        Text(
-            text = "Search",
-            style = typography.display,
-            color = colors.textPrimary,
-            modifier = Modifier.padding(bottom = spacing.space6)
-        )
-        
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = spacing.space8),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Search,
-                contentDescription = null,
-                tint = colors.textSecondary.copy(alpha = 0.8f),
-                modifier = Modifier.padding(bottom = spacing.space4)
-            )
+        item {
             Text(
-                text = "Find your music",
-                style = typography.title,
+                text = "Search",
+                style = Aurora.typography.display,
                 color = colors.textPrimary,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(spacing.space3))
-            Text(
-                text = "Search across your local library and YouTube for tracks, artists, and playlists.",
-                style = typography.body,
-                color = colors.textSecondary,
-                textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = spacing.space4)
             )
         }
+
+        item {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { viewModel?.onQueryChange(it) },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.space4),
+                placeholder = { Text("Songs, artists, albums", color = colors.textTertiary) },
+                leadingIcon = {
+                    Icon(Icons.Rounded.Search, contentDescription = null, tint = colors.textSecondary)
+                },
+                singleLine = true,
+                // Submit is what reaches YouTube, so the key says so.
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { viewModel?.submit() }),
+                shape = RoundedCornerShape(percent = 50),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = colors.surfaceGlassSecondary,
+                    unfocusedContainerColor = colors.surfaceGlassSecondary,
+                    focusedTextColor = colors.textPrimary,
+                    unfocusedTextColor = colors.textPrimary,
+                    cursorColor = colors.accentPrimary
+                )
+            )
+        }
+
+        if (query.isBlank()) {
+            // Somewhere to start, rather than an empty screen waiting to be typed into.
+            item {
+                SectionHeader(
+                    title = "Trending in ${viewModel?.regionName ?: "your region"}",
+                    modifier = Modifier.padding(horizontal = spacing.space4)
+                )
+            }
+            if (trending.isEmpty()) {
+                item {
+                    Hint(
+                        Icons.Outlined.CloudOff,
+                        "Couldn't load trending",
+                        "Search for something instead - that doesn't need this to have worked."
+                    )
+                }
+            } else {
+                item { TrackList(trending, onPlay, onAddToQueue) }
+            }
+            return@LazyColumn
+        }
+
+        item {
+            SectionHeader(
+                title = "In your library",
+                modifier = Modifier.padding(horizontal = spacing.space4)
+            )
+        }
+        if (localResults.isEmpty()) {
+            item {
+                Hint(
+                    Icons.Outlined.LibraryMusic,
+                    "Nothing in your library",
+                    "No local file matches that. YouTube is below."
+                )
+            }
+        } else {
+            item { TrackList(localResults, onPlay, onAddToQueue) }
+        }
+
+        item {
+            SectionHeader(
+                title = "YouTube",
+                modifier = Modifier.padding(horizontal = spacing.space4)
+            )
+        }
+        when (val state = remote) {
+            RemoteSearchState.Idle -> item {
+                Hint(
+                    Icons.Rounded.Search,
+                    "Press search to look on YouTube",
+                    "Library results are instant; a YouTube search spends a hundredth of the day's quota, so it waits to be asked."
+                )
+            }
+            // The shape of what is coming, rather than a sentence about waiting.
+            RemoteSearchState.Searching -> item {
+                dev.aurora.player.ui.components.CardRowSkeleton(
+                    modifier = Modifier.padding(horizontal = Aurora.spacing.space4),
+                    contentDescription = "Searching YouTube"
+                )
+            }
+            is RemoteSearchState.Results ->
+                if (state.items.isEmpty()) {
+                    item {
+                        Hint(
+                            Icons.Rounded.Search,
+                            "Nothing on YouTube for that",
+                            "Try fewer words, or a different spelling."
+                        )
+                    }
+                } else {
+                    item { TrackList(state.items, onPlay, onAddToQueue) }
+                }
+            // Each of these has a different thing to do about it, so each offers it
+            // rather than naming a screen and leaving the listener to find it.
+            RemoteSearchState.NotConfigured -> item {
+                Hint(
+                    Icons.Rounded.Settings,
+                    "No YouTube key",
+                    "This build has no Data API key and nobody is signed in. Either will do.",
+                    "Open Settings",
+                    onOpenSettings
+                )
+            }
+            RemoteSearchState.Rejected -> item {
+                Hint(
+                    Icons.Rounded.Settings,
+                    "YouTube turned the request down",
+                    "The key is wrong, YouTube Data API v3 isn't enabled for its project, or today's quota is spent. Your connection was fine.",
+                    "Open Settings",
+                    onOpenSettings
+                )
+            }
+            RemoteSearchState.Unavailable -> item {
+                Hint(
+                    Icons.Outlined.CloudOff,
+                    "Couldn't reach YouTube",
+                    "Check your connection. Your library still searches.",
+                    "Try again",
+                    { viewModel?.submit() }
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun TrackList(
+    items: List<MediaItem>,
+    onPlay: (List<MediaItem>, Int) -> Unit,
+    onAddToQueue: (MediaItem) -> Unit,
+) {
+    Column {
+        items.forEachIndexed { index, item ->
+            TrackRow(
+                item = item,
+                onPlay = { onPlay(items, index) },
+                onAddToQueue = { onAddToQueue(item) },
+                modifier = Modifier.padding(horizontal = Aurora.spacing.space4)
+            )
+        }
+    }
+}
+
+@Composable
+private fun Hint(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    headline: String,
+    detail: String,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+) {
+    dev.aurora.player.ui.components.SectionNotice(
+        icon = icon,
+        headline = headline,
+        detail = detail,
+        actionLabel = actionLabel,
+        onAction = onAction,
+        modifier = Modifier.padding(horizontal = Aurora.spacing.space4)
+    )
 }

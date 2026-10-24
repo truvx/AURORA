@@ -1,0 +1,35 @@
+# Every Material Symbols glyph the web client draws.
+#
+# The shipped font is subsetted to exactly this list, so a name that is missing here renders
+# as its own word on screen - "queue_music" instead of the icon - rather than failing loudly.
+# IconCoverageTest asserts the source uses nothing outside this list.
+#
+# Regenerate after adding a name:
+#   ICONS=$(grep -vE '^#|^$' app/fonts/icons.txt | tr '\n' ',' | sed 's/,$//')
+#   curl -s -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36" \
+#     "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=$ICONS&display=block" \
+#     | grep -oE 'https://fonts.gstatic.com/[^)]+' | head -1 \
+#     | xargs curl -s -o app/fonts/material-symbols-outlined-subset.woff2
+album
+arrow_back
+arrow_downward
+arrow_upward
+auto_awesome
+close
+delete
+error
+favorite
+favorite_border
+library_music
+pause
+play_arrow
+play_circle
+playlist_add
+queue_music
+repeat
+repeat_one
+search
+settings
+shuffle
+skip_next
+skip_previous

@@ -11,20 +11,18 @@
 :root {
   /* ──────────────── Color Primitives (Light) ──────────────── */
   --aurora-neutral-0: #ffffff;
-  --aurora-neutral-10: #f7f8fa;
-  --aurora-neutral-20: #eceef2;
-  --aurora-neutral-40: #d2d6de;
-  --aurora-neutral-70: #606875;
-  --aurora-neutral-90: #252a33;
-  --aurora-accent-cyan: #087e9b;
-  --aurora-accent-violet: #6c51c9;
+  --aurora-neutral-10: #f6f6f8;
+  --aurora-neutral-20: #ececef;
+  --aurora-neutral-70: #5a5a63;
+  --aurora-neutral-90: #17171a;
+  --aurora-accent-blue: #2458d6;
+  --aurora-favorite: #d7263d;
   --aurora-semantic-success: #197a4a;
   --aurora-semantic-warning: #8b5a00;
   --aurora-semantic-error: #b3261e;
 
   /* ──────────────── Semantic Colors (Light) ──────────────── */
   --aurora-bg-primary: var(--aurora-neutral-0);
-  --aurora-bg-secondary: var(--aurora-neutral-10);
   --aurora-surface-glass-primary: rgba(255, 255, 255, 0.72);
   --aurora-surface-glass-secondary: rgba(247, 248, 250, 0.64);
   --aurora-surface-glass-elevated: rgba(255, 255, 255, 0.84);
@@ -32,77 +30,181 @@
   --aurora-text-primary: var(--aurora-neutral-90);
   --aurora-text-secondary: var(--aurora-neutral-70);
   --aurora-text-tertiary: rgba(96, 104, 117, 0.72);
-  --aurora-text-inverse: var(--aurora-neutral-0);
-  --aurora-accent-primary: var(--aurora-accent-cyan);
-  --aurora-accent-secondary: var(--aurora-accent-violet);
-  --aurora-control-primary: var(--aurora-accent-cyan);
+  --aurora-accent-primary: var(--aurora-accent-blue);
+  /*
+   * What goes on top of an accent fill. Light's accent is a deep blue, so near-black text
+   * on it measured 3.23:1 - white is 6.10:1.
+   */
+  --aurora-accent-on-primary: #ffffff;
+  /* The primary action is a solid pill carrying the theme's strongest contrast. */
+  --aurora-control-primary: var(--aurora-neutral-90);
   --aurora-control-on-primary: var(--aurora-neutral-0);
-  --aurora-focus-ring: rgba(8, 126, 155, 0.56);
+  --aurora-focus-ring: rgba(36, 88, 214, 0.56);
   --aurora-divider-subtle: rgba(210, 214, 222, 0.24);
-  --aurora-player-bg: var(--aurora-neutral-10);
+  /*
+   * Control outlines, not decoration: a row or input whose only boundary is this line
+   * needs WCAG 1.4.11's 3:1, which --aurora-divider-subtle is far too faint to give.
+   */
+  --aurora-border-control: rgba(96, 104, 117, 0.42);
   --aurora-player-control: var(--aurora-neutral-90);
-  --aurora-player-progress: var(--aurora-accent-cyan);
-  --aurora-status-success: var(--aurora-semantic-success);
-  --aurora-status-warning: var(--aurora-semantic-warning);
-  --aurora-status-error: var(--aurora-semantic-error);
+  --aurora-player-progress: var(--aurora-accent-blue);
 
   /* Glass recipe opacity tokens */
-  --aurora-glass-tint: rgba(255, 255, 255, 0.12);
-  --aurora-glass-highlight: rgba(255, 255, 255, 0.36);
-  --aurora-glass-scrim: rgba(37, 42, 51, 0.20);
   --aurora-disabled-opacity: 0.48;
 
   /* ──────────────── Typography ──────────────── */
-  --aurora-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /*
+   * --font-aurora-mono is supplied by next/font in the root layout, which self-hosts the
+   * face. The generic `monospace` behind it is what renders while the face loads, and what
+   * renders if it fails entirely - a monospaced fallback for a monospaced design, so the
+   * measure barely moves when it swaps.
+   */
+  --aurora-font-family: var(--font-aurora-mono), ui-monospace, SFMono-Regular, Menlo,
+    Consolas, monospace;
 
-  --aurora-type-display-size: 2.5rem;     /* 40px */
-  --aurora-type-display-line: 2.875rem;   /* 46px */
+  /*
+   * Sizes are a step down from the previous scale: Space Mono sets about 15% wider than
+   * Montserrat at the same size, so holding the old sizes would have pushed every title
+   * into an ellipsis. Stepping down keeps the same number of characters on a line, which
+   * is what the layout was actually built around.
+   *
+   * Tracking stays near zero, because a monospaced face is already wide and tightening it
+   * closes the counters. It opens only on small capitals, where a little air is what makes
+   * them legible.
+   *
+   * The family ships Regular and Bold, and nothing between: a role that wants a 500 takes
+   * 400 rather than a weight the browser has to invent.
+   */
+  --aurora-type-display-size: 2.125rem;   /* 34px */
+  --aurora-type-display-line: 2.625rem;   /* 42px */
   --aurora-type-display-weight: 700;
+  --aurora-type-display-tracking: -0.015em;
 
-  --aurora-type-headline-size: 1.875rem;  /* 30px */
-  --aurora-type-headline-line: 2.25rem;   /* 36px */
+  --aurora-type-headline-size: 1.625rem;  /* 26px */
+  --aurora-type-headline-line: 2.125rem;  /* 34px */
   --aurora-type-headline-weight: 700;
+  --aurora-type-headline-tracking: -0.012em;
 
-  --aurora-type-title-size: 1.375rem;     /* 22px */
+  --aurora-type-title-size: 1.25rem;      /* 20px */
   --aurora-type-title-line: 1.75rem;      /* 28px */
-  --aurora-type-title-weight: 600;
+  --aurora-type-title-weight: 700;
+  --aurora-type-title-tracking: 0em;
 
   --aurora-type-body-size: 1rem;          /* 16px */
   --aurora-type-body-line: 1.5rem;        /* 24px */
   --aurora-type-body-weight: 400;
+  --aurora-type-body-tracking: 0em;
 
   --aurora-type-label-size: 0.875rem;     /* 14px */
   --aurora-type-label-line: 1.25rem;      /* 20px */
-  --aurora-type-label-weight: 600;
+  --aurora-type-label-weight: 400;
+  --aurora-type-label-tracking: 0em;
+
+  /*
+   * Material Symbols are a font, so their size is a font-size - but it is an icon
+   * dimension and not a step on the type scale, which is why it has its own name rather
+   * than borrowing whichever text token happens to be 24px this week.
+   */
+  --aurora-icon-size: 1.5rem;             /* 24px */
 
   --aurora-type-caption-size: 0.75rem;    /* 12px */
   --aurora-type-caption-line: 1rem;       /* 16px */
   --aurora-type-caption-weight: 400;
+  --aurora-type-caption-tracking: 0.008em;
 
-  /* ──────────────── Spacing (4-unit rhythm) ──────────────── */
-  --aurora-space-1: 4px;
-  --aurora-space-2: 8px;
-  --aurora-space-3: 12px;
-  --aurora-space-4: 16px;
-  --aurora-space-5: 20px;
-  --aurora-space-6: 24px;
-  --aurora-space-8: 32px;
-  --aurora-space-10: 40px;
-  --aurora-space-12: 48px;
-  --aurora-space-16: 64px;
+  /*
+   * A song, and whoever made it.
+   *
+   * Their own tokens because the hierarchy here is size and colour rather than weight:
+   * both are Regular, and the artist is smaller and dimmer. With two weights in the
+   * family, spending Bold on a track title would put it level with the heading above it,
+   * and a screen of uniformly heavy type has no hierarchy at all - only volume.
+   */
+  --aurora-type-track-title-size: 1.125rem;   /* 18px */
+  --aurora-type-track-title-weight: 400;
+
+  --aurora-type-track-artist-size: 0.9375rem; /* 15px */
+  --aurora-type-track-artist-weight: 400;
+
+  --aurora-type-track-artist-compact-size: 0.8125rem; /* 13px */
+  --aurora-type-track-artist-compact-weight: 400;
+
+  /* Small-caps section labels are headings, and take the heading weight. */
+  --aurora-type-section-weight: 700;
+
+  /*
+   * Text sitting on a translucent surface loses definition against whatever moves behind
+   * it. A touch more weight and tracking buys that definition back without a heavier scrim.
+   */
+  /*
+   * Only tracking now. The bump used to take Light up to Regular, but with two weights the
+   * step available is Regular to Bold, which is far more than definition needs and turns
+   * every label over glass into a heading. A little extra tracking does the same job.
+   */
+  --aurora-vibrancy-weight-bump: 400;
+  --aurora-vibrancy-tracking-bump: 0.01em;
+
+  /*
+   * Spacing (4-unit rhythm), in rem so the layout grows with the user's text-size setting
+   * instead of staying fixed while the type around it grows.
+   */
+  /*
+   * A hairline, below the 4-unit scale on purpose.
+   *
+   * This is typographic, not structural: the gap between a track's name and the artist
+   * under it, where the 4px step is already too much air. Layout never uses it - if this
+   * shows up outside a stack of two text lines, the stack is the wrong tool.
+   */
+  --aurora-space-hair: 0.125rem;
+
+  --aurora-space-1: 0.25rem;
+  --aurora-space-2: 0.5rem;
+  --aurora-space-3: 0.75rem;
+  --aurora-space-4: 1rem;
+  --aurora-space-5: 1.25rem;
+  --aurora-space-6: 1.5rem;
+  --aurora-space-8: 2rem;
+  --aurora-space-10: 2.5rem;
 
   /* ──────────────── Shape ──────────────── */
+  /*
+   * Fully round. Used by the nav pill, the chips, the primary buttons and the scrollbar
+   * thumb - anything whose shape is "a pill" rather than "a box with softened corners".
+   * Written as one token because a 999px scattered through eight files is a value nobody
+   * can change.
+   */
+  --aurora-radius-pill: 999px;
+
+  /*
+   * The focus ring's own rounding. Smaller than any surface radius on purpose: an outline
+   * has to hug the element it is marking, and a 12px ring around an 8px control reads as
+   * a second, blurrier box.
+   */
+  --aurora-radius-focus: 4px;
+
   --aurora-radius-control: 12px;
   --aurora-radius-card: 20px;
-  --aurora-radius-sheet: 28px;
-  --aurora-radius-dialog: 24px;
   --aurora-radius-artwork: 16px;
 
-  /* ──────────────── Depth / Glass ──────────────── */
-  --aurora-blur-none: 0px;
+  /*
+   * Depth / Glass
+   *
+   * Material weight encodes hierarchy, and a bigger surface has to read as a thicker piece
+   * of glass than a small chip: blur and shadow scale together with the surface, they are
+   * not one shared value. Saturation is what stops a blurred backdrop going grey and makes
+   * the layer read as glass rather than as frosted plastic.
+   */
   --aurora-blur-subtle: 8px;
   --aurora-blur-surface: 16px;
-  --aurora-blur-floating: 24px;
+  --aurora-blur-floating: 28px;
+  --aurora-glass-saturation: 180%;
+
+  /* Light catching the top edge of a real pane. */
+  --aurora-glass-edge: rgba(255, 255, 255, 0.5);
+
+  --aurora-shadow-chip: 0 1px 2px rgba(15, 20, 28, 0.08);
+  --aurora-shadow-card: 0 4px 16px rgba(15, 20, 28, 0.10);
+  --aurora-shadow-floating: 0 12px 40px rgba(15, 20, 28, 0.18);
 
   /* ──────────────── Motion ──────────────── */
   --aurora-duration-instant: 80ms;
@@ -122,42 +224,76 @@
 
 /* ──────────────── Dark Theme ──────────────── */
 [data-theme="dark"] {
-  --aurora-neutral-0: #000000;
-  --aurora-neutral-10: #111318;
-  --aurora-neutral-20: #1b1e25;
-  --aurora-neutral-40: #363b46;
-  --aurora-neutral-70: #a7afbd;
-  --aurora-neutral-90: #f0f2f6;
-  --aurora-accent-cyan: #66d9f2;
-  --aurora-accent-violet: #bba8ff;
+  --aurora-neutral-0: #0e0e0f;
+  --aurora-neutral-10: #151517;
+  --aurora-neutral-20: #1f1f22;
+  --aurora-neutral-70: #ababb2;
+  --aurora-neutral-90: #f5f5f7;
+  --aurora-accent-blue: #7ea6ff;
+  --aurora-favorite: #f9555b;
   --aurora-semantic-success: #67d49a;
   --aurora-semantic-warning: #f2c66d;
   --aurora-semantic-error: #ff9f99;
 
   --aurora-bg-primary: var(--aurora-neutral-0);
-  --aurora-bg-secondary: var(--aurora-neutral-10);
-  --aurora-surface-glass-primary: rgba(27, 30, 37, 0.72);
-  --aurora-surface-glass-secondary: rgba(27, 30, 37, 0.56);
-  --aurora-surface-glass-elevated: rgba(27, 30, 37, 0.84);
+  /*
+   * White, not a dark tint: these materials lighten what is behind them, the way the
+   * reference bars read about 22% white over near-black content. A dark tint darkens
+   * instead and never reads as glass. Bright artwork behind them is handled by the
+   * contrast scrim in AmbientArtworkLayer, not by making the glass opaque.
+   */
+  --aurora-surface-glass-primary: rgba(255, 255, 255, 0.12);
+  --aurora-surface-glass-secondary: rgba(255, 255, 255, 0.07);
+  --aurora-surface-glass-elevated: rgba(255, 255, 255, 0.18);
   --aurora-surface-opaque-fallback: var(--aurora-neutral-20);
   --aurora-text-primary: var(--aurora-neutral-90);
   --aurora-text-secondary: var(--aurora-neutral-70);
   --aurora-text-tertiary: rgba(167, 175, 189, 0.72);
-  --aurora-text-inverse: var(--aurora-neutral-0);
-  --aurora-accent-primary: var(--aurora-accent-cyan);
-  --aurora-accent-secondary: var(--aurora-accent-violet);
-  --aurora-control-primary: var(--aurora-accent-cyan);
+  --aurora-accent-primary: var(--aurora-accent-blue);
+  /* Dark's accent is a light blue, so what sits on it stays near-black. */
+  --aurora-accent-on-primary: var(--aurora-neutral-0);
+  /* The white "Play" pill from the references, with near-black content on it. */
+  --aurora-control-primary: #ffffff;
   --aurora-control-on-primary: var(--aurora-neutral-0);
-  --aurora-focus-ring: rgba(102, 217, 242, 0.56);
+  --aurora-focus-ring: rgba(126, 166, 255, 0.56);
   --aurora-divider-subtle: rgba(54, 59, 70, 0.24);
-  --aurora-player-bg: var(--aurora-neutral-10);
+  --aurora-border-control: rgba(167, 175, 189, 0.44);
   --aurora-player-control: var(--aurora-neutral-90);
-  --aurora-player-progress: var(--aurora-accent-cyan);
-  --aurora-status-success: var(--aurora-semantic-success);
-  --aurora-status-warning: var(--aurora-semantic-warning);
-  --aurora-status-error: var(--aurora-semantic-error);
+  --aurora-player-progress: var(--aurora-accent-blue);
 
-  --aurora-glass-tint: rgba(27, 30, 37, 0.16);
-  --aurora-glass-highlight: rgba(54, 59, 70, 0.20);
-  --aurora-glass-scrim: rgba(0, 0, 0, 0.40);
+
+  --aurora-glass-edge: rgba(255, 255, 255, 0.12);
+
+  /* Shadows carry further on a dark canvas before they read as separation at all. */
+  --aurora-shadow-chip: 0 1px 2px rgba(0, 0, 0, 0.36);
+  --aurora-shadow-card: 0 4px 16px rgba(0, 0, 0, 0.44);
+  --aurora-shadow-floating: 0 12px 40px rgba(0, 0, 0, 0.58);
+}
+
+/*
+ * prefers-contrast: more — near-solid backgrounds with a defined, contrasting border.
+ * Translucency is the first thing to go: a moving backdrop is exactly what someone asking
+ * for more contrast is trying to get away from.
+ */
+@media (prefers-contrast: more) {
+  :root {
+    --aurora-surface-glass-primary: var(--aurora-neutral-0);
+    --aurora-surface-glass-secondary: var(--aurora-neutral-10);
+    --aurora-surface-glass-elevated: var(--aurora-neutral-0);
+    --aurora-text-secondary: var(--aurora-neutral-90);
+    --aurora-text-tertiary: var(--aurora-neutral-90);
+    --aurora-border-control: var(--aurora-neutral-90);
+    --aurora-divider-subtle: var(--aurora-neutral-90);
+    --aurora-glass-saturation: 100%;
+  }
+
+  [data-theme="dark"] {
+    --aurora-surface-glass-primary: var(--aurora-neutral-10);
+    --aurora-surface-glass-secondary: var(--aurora-neutral-20);
+    --aurora-surface-glass-elevated: var(--aurora-neutral-20);
+    --aurora-text-secondary: var(--aurora-neutral-90);
+    --aurora-text-tertiary: var(--aurora-neutral-90);
+    --aurora-border-control: var(--aurora-neutral-90);
+    --aurora-divider-subtle: var(--aurora-neutral-90);
+  }
 }

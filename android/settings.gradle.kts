@@ -18,8 +18,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven("https://jitpack.io/")
     }
 }
 
 rootProject.name = "aurora-android"
 include(":app")
+include(":benchmark")

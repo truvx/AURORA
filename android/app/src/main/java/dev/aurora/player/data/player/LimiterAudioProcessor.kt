@@ -3,10 +3,15 @@ package dev.aurora.player.data.player
 import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.BaseAudioProcessor
+import androidx.media3.common.util.UnstableApi
 import dev.aurora.player.domain.audio.CapabilityState
 import dev.aurora.player.domain.audio.LimiterConfig
 import java.nio.ByteBuffer
 
+// Media3's audio-processing and renderer APIs are annotated @UnstableApi. This class is
+// built directly on them, so the opt-in is deliberate and scoped to this file rather than
+// enabled module-wide, which would silently cover future code too.
+@androidx.annotation.OptIn(markerClass = [UnstableApi::class])
 class LimiterAudioProcessor : BaseAudioProcessor(), dev.aurora.player.domain.audio.AudioProcessor<LimiterConfig> {
     
     private var isEnabled = true
@@ -61,9 +66,12 @@ class LimiterAudioProcessor : BaseAudioProcessor(), dev.aurora.player.domain.aud
                 }
                 inputBuffer.position(limit)
             }
-            else -> {
-                outputBuffer.put(inputBuffer)
-            }
+            else -> throw IllegalStateException(
+                // Unreachable: onConfigure returns NOT_SET for any other encoding. Copying
+                // here instead would throw anyway when the buffers alias, and would report
+                // itself as an unexplained renderer fault rather than as this.
+                "Unsupported PCM encoding ${inputAudioFormat.encoding} reached the limiter"
+            )
         }
         outputBuffer.flip()
     }

@@ -1,57 +1,54 @@
 import { GoogleGenAI } from "@google/genai";
+import { GatewayError, statusOf } from "./errors";
+import { SYSTEM_INSTRUCTION, userMessage } from "./prompt";
 import { TOOLS } from "./tools";
 
-export async function processWithGemini(apiKey: string, query: string, context: any) {
+/** One retry, briefly, and only for a transient overload. */
+const MAX_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 2_000;
+
+export async function processWithGemini(
+  apiKey: string,
+  query: string,
+  context: Record<string, string>
+) {
   const ai = new GoogleGenAI({ apiKey });
 
-  const systemInstruction = `You are AURORA, a music intelligence agent.
-You help users find music, build queues, and play tracks.
-Do NOT fabricate track IDs or URLs. Use the provided tools to search or interact.
-If you are asked to play or add to queue, ensure you have the actual track ID. If you don't have it, search for it first.
-Context:
-${JSON.stringify(context)}
-`;
-
-  let attempts = 0;
-  while (attempts < 3) {
+  for (let attempt = 1; ; attempt += 1) {
     try {
       const response = await ai.models.generateContent({
         model: "gemini-flash-latest",
-        contents: [{ role: "user", parts: [{ text: query }] }],
+        contents: [{ role: "user", parts: [{ text: userMessage(query, context) }] }],
         config: {
-          systemInstruction,
-          tools: [{ functionDeclarations: TOOLS as any }],
+          systemInstruction: SYSTEM_INSTRUCTION,
+          // The SDK's declaration type is stricter than the JSON-schema literals in TOOLS,
+          // which the gateway validates on the way back out instead.
+          tools: [{ functionDeclarations: TOOLS as never }],
           temperature: 0.2,
         },
       });
 
-      const calls = response.functionCalls;
-      if (calls && calls.length > 0) {
-        return {
-          toolCalls: calls.map(call => ({
-            name: call.name,
-            args: call.args
-          })),
-          text: response.text || ""
-        };
-      }
-
       return {
+        toolCalls: (response.functionCalls ?? []).map((call) => ({
+          name: call.name,
+          args: call.args,
+        })),
         text: response.text || "",
-        toolCalls: []
       };
-    } catch (error: any) {
-      console.error("Gemini API Error (Attempt " + (attempts + 1) + "):", error);
-      if (error?.status === 503 || error?.status === 429 || error?.message?.includes("503") || error?.message?.includes("429") || error?.message?.includes("overloaded") || error?.message?.includes("Quota")) {
-        attempts++;
-        if (attempts < 3) {
-          console.log("Retrying in 12 seconds due to rate limit/overload...");
-          await new Promise(res => setTimeout(res, 12000));
-          continue;
-        }
+    } catch (error: unknown) {
+      const status = statusOf(error);
+      console.error(`Gemini API error (attempt ${attempt}, status ${status ?? "none"})`);
+
+      // 429 is not retried here. It covers per-minute limits and exhausted daily quota
+      // alike, and the old loop slept 24 seconds inside the request retrying quota that
+      // could not come back until tomorrow.
+      if (status === 429) throw new GatewayError("provider_busy", "The AI provider is rate limiting requests.");
+      if (status === 503 && attempt < MAX_ATTEMPTS) {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        continue;
       }
-      throw new Error("Provider unavailable or failed.");
+      if (status === 503) throw new GatewayError("provider_busy", "The AI provider is overloaded.");
+      throw new GatewayError("provider_unavailable", "The AI provider request failed.");
     }
   }
-  throw new Error("Provider unavailable or failed.");
 }

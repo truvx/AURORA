@@ -24,23 +24,132 @@ android {
         applicationId = "dev.aurora.player"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 3
+        versionName = "0.3.0-beta1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
-        val youtubeApiKey = localProperties.getProperty("YOUTUBE_API_KEY") ?: ""
-        buildConfigField("String", "YOUTUBE_API_KEY", "\"$youtubeApiKey\"")
+
+        /*
+         * The YouTube Data API key the app is built with.
+         *
+         * This does ship inside the APK, where `strings` finds it in seconds. That is
+         * understood and chosen: this is a personal build installed on its author's own
+         * devices, and the alternative - typing the key into Settings on each of them -
+         * buys nothing while the APK stays in their hands. What the key can do is bounded:
+         * it reads public YouTube data and spends one project's daily quota. It cannot
+         * reach an account.
+         *
+         * It is read from local.properties, never written here, so the key itself stays
+         * out of the repository. Keep the key's API restriction set to YouTube Data API
+         * v3, and do not add an Android application restriction: enforcing one needs
+         * X-Android-Package and X-Android-Cert headers this client does not send, so it
+         * would reject every request.
+         *
+         * A key entered in Settings still wins over this one, and a signed-in session
+         * wins over both. See domain/auth/YouTubeCredential.kt.
+         */
+        val youTubeApiKey: String = localProperties.getProperty("YOUTUBE_API_KEY")
+            ?: System.getenv("YOUTUBE_API_KEY")
+            ?: ""
+        buildConfigField("String", "YOUTUBE_API_KEY", "\"$youTubeApiKey\"")
+
+        /*
+         * The Google OAuth client ID, which is a different kind of thing from a key.
+         *
+         * An installed-app client has no secret by design - Google says so, and PKCE is
+         * what stands in for one - so this genuinely can ship in the APK, and has to: the
+         * authorization request cannot be made without it. It is read from
+         * local.properties rather than written here only so that one person's Cloud
+         * project identifier does not end up committed to a shared repository.
+         *
+         * Absent, the app falls back to the pasted API key and says so in Settings.
+         */
+        val googleClientId: String = localProperties.getProperty("GOOGLE_OAUTH_CLIENT_ID")
+            ?: System.getenv("GOOGLE_OAUTH_CLIENT_ID")
+            ?: ""
+        buildConfigField("String", "GOOGLE_OAUTH_CLIENT_ID", "\"$googleClientId\"")
+
+        /*
+         * Where the AI gateway lives.
+         *
+         * It used to be `http://10.0.2.2:3000/` written into the source - the emulator's
+         * alias for the host machine, which on a real phone is nothing at all. The signed
+         * beta could therefore never reach the AI, and a debug build sent a Google ID token
+         * to it over plaintext HTTP.
+         *
+         * Set AURORA_GATEWAY_URL in local.properties to your deployment. Left unset, a
+         * debug build falls back to the emulator loopback, which is the only host the debug
+         * network-security config permits cleartext to; a release build gets nothing and
+         * says the AI is not configured rather than failing at the socket.
+         */
+        val gatewayUrl: String = localProperties.getProperty("AURORA_GATEWAY_URL")
+            ?: System.getenv("AURORA_GATEWAY_URL")
+            ?: ""
+        buildConfigField("String", "AI_GATEWAY_URL", "\"$gatewayUrl\"")
+
+        /*
+         * The redirect Google will send the browser back to.
+         *
+         * Installed-app clients get the reversed client ID as a private-use scheme. It is
+         * derived rather than configured separately so the two can never disagree - a
+         * redirect that does not match the client exactly is rejected by Google, and
+         * "exact redirects" is what AGENTS.md asks for.
+         */
+        manifestPlaceholders["appAuthRedirectScheme"] =
+            googleClientId.substringBefore(".apps.googleusercontent.com")
+                .takeIf { it.isNotBlank() && it != googleClientId }
+                ?.let { "com.googleusercontent.apps.$it" }
+                ?: "dev.aurora.player.unconfigured"
     }
 
 
+    signingConfigs {
+        // Release signing is driven by local.properties or CI environment variables so no
+        // keystore or password is ever committed. Without them the release build is
+        // unsigned rather than silently falling back to the debug key, which would produce
+        // an artifact that looks releasable and is not.
+        create("release") {
+            val storePath = localProperties.getProperty("RELEASE_STORE_FILE")
+                ?: System.getenv("RELEASE_STORE_FILE")
+            if (storePath != null && file(storePath).exists()) {
+                storeFile = file(storePath)
+                storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
+                    ?: System.getenv("RELEASE_STORE_PASSWORD")
+                keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS")
+                    ?: System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD")
+                    ?: System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Only attach the signing config when a keystore was actually resolved.
+            signingConfig = signingConfigs.getByName("release").takeIf {
+                it.storeFile?.exists() == true
+            }
+        }
+        debug {
+            applicationIdSuffix = ".debug"
+            isMinifyEnabled = false
+        }
+        // Release-like but installable: macrobenchmark refuses to measure a debuggable
+        // build, because debuggable drastically changes runtime performance and would make
+        // the numbers meaningless. Signed with the debug key so it can be installed without
+        // the release keystore.
+        create("benchmark") {
+            initWith(buildTypes.getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+            applicationIdSuffix = ".benchmark"
         }
     }
 
@@ -103,6 +212,19 @@ dependencies {
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.kotlinx.serialization.json)
 
+    // NewPipe extractor: cipher deobfuscation for YouTube stream URLs.
+    // Ported from NomaTune (GPL-3.0, github.com/Shahdullah/NomaTune), which uses it
+    // to deobfuscate signature ciphers from youtubei/v1/player responses.
+    implementation(libs.newpipe.extractor)
+
+    // OAuth, for signing in to Google instead of pasting a key.
+    //
+    // A hand-written authorization flow is a security protocol written by hand: PKCE,
+    // state, exact redirect matching, refresh and revocation, each with a way to be subtly
+    // wrong. AppAuth is the OpenID Foundation's implementation of exactly this and is what
+    // Google's own installed-app guidance points at.
+    implementation("net.openid:appauth:0.11.1")
+
     // UI Utilities
     implementation("io.github.kyant0:backdrop:1.0.6")
     implementation("io.github.kyant0:shapes:1.2.0")
@@ -120,6 +242,7 @@ dependencies {
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
     androidTestImplementation(libs.room.testing)
+    androidTestImplementation("androidx.test:rules:1.6.1")
     debugImplementation(libs.compose.ui.test.manifest)
 }
 
@@ -141,5 +264,22 @@ tasks.withType<Test> {
         showStandardStreams = true
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
+    // Tests that need a live AI gateway on localhost:3000 are skipped unless explicitly
+    // enabled, so the default suite is runnable offline and in CI.
+    // Enable with: ./gradlew test -PauroraLiveAi=true
+    systemProperty(
+        "aurora.liveAi",
+        providers.gradleProperty("auroraLiveAi").getOrElse("false")
+    )
+    systemProperty(
+        "aurora.gatewayToken",
+        providers.gradleProperty("auroraGatewayToken").getOrElse("")
+    )
+    // The YouTube key is no longer in BuildConfig, so the live test takes it the same way
+    // the gateway token arrives: passed in for that run, never written into the artifact.
+    systemProperty(
+        "aurora.youtubeKey",
+        providers.gradleProperty("auroraYouTubeKey").getOrElse("")
+    )
 }
 

@@ -2,7 +2,11 @@ package dev.aurora.player.app
 
 import dev.aurora.player.data.db.LocalFileEntity
 import dev.aurora.player.data.db.LocalLibraryDao
+import dev.aurora.player.data.player.youtube.InnerTubeClient
 import kotlinx.coroutines.test.runTest
+import dev.aurora.player.domain.models.MediaItem
+import dev.aurora.player.domain.models.ProviderKind
+import dev.aurora.player.domain.audio.RequestedQuality
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -24,12 +28,25 @@ class AuroraTrackResolverTest {
                 null
             }
         }
-        
+
         override suspend fun upsertLocalTrack(item: dev.aurora.player.data.db.MediaItemEntity, file: dev.aurora.player.data.db.LocalFileEntity, metadata: dev.aurora.player.data.db.TrackTechnicalMetadataEntity?, album: dev.aurora.player.data.db.AlbumEntity?, artists: List<dev.aurora.player.data.db.ArtistEntity>, artwork: dev.aurora.player.data.db.ArtworkEntity?, loudness: dev.aurora.player.data.db.TrackLoudnessEntity?) {}
         override suspend fun getAllLocalFileUris(): List<String> = emptyList()
         override suspend fun deleteStaleLocalFiles(uris: List<String>) {}
         override fun observeLocalItems(): kotlinx.coroutines.flow.Flow<List<dev.aurora.player.data.db.MediaItemWithDetails>> = kotlinx.coroutines.flow.flowOf(emptyList())
         override suspend fun getLocalItems(): List<dev.aurora.player.data.db.MediaItemWithDetails> = emptyList()
+        override suspend fun getLocalItemsPage(
+            limit: Int,
+            offset: Int
+        ): List<dev.aurora.player.data.db.MediaItemWithDetails> = emptyList()
+        override suspend fun countLocalItems(): Int = 0
+        override suspend fun searchLocalItems(
+            query: String,
+            limit: Int
+        ): List<dev.aurora.player.data.db.MediaItemWithDetails> = emptyList()
+        override suspend fun searchLocalItemsByArtist(
+            query: String,
+            limit: Int
+        ): List<dev.aurora.player.data.db.MediaItemWithDetails> = emptyList()
         override suspend fun getMetadataForMedia(mediaItemId: String): dev.aurora.player.data.db.TrackTechnicalMetadataEntity? = null
         override suspend fun insertMediaItem(item: dev.aurora.player.data.db.MediaItemEntity) {}
         override suspend fun insertLocalFile(file: dev.aurora.player.data.db.LocalFileEntity) {}
@@ -47,17 +64,20 @@ class AuroraTrackResolverTest {
         override suspend fun markMediaItemUnavailable(mediaId: String) {}
     }
 
-    private val resolver = AuroraTrackResolver(fakeDao)
+    private val resolver = AuroraTrackResolver(fakeDao, InnerTubeClient())
+
 
     @Test
     fun testResolveValidIdReturnsUri() = runTest {
-        val uri = resolver.resolveUri("local_123")
-        assertEquals("content://media/external/audio/media/123", uri)
+        val item = MediaItem(id = "local_123", provider = ProviderKind.LOCAL, title = "test", artist = null, album = null, artworkUri = null)
+        val source = resolver.resolveSource(item, RequestedQuality.Auto)
+        assertEquals("content://media/external/audio/media/123", source?.uri)
     }
 
     @Test
     fun testResolveInvalidIdReturnsNull() = runTest {
-        val uri = resolver.resolveUri("not_found")
-        assertNull(uri)
+        val item = MediaItem(id = "not_found", provider = ProviderKind.LOCAL, title = "test", artist = null, album = null, artworkUri = null)
+        val source = resolver.resolveSource(item, RequestedQuality.Auto)
+        assertNull(source)
     }
 }

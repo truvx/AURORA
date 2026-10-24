@@ -67,3 +67,26 @@ Resume writes are debounced and durable without blocking playback. Completion/sk
 ## State-machine tests
 
 Test every transition above, repeated/duplicate callbacks, cancellation, stale callbacks, empty queues, shuffle determinism, repeat modes, unknown duration, seek bounds, engine failure, audio focus loss/gain, interruption, resume persistence, and cross-surface state projection.
+
+## Playing from a list
+
+`PlayList(items, startIndex)` - `playList` on Web - is how a list is played, and it is a
+different intent from `Load`. `Load` is one track arriving on its own, from the AI or a
+deep link, and it joins the queue without disturbing what is there. A list is a *context*:
+tapping the third song of an album means "play this album from here", so the list becomes
+the queue and the tapped track becomes the position in it.
+
+Every entry point used to load a single track. A fresh play therefore left a queue of one,
+and next and previous had nothing to reach - dead on every surface at once: in the app, on
+the notification, on the lock screen and over a headset. Nothing was wrong with the skip
+logic; there was simply never anything to skip to.
+
+A `startIndex` outside the list starts from the beginning rather than clamping to the end.
+Out of range means the caller's idea of the list is stale, and starting at the last track
+would play one song and stop.
+
+`SkipPrevious` restarts the current track once past 3 seconds and steps back before that.
+`SkipNext` at the end of the queue follows the repeat mode: `Off` completes, `All` wraps to
+the first track, `One` replays. The Web client exposes `capabilities.canSkipNext` and
+`canSkipPrevious` derived from the queue, the repeat mode and the elapsed position, so a
+transport control is disabled rather than present-and-dead.

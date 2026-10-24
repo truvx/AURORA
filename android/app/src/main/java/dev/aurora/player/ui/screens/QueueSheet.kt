@@ -74,13 +74,13 @@ fun QueueSheet(
                     isCurrent = index == queue.currentIndex,
                     onMoveUp = if (index > 0) {
                         {
-                            haptics.fire(HapticEvent.QueueReorder)
+                            haptics.fire(HapticEvent.Commit)
                             coordinator.dispatch(PlayerCommand.MoveInQueue(index, index - 1))
                         }
                     } else null,
                     onMoveDown = if (index < queue.items.size - 1) {
                         {
-                            haptics.fire(HapticEvent.QueueReorder)
+                            haptics.fire(HapticEvent.Commit)
                             coordinator.dispatch(PlayerCommand.MoveInQueue(index, index + 1))
                         }
                     } else null
@@ -114,6 +114,7 @@ fun QueueItemRow(
         ) {
             ArtworkSurface(
                 altText = "${item.title} artwork",
+                artworkUri = item.artworkUri,
                 modifier = Modifier.size(48.dp)
             )
 
@@ -130,7 +131,7 @@ fun QueueItemRow(
                 )
                 Text(
                     text = item.artist ?: "Unknown Artist",
-                    style = Aurora.typography.label,
+                    style = Aurora.typography.trackArtistCompact,
                     color = Aurora.colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

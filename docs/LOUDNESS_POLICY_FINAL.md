@@ -19,6 +19,18 @@ Local files use the measured integrated loudness path in ADR-014. Normalization 
 
 Default behavior is album-aware: use reliable album gain while playing an album context; use reliable track gain for an individual track or mixed queue. If neither is reliable, use unity gain until offline analysis completes. Peak protection and limiter behavior are explicit and bounded.
 
+### Measurement source
+
+Loudness for a local track is only ever read from the file, never assumed. The current implemented source is ReplayGain tags, read by `data/scanner/ReplayGainReader`:
+
+- FLAC via the Vorbis comment block, and ID3v2.3/ID3v2.4 via `TXXX` frames, are parsed. Ogg/Opus and MP4/M4A tag layouts are not parsed yet and report unknown.
+- `REPLAYGAIN_*_GAIN` is a gain toward a reference level, not a loudness. AURORA converts it with the ReplayGain 2.0 reference of `-18 LUFS-I` (`loudness = -18 - gain`), as defined in `domain/audio/ReplayGainReference`. ReplayGain 1.0 tags are indistinguishable from 2.0 tags by inspection and are treated the same way. This is a documented assumption about the tag, not a measurement of the audio.
+- `REPLAYGAIN_*_PEAK` is a linear sample peak and is used directly for true-peak protection. A non-positive or unparsable peak is discarded rather than defaulted.
+
+A file with no usable tags yields no loudness row at all. `LoudnessResolver` then resolves unity gain and the UI reports `Unknown`, which is a valid result. Offline LUFS analysis for untagged files is not implemented; until it is, untagged files are not normalized and must not be described as normalized.
+
+Stored rows carry an `analysisVersion` so an interpretation change can invalidate them. Version 1 rows were pre-release placeholders that were never measured; schema v4 deletes them.
+
 ## YouTube
 
 The official embedded player controls the audiovisual stream and does not expose a supported AURORA loudness-DSP or audio-only contract. AURORA therefore does not run its own LUFS normalization for YouTube and does not claim that its `Normal` or `Loud` setting changes YouTube program loudness. The UI may show `Provider managed` or `Unavailable` actual normalization.

@@ -20,6 +20,25 @@ class PlayerCoordinator(
 
     private var targetPlayIntent = false
 
+    /**
+     * Whether the current track has already handed over to the next one.
+     *
+     * Positions arrive every 200ms and the crossfade window was 300ms wide, so two ticks
+     * landed in it whenever the first fell in its leading 100ms: skipNext ran twice, the
+     * queue advanced two places, and a track was silently never played.
+     *
+     * Cleared when the playhead moves backwards, not when a track is loaded. Loading is
+     * the wrong moment: the hand-over *is* a load, so resetting there re-armed the guard
+     * in time for the very tick it existed to ignore. A position that goes backwards is
+     * the only honest signal that a different stretch of audio is now playing - a new
+     * track starting near zero, or a seek, both of which should be able to cross the
+     * window again.
+     */
+    private var crossfadeFired = false
+
+    /** The previous position, to notice the playhead moving backwards. */
+    private var lastElapsedMs = 0L
+
     init {
         scope.launch {
             adapter.events.collect { event ->
@@ -36,6 +55,7 @@ class PlayerCoordinator(
             is PlayerCommand.Pause -> pause()
             is PlayerCommand.Seek -> seekTo(command.target)
             is PlayerCommand.SkipNext -> skipNext()
+            is PlayerCommand.PlayList -> playList(command.items, command.startIndex)
             is PlayerCommand.SkipPrevious -> skipPrevious()
             is PlayerCommand.Replay -> replay()
             is PlayerCommand.SetShuffle -> setShuffle(command.mode)
@@ -53,16 +73,64 @@ class PlayerCoordinator(
         }
     }
 
+    /**
+     * The list becomes the queue, and the tapped track becomes the position in it.
+     *
+     * One state change rather than a load followed by a run of appends: the old shape
+     * queued the rest *behind whatever was already playing*, and it depended on Load
+     * replacing the queue, which is not what Load does.
+     *
+     * An index outside the list starts from the beginning rather than clamping to the end.
+     * Out of range means the caller's idea of the list is stale, and starting at the last
+     * track would play one song and stop.
+     */
+    private fun playList(items: List<dev.aurora.player.domain.models.MediaItem>, startIndex: Int) {
+        if (items.isEmpty()) return
+        val start = if (startIndex in items.indices) startIndex else 0
+        _state.update { current ->
+            current.copy(
+                queue = current.queue.copy(
+                    items = items,
+                    currentIndex = start,
+                    shuffledOrder = emptyList()
+                )
+            )
+        }
+        loadTrack(items[start], playWhenReady = true)
+    }
+
     private fun loadTrack(track: dev.aurora.player.domain.models.MediaItem, playWhenReady: Boolean) {
         Log.d(TAG, "loadTrack: id=${track.id}, title=${track.title}, provider=${track.provider}, playWhenReady=$playWhenReady")
         targetPlayIntent = playWhenReady
-        _state.update { it.copy(status = PlaybackStatus.Loading, currentTrack = track) }
+        _state.update { current ->
+            // A directly loaded track must exist in the queue. Without this, skipNext()
+            // returns at its empty-queue guard when the track ends, so the player never
+            // reaches Completed, history never records a completion, and no queue snapshot
+            // is ever written.
+            val existingIndex = current.queue.items.indexOfFirst { it.id == track.id }
+            val queue = if (existingIndex >= 0) {
+                // Already queued: select it rather than adding a duplicate.
+                current.queue.copy(currentIndex = existingIndex)
+            } else {
+                // Load replaces the queue; AddToQueue is the command that appends.
+                current.queue.copy(
+                    items = listOf(track),
+                    currentIndex = 0,
+                    shuffledOrder = emptyList()
+                )
+            }
+            current.copy(
+                status = PlaybackStatus.Loading,
+                currentTrack = track,
+                queue = queue
+            )
+        }
         scope.launch {
-            val uri = resolver.resolveUri(track.id)
+            val source = resolver.resolveSource(track, dev.aurora.player.domain.audio.RequestedQuality.Auto)
             val loudnessData = resolver.resolveLoudness(track.id)
-            Log.d(TAG, "loadTrack: resolved uri=${uri != null}, loudness=${loudnessData != null}")
+            Log.d(TAG, "loadTrack: resolved source=${source != null}, loudness=${loudnessData != null}")
             
-            if (uri != null) {
+            if (source != null) {
                 val capability = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) {
                     dev.aurora.player.domain.audio.LoudnessCapability.ProviderManaged
                 } else {
@@ -83,7 +151,8 @@ class PlayerCoordinator(
                     normalization = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED,
                     crossfade = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED,
                     eq = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED,
-                    limiter = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED
+                    limiter = if (track.provider == dev.aurora.player.domain.models.ProviderKind.YOUTUBE) dev.aurora.player.domain.audio.CapabilityState.NOT_APPLICABLE else dev.aurora.player.domain.audio.CapabilityState.SUPPORTED,
+                    backgroundPlayback = dev.aurora.player.domain.audio.CapabilityState.SUPPORTED
                 )
                 
                 _state.update { 
@@ -99,7 +168,7 @@ class PlayerCoordinator(
                 } else 0L
 
                 Log.d(TAG, "loadTrack: calling adapter.load(), crossfade=$crossfadeDuration")
-                adapter.load(track, uri, playWhenReady, crossfadeDuration)
+                adapter.load(source, track, playWhenReady, crossfadeDuration)
             } else {
                 Log.e(TAG, "loadTrack: URI resolution failed for ${track.id}")
                 _state.update { it.copy(status = PlaybackStatus.Error, lastError = Exception("URI not found")) }
@@ -366,15 +435,16 @@ class PlayerCoordinator(
             }
             is EngineEvent.Paused -> {
                 Log.d(TAG, "Engine PAUSED -> PlaybackStatus.Paused")
-                _state.update { it.copy(status = PlaybackStatus.Paused) }
+                applySettledStatus(PlaybackStatus.Paused)
             }
             is EngineEvent.BufferingChanged -> {
                 Log.d(TAG, "Engine BufferingChanged: isBuffering=${event.isBuffering}")
                 if (event.isBuffering) {
                     _state.update { it.copy(status = PlaybackStatus.Buffering) }
                 } else {
-                    val status = if (targetPlayIntent) PlaybackStatus.Playing else PlaybackStatus.Paused
-                    _state.update { it.copy(status = status) }
+                    applySettledStatus(
+                        if (targetPlayIntent) PlaybackStatus.Playing else PlaybackStatus.Paused
+                    )
                 }
             }
             is EngineEvent.PositionChanged -> {
@@ -390,15 +460,24 @@ class PlayerCoordinator(
                 }
                 
                 // Proactive crossfade check
+                if (event.elapsed < lastElapsedMs) crossfadeFired = false
+                lastElapsedMs = event.elapsed
+
                 if (targetPlayIntent && event.duration != null && event.duration > 0) {
                     val crossfadeMs = _state.value.crossfadeDurationMs
                     val remaining = event.duration - event.elapsed
                     
-                    // Trigger skipNext slightly before the track ends (at crossfadeMs + 100ms threshold to ensure we catch it)
-                    // We only want to do this once per track, so we check if we are very close to the threshold.
-                    // This is a naive polling approach. In a real app we'd use a Handler/Timer scheduled precisely,
-                    // but since PositionChanged emits every 200ms, this is acceptable for Phase 22 scaffold.
-                    if (crossfadeMs > 0 && remaining <= crossfadeMs && remaining > crossfadeMs - 300) {
+                    /*
+                     * Once per track, and said with a flag rather than with arithmetic.
+                     *
+                     * This used to fire inside a 300ms window while positions arrive every
+                     * 200ms, so two ticks landed in it whenever the first fell in its
+                     * leading 100ms: skipNext ran twice, the queue advanced two places, and
+                     * a track was silently never played. A comment claimed a once-per-track
+                     * guard; there was none.
+                     */
+                    if (crossfadeMs > 0 && remaining <= crossfadeMs && !crossfadeFired) {
+                        crossfadeFired = true
                         Log.d(TAG, "Triggering proactive crossfade. Remaining: $remaining, Crossfade: $crossfadeMs")
                         val q = _state.value.queue
                         if (q.repeatMode == RepeatMode.One) {
@@ -428,6 +507,27 @@ class PlayerCoordinator(
             is EngineEvent.Error -> {
                 Log.e(TAG, "Engine ERROR: ${event.error}")
                 _state.update { it.copy(status = PlaybackStatus.Error, lastError = event.error) }
+            }
+        }
+    }
+
+    /**
+     * Applies a status that reflects the engine settling, unless playback already reached a
+     * terminal state.
+     *
+     * Media3 emits BufferingChanged(false) - and, depending on the adapter, Paused -
+     * immediately after TrackCompleted. Letting either overwrite Completed reset the status
+     * about a millisecond after it was set, so nothing observing this conflated StateFlow
+     * ever saw the completion, and finished tracks were never recorded in listening history.
+     *
+     * Started is deliberately not routed through here: it means playback genuinely resumed.
+     */
+    private fun applySettledStatus(status: PlaybackStatus) {
+        _state.update {
+            if (it.status == PlaybackStatus.Completed || it.status == PlaybackStatus.Error) {
+                it
+            } else {
+                it.copy(status = status)
             }
         }
     }

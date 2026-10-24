@@ -45,6 +45,15 @@ class LocalLibraryProviderTest {
 
         override fun observeLocalItems(): Flow<List<MediaItemWithDetails>> = flowOf(emptyList())
         override suspend fun getLocalItems(): List<MediaItemWithDetails> = emptyList()
+        override suspend fun getLocalItemsPage(limit: Int, offset: Int): List<MediaItemWithDetails> =
+            emptyList()
+        override suspend fun countLocalItems(): Int = 0
+        override suspend fun searchLocalItems(query: String, limit: Int): List<MediaItemWithDetails> =
+            emptyList()
+        override suspend fun searchLocalItemsByArtist(
+            query: String,
+            limit: Int
+        ): List<MediaItemWithDetails> = emptyList()
         override suspend fun getLocalFileForMedia(mediaId: String): LocalFileEntity? = null
         override suspend fun getMetadataForMedia(mediaId: String): TrackTechnicalMetadataEntity? = null
         override suspend fun getAlbum(albumId: String): AlbumEntity? = null

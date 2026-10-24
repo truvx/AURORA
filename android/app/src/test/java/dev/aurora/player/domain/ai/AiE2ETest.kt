@@ -28,8 +28,8 @@ class DummyPlayerAdapter : PlayerAdapter {
     var lastLoadedUri: String? = null
     var lastLoadedTrack: MediaItem? = null
 
-    override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
-        lastLoadedUri = uri
+    override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+        lastLoadedUri = source.uri
         lastLoadedTrack = track
     }
     override fun play() {}
@@ -41,7 +41,9 @@ class DummyPlayerAdapter : PlayerAdapter {
 }
 
 class DummyTrackResolver : TrackResolver {
-    override suspend fun resolveUri(trackId: String): String? = "dummy://uri"
+    override val sourceProviders = emptyList<dev.aurora.player.domain.player.providers.PlaybackSourceProvider>()
+    override suspend fun resolveSource(track: dev.aurora.player.domain.models.MediaItem, preferredQuality: dev.aurora.player.domain.audio.RequestedQuality): dev.aurora.player.domain.player.PlaybackSource? =
+        dev.aurora.player.domain.player.PlaybackSource("dummy://uri")
     override suspend fun resolveLoudness(trackId: String): TrackLoudnessData? = null
 }
 
@@ -60,11 +62,26 @@ class AiE2ETest {
 
     @Test
     fun testLiveAiAndYouTubePipeline() = runBlocking {
+        // This is an integration test against a real AI gateway, not a unit test. It needs
+        // `npm run dev` in web/ plus live provider credentials, so it is skipped by default
+        // and the rest of the suite stays runnable offline.
+        // Run it with: ./gradlew :app:testDebugUnitTest -PauroraLiveAi=true
+        org.junit.Assume.assumeTrue(
+            "Skipping live AI gateway test; enable with -PauroraLiveAi=true",
+            System.getProperty("aurora.liveAi") == "true"
+        )
+
         val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
         val contentType = MediaType.get("application/json")
         
         // 1. Setup real Gemini AI Provider hitting localhost:3000
-        val okHttpClient = okhttp3.OkHttpClient.Builder().readTimeout(120, java.util.concurrent.TimeUnit.SECONDS).build()
+        // The gateway refuses unauthenticated requests; pass its token with
+        // -PauroraGatewayToken=... alongside -PauroraLiveAi=true.
+        val gatewayToken = System.getProperty("aurora.gatewayToken")
+        val okHttpClient = okhttp3.OkHttpClient.Builder()
+            .readTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
+            .addInterceptor(dev.aurora.player.data.api.GatewayAuthInterceptor(idToken = { null }, sharedToken = { gatewayToken }))
+            .build()
         val aiRetrofit = Retrofit.Builder().client(okHttpClient)
             .baseUrl("http://localhost:3000/")
             .addConverterFactory(json.asConverterFactory(contentType))
@@ -78,7 +95,8 @@ class AiE2ETest {
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
         val ytApi = ytRetrofit.create(YouTubeDataApi::class.java)
-        val ytProvider = YouTubeMusicProvider(ytApi)
+        val youTubeKey = System.getProperty("aurora.youtubeKey").orEmpty()
+        val ytProvider = YouTubeMusicProvider(ytApi) { val k = youTubeKey; if (k.isBlank()) dev.aurora.player.domain.auth.YouTubeCredential.None else dev.aurora.player.domain.auth.YouTubeCredential.Key(k) }
 
         // 3. Setup Recommendation Engine
         val engine = RecommendationEngine(listOf(ytProvider))
@@ -102,7 +120,6 @@ class AiE2ETest {
 
         // 6. Test Live YouTube Search Execution
         println("Testing YouTube Data API Search Execution...")
-        println("YouTube API key present: ${dev.aurora.player.BuildConfig.YOUTUBE_API_KEY.isNotEmpty()}")
         val candidates = executor.executeTool(searchCall!!)
         assertTrue("Should find candidates from YouTube", candidates.isNotEmpty())
         
@@ -129,13 +146,13 @@ class AiE2ETest {
 
     @Test
     fun testInvalidTrackIdCannotReachCoordinator() = runBlocking {
-        val ytProvider = YouTubeMusicProvider(Retrofit.Builder().baseUrl("https://www.googleapis.com/youtube/v3/").addConverterFactory(kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.asConverterFactory(MediaType.get("application/json"))).build().create(YouTubeDataApi::class.java))
+        val ytProvider = YouTubeMusicProvider(Retrofit.Builder().baseUrl("https://www.googleapis.com/youtube/v3/").addConverterFactory(kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.asConverterFactory(MediaType.get("application/json"))).build().create(YouTubeDataApi::class.java)) { val k = System.getProperty("aurora.youtubeKey").orEmpty(); if (k.isBlank()) dev.aurora.player.domain.auth.YouTubeCredential.None else dev.aurora.player.domain.auth.YouTubeCredential.Key(k) }
         val engine = RecommendationEngine(listOf(ytProvider))
         val scope = CoroutineScope(Dispatchers.Unconfined)
         var loadedTrack: MediaItem? = null
         val testAdapter = object : PlayerAdapter {
             override val events = MutableSharedFlow<EngineEvent>()
-            override fun load(track: MediaItem, uri: String, playWhenReady: Boolean, crossfadeDurationMs: Long) {
+            override fun load(source: dev.aurora.player.domain.player.PlaybackSource, track: MediaItem, playWhenReady: Boolean, crossfadeDurationMs: Long) {
                 loadedTrack = track
                 events.tryEmit(EngineEvent.Prepared)
             }

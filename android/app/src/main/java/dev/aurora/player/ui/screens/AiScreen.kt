@@ -19,6 +19,7 @@ import dev.aurora.player.ui.components.GlassButton
 import dev.aurora.player.ui.components.GlassCard
 import dev.aurora.player.ui.components.GlassLevel
 import dev.aurora.player.ui.components.RecommendationCard
+import androidx.compose.material.icons.rounded.ArrowUpward
 import dev.aurora.player.ui.theme.Aurora
 import dev.aurora.player.app.PlayerCoordinator
 
@@ -27,6 +28,7 @@ import dev.aurora.player.app.PlayerCoordinator
 fun AiScreen(
     viewModel: AiViewModel,
     playerCoordinator: PlayerCoordinator,
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val spacing = Aurora.spacing
@@ -39,9 +41,14 @@ fun AiScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .statusBarsPadding()
+            .padding(horizontal = spacing.space4)
+            // Top clears the status bar; bottom is the room the floating chrome needs, so
+            // the last row scrolls clear of the glass instead of sitting under it forever.
             .padding(
-                horizontal = spacing.space4, 
-                vertical = spacing.space6 + 48.dp // Padding for Top/Bottom bars
+                top = spacing.space6,
+                bottom = dev.aurora.player.ui.navigation.LocalChromeInsets.current
+                    .calculateBottomPadding()
             ),
         verticalArrangement = Arrangement.Top,
     ) {
@@ -75,14 +82,18 @@ fun AiScreen(
                             unfocusedTextColor = colors.textPrimary,
                             cursorColor = colors.accentPrimary
                         ),
-                        shape = Aurora.shapes.card
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(percent = 50)
                     )
                     Spacer(modifier = Modifier.width(spacing.space3))
-                    GlassButton(
-                        text = "Ask",
-                        onClick = { 
+                    // Solid, round and small: the send button in the references is the one
+                    // filled control on an otherwise translucent bar.
+                    dev.aurora.player.ui.components.PrimaryCircleButton(
+                        icon = Icons.Rounded.ArrowUpward,
+                        contentDescription = "Ask AURORA",
+                        size = 48.dp,
+                        onClick = {
                             if (textState.text.isNotBlank()) {
-                                viewModel.submitQuery(textState.text) 
+                                viewModel.submitQuery(textState.text)
                                 textState = TextFieldValue("")
                             }
                         }
@@ -104,7 +115,19 @@ fun AiScreen(
                     modifier = Modifier.fillMaxWidth(),
                     level = GlassLevel.Secondary
                 ) {
-                    Text(text = "Error: ${state.message}", color = colors.statusError, style = typography.body)
+                    Column {
+                        // The message is the whole explanation; prefixing "Error:" and colouring
+                        // it red added alarm without adding information.
+                        Text(text = state.message, color = colors.textPrimary, style = typography.body)
+                        if (state.opensSettings) {
+                            Spacer(modifier = Modifier.height(spacing.space3))
+                            GlassButton(
+                                text = "Open Settings",
+                                style = dev.aurora.player.ui.components.GlassButtonStyle.Secondary,
+                                onClick = onOpenSettings
+                            )
+                        }
+                    }
                 }
             }
             is AiUiState.Success -> {
@@ -120,7 +143,11 @@ fun AiScreen(
                         RecommendationCard(
                             candidate = candidate,
                             onPlayClick = {
+                                // Load then Play: Load resolves and prepares, it does
+                                // not start. Pressing Play here used to leave the track
+                                // sitting in Ready with nothing audible.
                                 playerCoordinator.dispatch(PlayerCommand.Load(candidate.item))
+                                playerCoordinator.dispatch(PlayerCommand.Play)
                             },
                             onQueueClick = {
                                 playerCoordinator.dispatch(PlayerCommand.AddToQueue(candidate.item))

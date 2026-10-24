@@ -22,5 +22,11 @@ data class MediaItemWithDetails(
             entityColumn = "artistId"
         )
     )
-    val artists: List<ArtistEntity>
+    val artists: List<ArtistEntity>,
+
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "mediaId"
+    )
+    val metadata: TrackTechnicalMetadataEntity? = null
 )

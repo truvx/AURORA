@@ -34,3 +34,29 @@ coverage/
 *.swp
 local.properties
 *.log
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Local agent and editor configuration
+.claude/
+.vscode/
+
+# Playwright output
+playwright-report/
+test-results/
+
+# --- Agent tooling installed per machine -------------------------------------
+#
+# Skill bundles and their prebuilt engines are installed by each person for their
+# own assistant, and the engines are darwin-arm64 Mach-O binaries: useless to CI
+# or to anyone on another platform, and not something a repository should be
+# distributing. Everyone runs the installer themselves; see the README.
+graphify-out/
+.agents/skills/impeccable/
+.agents/skills/task-observer/
+.agents/skills/framer-motion-*/
+.github/skills/
+.github/agents/
+.github/hooks/
+.codex/

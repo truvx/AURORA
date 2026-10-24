@@ -13,6 +13,7 @@ These are conceptual component contracts. No component implementation is created
 | `AlbumRow` | Album summary and action | Album/artist/year labels, partial metadata | Expand/open continuity; selection |
 | `ArtistRow` | Artist summary | Name/artwork semantics and unavailable state | List insertion; selection |
 | `MiniPlayer` | Persistent canonical playback projection | Playing/paused/buffering/error/unknown duration; action labels | Expansion continuity; tap/play |
+| `HeadphoneCapsule` | Headphones connected, and their battery if reported | Three marks, not three colours: plain glyph when the level is unknown, cell glyph when known, alert glyph when low; figure carries the warning too. Absent when nothing is connected, and silent in isolation - its words join the mini-player's merged description | None |
 | `PlayerControls` | Play/pause/seek/skip/repeat/shuffle | Disabled capability, labels, state announcement | Press, skip; tap/toggle |
 | `ProgressScrubber` | Seek/progress | Range value, unknown duration, keyboard increments, no frame buzz | Gesture/snap; sparse scrub ticks |
 | `QueueRow` | Queue item/edit | Position, current, unavailable, reorder alternative | Drag/reorder; start/move/drop |

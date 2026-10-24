@@ -24,7 +24,7 @@ AURORA uses the following implementation baseline:
 | Android Studio | `2026.1.3` installed locally | Retained; the current stable patch observed in the official release page is `2026.1.4`. |
 | Web runtime | Node `24.20.0` LTS | Project and CI baseline. The installed Node `26.3.1` remains unchanged. |
 | Web package manager | npm 11 | Bundled with the selected Node 24 line; use lockfile-enforced `npm ci` in CI. |
-| React | `19.2.7` | Selected React 19.2 release. |
+| React | `19.3.0` | Raised from 19.2.7 by ADR-018: 19.3.0 is the stable release that exports `ViewTransition`, which the player's shared-element morph needs. `react-dom` moves with it. |
 | Next.js | `16.3.4` App Router | Selected current Next.js line; official installation documentation requires Node `>=20.9`. |
 | TypeScript | `5.16.1` | Selected stable TypeScript line. |
 | CI | GitHub Actions Ubuntu `24.04`, Temurin 17 | Matches the project JDK and documented Web/Android environment. |
@@ -51,7 +51,7 @@ Media3 `1.11.0` is the current stable AndroidX release. Its official release not
 
 ### Web stack
 
-Next.js `16.3.4` officially requires Node `>=20.9`, and the Next.js 16 release documentation identifies React `19.2` and TypeScript `5.1` as supported floors, so React `19.2.7`, TypeScript `5.16.1`, and Node 24 satisfy the documented framework requirements. Node's official download page distinguishes Node 24 as LTS and Node 26 as Current. Node 24 is selected for project/CI reproducibility and support conservatism; the user's installed Node 26.3.1 and npm 12.0.2 are not modified.
+Next.js `16.3.4` officially requires Node `>=20.9`, and the Next.js 16 release documentation identifies React `19.2` and TypeScript `5.1` as supported floors, so React `19.3.0` (see ADR-018), TypeScript `5.16.1`, and Node 24 satisfy the documented framework requirements. Node's official download page distinguishes Node 24 as LTS and Node 26 as Current. Node 24 is selected for project/CI reproducibility and support conservatism; the user's installed Node 26.3.1 and npm 12.0.2 are not modified.
 
 ## Local verification
 

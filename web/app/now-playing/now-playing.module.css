@@ -1,0 +1,335 @@
+/* Padding belongs to the shell's main region; repeating it here inset the content twice. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-4);
+}
+
+/* Small, quiet, and above the subject: context, not the headline. */
+.eyebrow {
+  margin: 0;
+  font-size: var(--aurora-type-label-size);
+  line-height: var(--aurora-type-label-line);
+  font-weight: var(--aurora-type-label-weight);
+  letter-spacing: var(--aurora-type-label-tracking);
+  color: var(--aurora-text-secondary);
+}
+
+.title {
+  margin: 0;
+  /*
+   * The display role, with the negative tracking that goes with type this size: letters
+   * read too far apart as they grow, so the largest text on the screen is the one that
+   * needs tightening most.
+   */
+  font-size: var(--aurora-type-display-size);
+  line-height: var(--aurora-type-display-line);
+  font-weight: var(--aurora-type-display-weight);
+  letter-spacing: var(--aurora-type-display-tracking);
+  color: var(--aurora-text-primary);
+  /* Long titles wrap rather than overflow the card. */
+  overflow-wrap: anywhere;
+}
+
+.artist {
+  margin: var(--aurora-space-1) 0 0;
+  font-size: var(--aurora-type-title-size);
+  line-height: var(--aurora-type-title-line);
+  letter-spacing: var(--aurora-type-title-tracking);
+  color: var(--aurora-text-secondary);
+}
+
+.secondary {
+  margin: 0;
+  color: var(--aurora-text-secondary);
+}
+
+.status {
+  margin: 0;
+  /* First line in the card, full width in both arrangements. */
+  order: 0;
+  width: 100%;
+  font-size: var(--aurora-type-caption-size);
+  color: var(--aurora-text-secondary);
+}
+
+.queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-2);
+}
+
+.queueRow {
+  display: flex;
+  align-items: stretch;
+  gap: var(--aurora-space-2);
+}
+
+.queueButton {
+  flex: 1;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0 var(--aurora-space-3);
+  padding: var(--aurora-space-3);
+  border: 1px solid var(--aurora-border-control);
+  border-radius: var(--aurora-radius-control);
+  background: var(--aurora-surface-glass-secondary);
+  color: var(--aurora-text-primary);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.queueButton[aria-current="true"] {
+  /* Paired with the ▶ marker so the current track is not signalled by colour alone. */
+  border-color: var(--aurora-accent-primary);
+}
+
+.queueIndex {
+  grid-row: 1 / span 2;
+  text-align: center;
+  color: var(--aurora-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.queueTitle {
+  /* A song's name in the queue. */
+  font-weight: var(--aurora-type-track-title-weight);
+}
+
+.removeButton {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--aurora-border-control);
+  border-radius: var(--aurora-radius-control);
+  background: transparent;
+  color: var(--aurora-text-secondary);
+  cursor: pointer;
+}
+
+.queueButton:focus-visible,
+.removeButton:focus-visible {
+  outline: 2px solid var(--aurora-accent-primary);
+  outline-offset: 2px;
+}
+
+/* ──────────────── Cover-flow stage ──────────────── */
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--aurora-space-4);
+  padding: var(--aurora-space-6) var(--aurora-space-4) var(--aurora-space-10);
+}
+
+/* The heading names the track for a screen reader; the covers say it visually. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * The transport: one floating pane of glass over the stage, as in the reference.
+ * Bigger surface, so a heavier blur and a deeper shadow than a chip.
+ */
+/*
+ * Stacked on a phone, one bar on a desktop.
+ *
+ * The single row comes from `ui demo/player desktop ui.jpg` and needs the width to hold
+ * controls, the track, a scrubber and the queue button side by side. At 390px it had them
+ * overlapping and the times wrapping onto three lines, so the phone gets the arrangement
+ * from `music palyer ui.png` instead: what is playing, then the position, then the
+ * transport.
+ */
+.transport {
+  position: sticky;
+  /*
+   * Clear of the app's own floating chrome, whose height the shell measures at runtime.
+   * At the plain space-4 the controls sat behind the navigation pill.
+   */
+  bottom: calc(var(--aurora-chrome-height, 4.5rem) + var(--aurora-space-3));
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--aurora-space-3);
+  width: min(52rem, 100%);
+  padding: var(--aurora-space-4);
+  border-radius: var(--aurora-radius-card);
+  background: var(--aurora-surface-glass-elevated);
+  backdrop-filter: blur(var(--aurora-blur-floating)) saturate(var(--aurora-glass-saturation));
+  -webkit-backdrop-filter: blur(var(--aurora-blur-floating))
+    saturate(var(--aurora-glass-saturation));
+  /* The bright rim is light catching the edge of the material. */
+  border: 1px solid var(--aurora-glass-edge);
+  box-shadow: var(--aurora-shadow-floating);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--aurora-space-4);
+  /* Last in the stack on a phone: the transport is what the thumb reaches for. */
+  order: 3;
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--aurora-target-min);
+  min-height: var(--aurora-target-min);
+  border: none;
+  border-radius: var(--aurora-radius-pill);
+  background: transparent;
+  color: var(--aurora-text-primary);
+  cursor: pointer;
+  /* Feedback belongs on the press, and it is instant. */
+  transition: transform var(--aurora-duration-instant) var(--aurora-easing-standard);
+}
+
+.control:active {
+  transform: scale(0.94);
+}
+
+.control:focus-visible {
+  outline: 2px solid var(--aurora-focus-ring);
+  outline-offset: 2px;
+}
+
+/* The one solid control on the bar, as the references have it. */
+.primary {
+  background: var(--aurora-control-primary);
+  color: var(--aurora-control-on-primary);
+  min-width: 3rem;
+  min-height: 3rem;
+}
+
+.nowPlaying {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-2);
+  flex: 1;
+  min-width: 0;
+  order: 1;
+}
+
+/*
+ * The scrubber takes whatever width is left.
+ *
+ * Without it the bars were squeezed into their content width on a desktop and the two
+ * times collided into "00:00--:--".
+ */
+.scrubberSlot {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Top-right of the card on a phone, as on Android, rather than first in the stack. */
+.queueToggle {
+  position: absolute;
+  top: var(--aurora-space-3);
+  right: var(--aurora-space-3);
+}
+
+/* The cover and the words, side by side above the position. */
+.nowPlayingHead {
+  display: flex;
+  align-items: center;
+  gap: var(--aurora-space-3);
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .transport {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--aurora-space-4);
+    padding: var(--aurora-space-3) var(--aurora-space-4);
+    border-radius: var(--aurora-radius-pill);
+  }
+
+  .controls {
+    order: 0;
+    gap: var(--aurora-space-1);
+  }
+
+  .nowPlaying {
+    order: 0;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .queueToggle {
+    position: static;
+  }
+
+  /* Back to one line: cover, words, then the position taking the remaining width. */
+  .nowPlayingHead {
+    flex: 0 1 auto;
+    max-width: 14rem;
+  }
+}
+
+.nowPlayingText {
+  min-width: 0;
+  flex: 1;
+}
+
+.nowPlayingTitle,
+.nowPlayingArtist {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nowPlayingTitle {
+  font-size: var(--aurora-type-label-size);
+  font-weight: var(--aurora-type-track-title-weight);
+  color: var(--aurora-text-primary);
+}
+
+.nowPlayingArtist {
+  font-size: var(--aurora-type-caption-size);
+  font-weight: var(--aurora-type-track-artist-compact-weight);
+  color: var(--aurora-text-secondary);
+}
+
+.queuePanel {
+  width: min(52rem, 100%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .transport {
+    background: var(--aurora-surface-opaque-fallback);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  /* On a phone the bar stacks: the covers already say what is playing. */
+  .transport {
+    flex-wrap: wrap;
+    justify-content: center;
+    border-radius: var(--aurora-radius-card);
+  }
+}

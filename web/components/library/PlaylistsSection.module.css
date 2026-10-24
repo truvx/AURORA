@@ -1,0 +1,120 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-3);
+}
+
+.createRow {
+  display: flex;
+  gap: var(--aurora-space-2);
+}
+
+.input {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 var(--aurora-space-3);
+  border: 1px solid var(--aurora-border-control);
+  border-radius: var(--aurora-radius-control);
+  background: transparent;
+  color: var(--aurora-text-primary);
+  font: inherit;
+}
+
+
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--aurora-space-3);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-2);
+}
+
+.row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--aurora-space-2);
+}
+
+.rowButton {
+  flex: 1;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--aurora-space-hair);
+  padding: var(--aurora-space-3);
+  border: 1px solid var(--aurora-border-control);
+  border-radius: var(--aurora-radius-control);
+  background: var(--aurora-surface-glass-secondary);
+  color: var(--aurora-text-primary);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rowButton:disabled {
+  cursor: not-allowed;
+  color: var(--aurora-text-secondary);
+}
+
+.rowTitle {
+  margin: 0;
+  font-size: var(--aurora-type-body-size);
+  /* A playlist's name is a heading for the rows under it. */
+  font-weight: var(--aurora-type-section-weight);
+}
+
+.status {
+  margin: 0;
+  font-size: var(--aurora-type-label-size);
+  color: var(--aurora-text-secondary);
+}
+
+.iconButton {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--aurora-border-control);
+  border-radius: var(--aurora-radius-control);
+  background: transparent;
+  color: var(--aurora-text-secondary);
+  cursor: pointer;
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rowButton:focus-visible,
+.iconButton:focus-visible,
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* At narrow widths and high zoom the button would otherwise overflow the viewport. */
+@media (max-width: 480px) {
+  .createRow {
+    flex-wrap: wrap;
+  }
+
+  .input {
+    flex-basis: 100%;
+  }
+}

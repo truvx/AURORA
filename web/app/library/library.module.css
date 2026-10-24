@@ -1,0 +1,154 @@
+/* Padding belongs to the shell's main region; repeating it here inset the content twice. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-4);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--aurora-space-3);
+}
+
+
+
+
+
+.status {
+  margin: 0;
+  color: var(--aurora-text-secondary);
+}
+
+.trackList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--aurora-space-2);
+}
+
+.trackRow {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--aurora-space-3);
+  padding: var(--aurora-space-3);
+  border: 1px solid var(--aurora-border-control);
+  border-radius: var(--aurora-radius-control);
+  background: var(--aurora-surface-glass-secondary);
+  color: var(--aurora-text-primary);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.trackRow:hover {
+  background: var(--aurora-surface-glass-elevated);
+}
+
+/* The text column beside the cover. min-width:0 lets long titles ellipsise rather than
+   forcing the row wider than its container. */
+.trackText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--aurora-space-hair);
+  min-width: 0;
+}
+
+.trackTitle {
+  /* A song's name, not a heading: Regular, and the heavier one only over glass. */
+  font-weight: var(--aurora-type-track-title-weight);
+}
+
+.trackArtist {
+  font-size: var(--aurora-type-track-artist-compact-size);
+  font-weight: var(--aurora-type-track-artist-compact-weight);
+  color: var(--aurora-text-secondary);
+}
+
+.filters {
+  display: flex;
+  gap: var(--aurora-space-2);
+  /* Four view names do not fit on a phone, and a control pushed off-screen is unreachable
+     - there is no horizontal scroll here to recover it with. */
+  flex-wrap: wrap;
+}
+
+.trackItem {
+  display: flex;
+  align-items: stretch;
+  gap: var(--aurora-space-2);
+}
+
+.trackItem .trackRow {
+  flex: 1;
+}
+
+.favoriteButton {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--aurora-border-control);
+  border-radius: var(--aurora-radius-control);
+  background: transparent;
+  color: var(--aurora-text-secondary);
+  cursor: pointer;
+}
+
+.favoriteButton[aria-pressed="true"] {
+  color: var(--aurora-accent-primary);
+}
+
+.favoriteButton:focus-visible {
+  outline: 2px solid var(--aurora-accent-primary);
+  outline-offset: 2px;
+}
+
+.pickerTitle {
+  margin: 0 0 var(--aurora-space-2);
+  font-size: var(--aurora-type-body-size);
+  /* A heading over the picker, so it takes the heading weight. */
+  font-weight: var(--aurora-type-section-weight);
+}
+
+/* A row and its own actions, side by side. */
+.trackRowGroup {
+  display: flex;
+  align-items: stretch;
+  gap: var(--aurora-space-2);
+}
+
+.trackRowGroup .trackRow {
+  flex: 1;
+  min-width: 0;
+}
+
+.trackAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--aurora-target-min);
+  min-height: var(--aurora-target-min);
+  border: 1px solid var(--aurora-border-control);
+  border-radius: var(--aurora-radius-control);
+  background: var(--aurora-surface-glass-secondary);
+  color: var(--aurora-text-primary);
+  cursor: pointer;
+  transition: transform var(--aurora-duration-instant) var(--aurora-easing-standard);
+}
+
+.trackAction:active {
+  transform: scale(0.94);
+}
+
+.trackAction:focus-visible {
+  outline: 2px solid var(--aurora-focus-ring);
+  outline-offset: 2px;
+}

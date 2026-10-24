@@ -131,34 +131,19 @@ fun AuroraFloatingChrome(
             horizontalArrangement = Arrangement.spacedBy(spacing.space2),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Plain box, not glass: each tab carries its own glass circle so every tab
+            // reads like Image #2's Listen circle rather than one flat pill with a single
+            // highlighted lozenge. No glass-on-glass nesting this way.
             Box(
-                modifier = Modifier.weight(1f).height(BarHeight)
+                modifier = Modifier.weight(1f).height(BarHeight),
+                contentAlignment = Alignment.Center
             ) {
-                /*
-                 * The pill gains the lozenge the quality control already had.
-                 *
-                 * Four tabs with only a tinted icon to mark the current one meant the
-                 * selection was carried by colour alone - the thing the design rules rule
-                 * out. It now has a shape as well, and the same one, because two rows of
-                 * mutually exclusive choices that mark themselves differently are two
-                 * controls to learn instead of one.
-                 */
                 val destinations = AuroraDestination.pillDestinations
-                val selectedIndex = destinations.indexOfFirst { it.route == currentRoute }
-                if (selectedIndex >= 0) {
-                    SelectionCapsule(
-                        index = selectedIndex,
-                        count = destinations.size,
-                        backdrop = backdrop,
-                        modifier = Modifier.padding(horizontal = spacing.space2),
-                        inset = 6.dp,
-                    )
-                }
 
-                // Equal slots, so each item's centre is where SelectionCapsule puts the
-                // lozenge. SpaceEvenly spaced content-sized items, and the two disagreed.
+                // Equal slots for each tab, centred on the pill.
                 Row(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = spacing.space2),
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.space2),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     destinations.forEach { destination ->
@@ -203,29 +188,39 @@ private fun NavPillItem(
     val pressDepth = Aurora.motion
     val tint = if (selected) colors.accentPrimary else colors.textSecondary
 
-    Column(
+    GlassSurface(
+        // Every tab reads as its own glass circle: Elevated glass (blur + refraction +
+        // rim light + edge shadow) on all four tabs, so each one looks like Image #2's
+        // Listen circle rather than a flat pill. The selected tab still stands out via
+        // its blue accent icon/text tint instead of a different glass level.
+        level = GlassLevel.Elevated,
+        shape = CircleShape,
         modifier = modifier
-            .clip(RoundedCornerShape(percent = 50))
-            .selectable(
-                selected = selected,
-                interactionSource = interaction,
-                // No ripple: the press response is the scale below, which starts on
-                // pointer-down rather than waiting for the release.
-                indication = null,
-                role = Role.Tab,
-                onClick = {
-                    if (!selected) haptics.fire(HapticEvent.Selection)
-                    onClick()
-                }
-            )
-            .padding(horizontal = Aurora.spacing.space3, vertical = Aurora.spacing.space2)
+            .size(44.dp)
             .graphicsLayer {
                 scaleX = 1f - pressDepth.pressScaleCompact * press
                 scaleY = 1f - pressDepth.pressScaleCompact * press
             },
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        pressProgress = { press },
     ) {
+        Column(
+            modifier = Modifier
+                .selectable(
+                    selected = selected,
+                    interactionSource = interaction,
+                    // No ripple: the press response is the scale above, which starts on
+                    // pointer-down rather than waiting for the release.
+                    indication = null,
+                    role = Role.Tab,
+                    onClick = {
+                        if (!selected) haptics.fire(HapticEvent.Selection)
+                        onClick()
+                    }
+                )
+                .padding(horizontal = Aurora.spacing.space3, vertical = Aurora.spacing.space2),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
         /*
          * The label goes away before it gets cut in half.
          *
@@ -256,6 +251,7 @@ private fun NavPillItem(
                 maxLines = 1
             )
         }
+    }
     }
 }
 
